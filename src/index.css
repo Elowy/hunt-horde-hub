@@ -2,41 +2,65 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
+/* Hunting & Outdoor Professional Design System */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* Base colors - Professional hunting theme */
+    --background: 48 6% 97%;
+    --foreground: 25 20% 15%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 25 20% 15%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover-foreground: 25 20% 15%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    /* Primary - Forest Green */
+    --primary: 145 35% 28%;
+    --primary-foreground: 0 0% 98%;
+    --primary-hover: 145 40% 24%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    /* Secondary - Warm Earth */
+    --secondary: 35 25% 88%;
+    --secondary-foreground: 25 20% 15%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    /* Accent - Hunter Orange */
+    --accent: 20 90% 58%;
+    --accent-foreground: 0 0% 98%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    /* Muted earth tones */
+    --muted: 40 15% 92%;
+    --muted-foreground: 25 10% 45%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --border: 40 12% 88%;
+    --input: 40 12% 88%;
+    --ring: 145 35% 28%;
 
     --radius: 0.5rem;
+
+    /* Custom hunting theme tokens */
+    --forest-deep: 145 45% 22%;
+    --forest-light: 145 25% 45%;
+    --earth-warm: 35 35% 75%;
+    --earth-rich: 35 45% 65%;
+    --orange-hunt: 20 90% 58%;
+    --brown-leather: 25 35% 40%;
+
+    /* Gradients */
+    --gradient-hero: linear-gradient(135deg, hsl(var(--forest-deep)), hsl(var(--forest-light)));
+    --gradient-card: linear-gradient(145deg, hsl(var(--card)), hsl(var(--earth-warm)));
+
+    /* Shadows */
+    --shadow-soft: 0 4px 20px hsl(var(--forest-deep) / 0.1);
+    --shadow-strong: 0 8px 30px hsl(var(--forest-deep) / 0.15);
+
+    /* Animations */
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
     --sidebar-background: 0 0% 98%;
 
