@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Plus, Search, Filter, Eye, Edit, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -52,6 +53,7 @@ const mockAnimals = [
 ];
 
 const Dashboard = () => {
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
 
@@ -159,7 +161,7 @@ const Dashboard = () => {
                 </div>
               </div>
               
-              <Button variant="hunting" size="lg">
+              <Button variant="hunting" size="lg" onClick={() => navigate("/add-animal")}>
                 <Plus className="h-4 w-4 mr-2" />
                 Add Animal
               </Button>
