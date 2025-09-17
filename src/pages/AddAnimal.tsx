@@ -16,16 +16,37 @@ const AddAnimal = () => {
   const [formData, setFormData] = useState({
     animalId: "",
     type: "",
+    subtype: "",
     weight: "",
     location: "",
+    gpsLatitude: "",
+    gpsLongitude: "",
     huntDate: "",
     hunter: "",
     status: "processing",
     notes: ""
   });
 
+  const animalSubtypes = {
+    deer: ["White-tailed", "Mule", "Blacktail", "Roe", "Red"],
+    elk: ["Rocky Mountain", "Roosevelt", "Tule", "Manitoban"],
+    moose: ["Alaska-Yukon", "Canada", "Shiras", "Eastern"],
+    bear: ["Black Bear", "Brown Bear", "Grizzly", "Polar"],
+    "wild-boar": ["European", "Feral Hog", "Russian", "Hybrid"],
+    duck: ["Mallard", "Teal", "Canvasback", "Wood Duck", "Pintail"],
+    pheasant: ["Ring-necked", "Golden", "Silver", "Reeves"],
+    other: ["Custom"]
+  };
+
   const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData(prev => {
+      const newData = { ...prev, [field]: value };
+      // Reset subtype when type changes
+      if (field === "type") {
+        newData.subtype = "";
+      }
+      return newData;
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -43,8 +64,11 @@ const AddAnimal = () => {
     setFormData({
       animalId: "",
       type: "",
+      subtype: "",
       weight: "",
       location: "",
+      gpsLatitude: "",
+      gpsLongitude: "",
       huntDate: "",
       hunter: "",
       status: "processing",
@@ -86,7 +110,7 @@ const AddAnimal = () => {
                     id="animalId"
                     value={formData.animalId}
                     onChange={(e) => handleInputChange("animalId", e.target.value)}
-                    placeholder="e.g., DEER001"
+                    placeholder="Enter unique animal identifier"
                     required
                   />
                 </div>
@@ -111,6 +135,26 @@ const AddAnimal = () => {
                 </div>
 
                 <div className="space-y-2">
+                  <Label htmlFor="subtype">Animal Subtype</Label>
+                  <Select 
+                    value={formData.subtype} 
+                    onValueChange={(value) => handleInputChange("subtype", value)}
+                    disabled={!formData.type}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={formData.type ? "Select subtype" : "Select animal type first"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {formData.type && animalSubtypes[formData.type as keyof typeof animalSubtypes]?.map((subtype) => (
+                        <SelectItem key={subtype} value={subtype.toLowerCase().replace(/\s+/g, '-')}>
+                          {subtype}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
                   <Label htmlFor="weight">Weight (lbs)</Label>
                   <Input
                     id="weight"
@@ -129,6 +173,30 @@ const AddAnimal = () => {
                     onChange={(e) => handleInputChange("location", e.target.value)}
                     placeholder="e.g., North Ridge"
                     required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="gpsLatitude">GPS Latitude</Label>
+                  <Input
+                    id="gpsLatitude"
+                    type="number"
+                    step="any"
+                    value={formData.gpsLatitude}
+                    onChange={(e) => handleInputChange("gpsLatitude", e.target.value)}
+                    placeholder="e.g., 40.7128"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="gpsLongitude">GPS Longitude</Label>
+                  <Input
+                    id="gpsLongitude"
+                    type="number"
+                    step="any"
+                    value={formData.gpsLongitude}
+                    onChange={(e) => handleInputChange("gpsLongitude", e.target.value)}
+                    placeholder="e.g., -74.0060"
                   />
                 </div>
 

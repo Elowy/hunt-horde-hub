@@ -24,29 +24,35 @@ import {
 // Mock data for demonstration
 const mockAnimals = [
   {
-    id: "ANI-001",
+    id: "12847",
     type: "White-tailed Deer",
+    subtype: "White-tailed",
     weight: "180 lbs",
     date: "2024-01-15",
     location: "North Woods - Sector 3",
+    gps: "40.7128, -74.0060",
     status: "Processed",
     hunter: "John Smith"
   },
   {
-    id: "ANI-002", 
+    id: "98263", 
     type: "Wild Boar",
+    subtype: "European",
     weight: "220 lbs",
     date: "2024-01-18",
     location: "South Ridge - Sector 7",
+    gps: "41.2524, -75.8580",
     status: "Storage",
     hunter: "Mike Johnson"
   },
   {
-    id: "ANI-003",
+    id: "55492",
     type: "Turkey",
+    subtype: "Eastern",
     weight: "25 lbs", 
     date: "2024-01-20",
     location: "East Field - Sector 2",
+    gps: "39.9526, -75.1652",
     status: "Fresh",
     hunter: "Sarah Wilson"
   }
@@ -180,9 +186,11 @@ const Dashboard = () => {
                 <TableRow>
                   <TableHead>Animal ID</TableHead>
                   <TableHead>Type</TableHead>
+                  <TableHead>Subtype</TableHead>
                   <TableHead>Weight</TableHead>
                   <TableHead>Date</TableHead>
                   <TableHead>Location</TableHead>
+                  <TableHead>GPS</TableHead>
                   <TableHead>Hunter</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Actions</TableHead>
@@ -193,9 +201,11 @@ const Dashboard = () => {
                   <TableRow key={animal.id}>
                     <TableCell className="font-medium">{animal.id}</TableCell>
                     <TableCell>{animal.type}</TableCell>
+                    <TableCell>{animal.subtype}</TableCell>
                     <TableCell>{animal.weight}</TableCell>
                     <TableCell>{animal.date}</TableCell>
                     <TableCell>{animal.location}</TableCell>
+                    <TableCell className="font-mono text-sm">{animal.gps}</TableCell>
                     <TableCell>{animal.hunter}</TableCell>
                     <TableCell>
                       <Badge className={getStatusColor(animal.status)}>
