@@ -17,14 +17,31 @@ const AddAnimal = () => {
     animalId: "",
     type: "",
     subtype: "",
+    gender: "",
+    age: "",
+    class: "",
     weight: "",
     location: "",
+    village: "",
     gpsLatitude: "",
     gpsLongitude: "",
     huntDate: "",
     hunter: "",
+    hunterType: "",
     status: "processing",
-    notes: ""
+    notes: "",
+    comment: "",
+    sampleId: "",
+    sampleReturnId: "",
+    animalDoctor: "",
+    refoundFeeWildBoar: "",
+    shootFeeWildBoar: "",
+    sampleCollectionFeeWildBoar: "",
+    shoppingId: "",
+    usage: "",
+    priceWithVat: "",
+    priceWithoutVat: "",
+    invoiceNo: ""
   });
 
   const animalSubtypes = {
@@ -65,14 +82,31 @@ const AddAnimal = () => {
       animalId: "",
       type: "",
       subtype: "",
+      gender: "",
+      age: "",
+      class: "",
       weight: "",
       location: "",
+      village: "",
       gpsLatitude: "",
       gpsLongitude: "",
       huntDate: "",
       hunter: "",
+      hunterType: "",
       status: "processing",
-      notes: ""
+      notes: "",
+      comment: "",
+      sampleId: "",
+      sampleReturnId: "",
+      animalDoctor: "",
+      refoundFeeWildBoar: "",
+      shootFeeWildBoar: "",
+      sampleCollectionFeeWildBoar: "",
+      shoppingId: "",
+      usage: "",
+      priceWithVat: "",
+      priceWithoutVat: "",
+      invoiceNo: ""
     });
   };
 
@@ -155,6 +189,45 @@ const AddAnimal = () => {
                 </div>
 
                 <div className="space-y-2">
+                  <Label htmlFor="gender">Gender</Label>
+                  <Select value={formData.gender} onValueChange={(value) => handleInputChange("gender", value)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select gender" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="male">Male</SelectItem>
+                      <SelectItem value="female">Female</SelectItem>
+                      <SelectItem value="unknown">Unknown</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="age">Age</Label>
+                  <Input
+                    id="age"
+                    value={formData.age}
+                    onChange={(e) => handleInputChange("age", e.target.value)}
+                    placeholder="e.g., 3 years or Adult"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="class">Class</Label>
+                  <Select value={formData.class} onValueChange={(value) => handleInputChange("class", value)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select class" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="trophy">Trophy</SelectItem>
+                      <SelectItem value="medal">Medal</SelectItem>
+                      <SelectItem value="standard">Standard</SelectItem>
+                      <SelectItem value="young">Young</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
                   <Label htmlFor="weight">Weight (lbs)</Label>
                   <Input
                     id="weight"
@@ -173,6 +246,16 @@ const AddAnimal = () => {
                     onChange={(e) => handleInputChange("location", e.target.value)}
                     placeholder="e.g., North Ridge"
                     required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="village">Village</Label>
+                  <Input
+                    id="village"
+                    value={formData.village}
+                    onChange={(e) => handleInputChange("village", e.target.value)}
+                    placeholder="e.g., Riverside Village"
                   />
                 </div>
 
@@ -221,6 +304,165 @@ const AddAnimal = () => {
                     required
                   />
                 </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="hunterType">Hunter Type</Label>
+                  <Select value={formData.hunterType} onValueChange={(value) => handleInputChange("hunterType", value)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select hunter type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="local">Local Hunter</SelectItem>
+                      <SelectItem value="tourist">Tourist</SelectItem>
+                      <SelectItem value="professional">Professional</SelectItem>
+                      <SelectItem value="guide">Guide</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Sample and Medical Information */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-hunt-dark border-b pb-2">Sample & Medical Information</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="sampleId">Sample ID</Label>
+                    <Input
+                      id="sampleId"
+                      value={formData.sampleId}
+                      onChange={(e) => handleInputChange("sampleId", e.target.value)}
+                      placeholder="e.g., SMP-2024-001"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="sampleReturnId">Sample Return ID</Label>
+                    <Input
+                      id="sampleReturnId"
+                      value={formData.sampleReturnId}
+                      onChange={(e) => handleInputChange("sampleReturnId", e.target.value)}
+                      placeholder="e.g., RTN-2024-001"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="animalDoctor">Animal Doctor</Label>
+                    <Input
+                      id="animalDoctor"
+                      value={formData.animalDoctor}
+                      onChange={(e) => handleInputChange("animalDoctor", e.target.value)}
+                      placeholder="e.g., Dr. Smith"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Wild Boar Specific Fees */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-hunt-dark border-b pb-2">Wild Boar Fees (if applicable)</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="refoundFeeWildBoar">Refund Fee</Label>
+                    <Input
+                      id="refoundFeeWildBoar"
+                      type="number"
+                      step="0.01"
+                      value={formData.refoundFeeWildBoar}
+                      onChange={(e) => handleInputChange("refoundFeeWildBoar", e.target.value)}
+                      placeholder="0.00"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="shootFeeWildBoar">Shoot Fee</Label>
+                    <Input
+                      id="shootFeeWildBoar"
+                      type="number"
+                      step="0.01"
+                      value={formData.shootFeeWildBoar}
+                      onChange={(e) => handleInputChange("shootFeeWildBoar", e.target.value)}
+                      placeholder="0.00"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="sampleCollectionFeeWildBoar">Sample Collection Fee</Label>
+                    <Input
+                      id="sampleCollectionFeeWildBoar"
+                      type="number"
+                      step="0.01"
+                      value={formData.sampleCollectionFeeWildBoar}
+                      onChange={(e) => handleInputChange("sampleCollectionFeeWildBoar", e.target.value)}
+                      placeholder="0.00"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Commercial Information */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-hunt-dark border-b pb-2">Commercial Information</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="shoppingId">Shopping ID</Label>
+                    <Input
+                      id="shoppingId"
+                      value={formData.shoppingId}
+                      onChange={(e) => handleInputChange("shoppingId", e.target.value)}
+                      placeholder="e.g., SHP-2024-001"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="usage">Usage</Label>
+                    <Select value={formData.usage} onValueChange={(value) => handleInputChange("usage", value)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select usage" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="personal">Personal</SelectItem>
+                        <SelectItem value="commercial">Commercial</SelectItem>
+                        <SelectItem value="trophy">Trophy</SelectItem>
+                        <SelectItem value="meat">Meat Processing</SelectItem>
+                        <SelectItem value="research">Research</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="priceWithVat">Price With VAT</Label>
+                    <Input
+                      id="priceWithVat"
+                      type="number"
+                      step="0.01"
+                      value={formData.priceWithVat}
+                      onChange={(e) => handleInputChange("priceWithVat", e.target.value)}
+                      placeholder="0.00"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="priceWithoutVat">Price Without VAT</Label>
+                    <Input
+                      id="priceWithoutVat"
+                      type="number"
+                      step="0.01"
+                      value={formData.priceWithoutVat}
+                      onChange={(e) => handleInputChange("priceWithoutVat", e.target.value)}
+                      placeholder="0.00"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="invoiceNo">Invoice Number</Label>
+                    <Input
+                      id="invoiceNo"
+                      value={formData.invoiceNo}
+                      onChange={(e) => handleInputChange("invoiceNo", e.target.value)}
+                      placeholder="e.g., INV-2024-001"
+                    />
+                  </div>
+                </div>
               </div>
 
               <div className="space-y-2">
@@ -244,6 +486,17 @@ const AddAnimal = () => {
                   value={formData.notes}
                   onChange={(e) => handleInputChange("notes", e.target.value)}
                   placeholder="Any additional information about the animal..."
+                  rows={3}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="comment">Comment</Label>
+                <Textarea
+                  id="comment"
+                  value={formData.comment}
+                  onChange={(e) => handleInputChange("comment", e.target.value)}
+                  placeholder="Additional comments or special instructions..."
                   rows={3}
                 />
               </div>
