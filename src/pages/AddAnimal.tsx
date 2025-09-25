@@ -317,7 +317,7 @@ const AddAnimal = () => {
 
               {/* Sample and Medical Information */}
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-hunt-dark border-b pb-2">Minta & Orvosi Információ</h3>
+                <h3 className="text-lg font-semibold text-hunt-dark border-b pb-2">Minta & Orvosi Információ (Kizárólag Vaddisznók esetében)</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="sampleId">Minta ID</Label>
