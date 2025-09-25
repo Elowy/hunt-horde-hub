@@ -45,14 +45,11 @@ const AddAnimal = () => {
   });
 
   const animalSubtypes = {
-    deer: ["White-tailed", "Mule", "Blacktail", "Roe", "Red"],
-    elk: ["Rocky Mountain", "Roosevelt", "Tule", "Manitoban"],
-    moose: ["Alaska-Yukon", "Canada", "Shiras", "Eastern"],
-    bear: ["Black Bear", "Brown Bear", "Grizzly", "Polar"],
-    "wild-boar": ["European", "Feral Hog", "Russian", "Hybrid"],
-    duck: ["Mallard", "Teal", "Canvasback", "Wood Duck", "Pintail"],
-    pheasant: ["Ring-necked", "Golden", "Silver", "Reeves"],
-    other: ["Custom"]
+    "vaddiszno": ["Kan", "Koca", "Süldő", "Malac"],
+    "gim-szarvas": ["Bika", "Tehén", "Ünő", "Borjú"],
+    "dam-szarvas": ["Bika", "Tehén", "Ünő", "Borjú"],
+    "oz": ["Bak", "Suta", "Gida"],
+    "muflon": ["Kos", "Jerke", "Bárány"]
   };
 
   const handleInputChange = (field: string, value: string) => {
@@ -156,14 +153,11 @@ const AddAnimal = () => {
                       <SelectValue placeholder="Select animal type" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="deer">Deer</SelectItem>
-                      <SelectItem value="elk">Elk</SelectItem>
-                      <SelectItem value="moose">Moose</SelectItem>
-                      <SelectItem value="bear">Bear</SelectItem>
-                      <SelectItem value="wild-boar">Wild Boar</SelectItem>
-                      <SelectItem value="duck">Duck</SelectItem>
-                      <SelectItem value="pheasant">Pheasant</SelectItem>
-                      <SelectItem value="other">Other</SelectItem>
+                      <SelectItem value="vaddiszno">Vaddisznó</SelectItem>
+                      <SelectItem value="gim-szarvas">Gím Szarvas</SelectItem>
+                      <SelectItem value="dam-szarvas">Dám Szarvas</SelectItem>
+                      <SelectItem value="oz">Őz</SelectItem>
+                      <SelectItem value="muflon">Muflon</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
