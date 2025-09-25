@@ -136,7 +136,7 @@ const AddAnimal = () => {
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="animalId">Állat ID *</Label>
+                  <Label htmlFor="animalId">Vadazonosító *</Label>
                   <Input
                     id="animalId"
                     value={formData.animalId}
@@ -306,10 +306,10 @@ const AddAnimal = () => {
                       <SelectValue placeholder="Válasszon vadász típust" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="local">Helyi Vadász</SelectItem>
-                      <SelectItem value="tourist">Turista</SelectItem>
-                      <SelectItem value="professional">Profi</SelectItem>
-                      <SelectItem value="guide">Vadászvezető</SelectItem>
+                      <SelectItem value="vador">Vadőr</SelectItem>
+                      <SelectItem value="tag">Tag</SelectItem>
+                      <SelectItem value="bervadasz">Bérvadász</SelectItem>
+                      <SelectItem value="ib-vendeg">IB vendég</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
