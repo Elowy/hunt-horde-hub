@@ -75,6 +75,12 @@ export const CreateTransportDialog = ({
 
       if (error) throw error;
       setTransporters(data || []);
+      
+      // Automatikusan kiválasztja az alapértelmezett szállítót
+      const defaultTransporter = data?.find((t: any) => t.is_default);
+      if (defaultTransporter) {
+        setSelectedTransporter(defaultTransporter.id);
+      }
     } catch (error: any) {
       toast({
         title: "Hiba",

@@ -434,6 +434,7 @@ export type Database = {
           contact_name: string | null
           created_at: string
           id: string
+          is_default: boolean | null
           tax_number: string | null
           updated_at: string
           user_id: string
@@ -444,6 +445,7 @@ export type Database = {
           contact_name?: string | null
           created_at?: string
           id?: string
+          is_default?: boolean | null
           tax_number?: string | null
           updated_at?: string
           user_id: string
@@ -454,6 +456,7 @@ export type Database = {
           contact_name?: string | null
           created_at?: string
           id?: string
+          is_default?: boolean | null
           tax_number?: string | null
           updated_at?: string
           user_id?: string
