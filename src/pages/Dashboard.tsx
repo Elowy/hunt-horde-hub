@@ -32,6 +32,7 @@ import { EditStorageLocationDialog } from "@/components/EditStorageLocationDialo
 import { ViewAnimalDialog } from "@/components/ViewAnimalDialog";
 import { EditAnimalDialog } from "@/components/EditAnimalDialog";
 import { CreateTransportDialog } from "@/components/CreateTransportDialog";
+import { InviteUserDialog } from "@/components/InviteUserDialog";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import jsPDF from "jspdf";
@@ -583,6 +584,7 @@ const Dashboard = () => {
               <p className="text-primary-foreground/90">Vadászati nyilvántartás és hűtés kezelése</p>
             </div>
             <div className="flex flex-wrap gap-2">
+              <InviteUserDialog />
               <TransportDocumentsDialog />
               <TransporterDialog />
               <PriceSettingsDialog onPriceUpdated={fetchData} />
