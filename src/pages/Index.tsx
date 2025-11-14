@@ -52,7 +52,7 @@ const Index = () => {
       price: "1 950 Ft",
       period: "/hó",
       yearlyPrice: "18 720 Ft/év",
-      features: ["1 hűtési hely", "20 állat havonta", "Alapvető statisztikák"],
+      features: ["1 hűtési hely", "Korlátlan állat hozzáadás", "Alapvető statisztikák"],
       highlighted: false
     },
     {
@@ -60,7 +60,7 @@ const Index = () => {
       price: "4 950 Ft",
       period: "/hó",
       yearlyPrice: "47 520 Ft/év",
-      features: ["Korlátlan hűtési helyek", "Korlátlan állatok", "Részletes statisztikák", "Prioritás támogatás", "1 hónap ingyenes próba"],
+      features: ["Korlátlan hűtési helyek", "Korlátlan állatok", "Vadászati beiratkozások", "Részletes statisztikák", "Prioritás támogatás", "1 hónap ingyenes próba"],
       highlighted: true
     }
   ];

@@ -1,11 +1,13 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Plus, Calendar, Clock, MapPin, CheckCircle, XCircle, AlertCircle } from "lucide-react";
+import { ArrowLeft, Plus, Calendar, Clock, MapPin, CheckCircle, XCircle, AlertCircle, Crown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useSubscription } from "@/hooks/useSubscription";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   Dialog,
   DialogContent,
@@ -42,6 +44,7 @@ interface HuntingRegistration {
 const HuntingRegistrations = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { isPro, loading: subscriptionLoading } = useSubscription();
   const [registrations, setRegistrations] = useState<HuntingRegistration[]>([]);
   const [zones, setZones] = useState<SecurityZone[]>([]);
   const [loading, setLoading] = useState(true);
@@ -236,6 +239,55 @@ const HuntingRegistrations = () => {
     }
     return <Badge variant="outline"><Clock className="h-3 w-3 mr-1" />Függőben</Badge>;
   };
+
+  if (subscriptionLoading) {
+    return (
+      <div className="min-h-screen bg-background p-6 flex items-center justify-center">
+        <p className="text-muted-foreground">Betöltés...</p>
+      </div>
+    );
+  }
+
+  if (!isPro) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted">
+        <div className="bg-gradient-to-r from-forest-deep to-forest-light text-primary-foreground">
+          <div className="container mx-auto px-6 py-6">
+            <div className="flex items-center gap-4">
+              <Button
+                variant="ghost"
+                onClick={() => navigate("/dashboard")}
+                className="text-primary-foreground hover:bg-primary-foreground/10"
+              >
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Vissza
+              </Button>
+              <div>
+                <h1 className="text-3xl font-bold mb-2">Vadászati beiratkozások</h1>
+                <p className="text-primary-foreground/90">Beiratkozások kezelése és új beiratkozás létrehozása</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="container mx-auto px-6 py-8">
+          <Alert className="border-yellow-500/50 bg-yellow-500/10">
+            <Crown className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
+            <AlertTitle className="text-yellow-700 dark:text-yellow-300">Pro csomag szükséges</AlertTitle>
+            <AlertDescription className="text-yellow-600 dark:text-yellow-400">
+              A vadászati beiratkozási rendszer csak Pro csomaggal érhető el. 
+              <Button 
+                variant="link" 
+                className="p-0 h-auto ml-1 text-yellow-700 dark:text-yellow-300 underline"
+                onClick={() => navigate("/subscriptions")}
+              >
+                Frissítsen Pro csomagra
+              </Button>
+            </AlertDescription>
+          </Alert>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted">
