@@ -137,23 +137,13 @@ const AddAnimal = () => {
   };
 
   const calculatePrice = () => {
-    console.log('Calculating price...', {
-      weight: formData.weight,
-      type: formData.type,
-      class: formData.class,
-      priceSettings: priceSettings.length,
-      vatRate
-    });
-
     if (!formData.weight || !formData.type || !formData.class) {
-      console.log('Missing required fields for price calculation');
       setCalculatedPrice({ net: 0, gross: 0 });
       return;
     }
 
     const weight = parseFloat(formData.weight);
     if (isNaN(weight)) {
-      console.log('Invalid weight');
       setCalculatedPrice({ net: 0, gross: 0 });
       return;
     }
@@ -162,18 +152,13 @@ const AddAnimal = () => {
       (p) => p.species === formData.type && p.class === formData.class
     );
 
-    console.log('Found price setting:', priceSetting);
-
     if (!priceSetting) {
-      console.log('No matching price setting found');
       setCalculatedPrice({ net: 0, gross: 0 });
       return;
     }
 
     const netPrice = weight * priceSetting.price_per_kg;
     const grossPrice = netPrice * (1 + vatRate / 100);
-
-    console.log('Calculated prices:', { netPrice, grossPrice });
 
     setCalculatedPrice({
       net: Math.round(netPrice),
@@ -357,10 +342,10 @@ const AddAnimal = () => {
                       <SelectValue placeholder="Válasszon osztályt" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="1. osztály">1. osztály</SelectItem>
-                      <SelectItem value="2. osztály">2. osztály</SelectItem>
-                      <SelectItem value="3. osztály">3. osztály</SelectItem>
-                      <SelectItem value="Kobzott">Kobzott</SelectItem>
+                      <SelectItem value="I">I. osztály</SelectItem>
+                      <SelectItem value="II">II. osztály</SelectItem>
+                      <SelectItem value="III">III. osztály</SelectItem>
+                      <SelectItem value="IV">IV. osztály</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
