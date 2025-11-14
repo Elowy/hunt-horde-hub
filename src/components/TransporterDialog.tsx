@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Truck, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { EditTransporterDialog } from "@/components/EditTransporterDialog";
 import {
   Table,
   TableBody,
@@ -245,13 +246,20 @@ export const TransporterDialog = () => {
                   <TableCell>{transporter.address || "-"}</TableCell>
                   <TableCell>{transporter.tax_number || "-"}</TableCell>
                   <TableCell className="text-right">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleDelete(transporter.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    <div className="flex justify-end gap-1">
+                      <EditTransporterDialog 
+                        transporter={transporter}
+                        onTransporterUpdated={fetchTransporters}
+                      />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDelete(transporter.id)}
+                        className="h-8 w-8"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
