@@ -9,6 +9,8 @@ import { TransporterDialog } from "@/components/TransporterDialog";
 import { PriceSettingsDialog } from "@/components/PriceSettingsDialog";
 import { InviteUserDialog } from "@/components/InviteUserDialog";
 import { Separator } from "@/components/ui/separator";
+import { useSubscription } from "@/hooks/useSubscription";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface DashboardMenuProps {
   isAdmin: boolean;
@@ -19,6 +21,7 @@ interface DashboardMenuProps {
 export const DashboardMenu = ({ isAdmin, onLogout, onPriceUpdated }: DashboardMenuProps) => {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
+  const { isPro, loading: subscriptionLoading } = useSubscription();
 
   const handleNavigation = (path: string) => {
     navigate(path);
@@ -49,7 +52,20 @@ export const DashboardMenu = ({ isAdmin, onLogout, onPriceUpdated }: DashboardMe
             </Button>
             {isAdmin && (
               <div className="ml-6">
-                <InviteUserDialog />
+                {subscriptionLoading ? (
+                  <p className="text-xs text-muted-foreground px-2">Betöltés...</p>
+                ) : isPro ? (
+                  <InviteUserDialog />
+                ) : (
+                  <Alert className="border-yellow-500/50 bg-yellow-500/10 py-2">
+                    <AlertDescription className="text-xs flex items-center gap-2">
+                      <Crown className="h-3 w-3 text-yellow-600 dark:text-yellow-400 shrink-0" />
+                      <span className="text-yellow-700 dark:text-yellow-300">
+                        Csak Pro csomagban
+                      </span>
+                    </AlertDescription>
+                  </Alert>
+                )}
               </div>
             )}
           </div>

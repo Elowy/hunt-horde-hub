@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Save, User, Mail } from "lucide-react";
+import { ArrowLeft, Save, User, Mail, Crown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,10 +8,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { InviteUserDialog } from "@/components/InviteUserDialog";
+import { useSubscription } from "@/hooks/useSubscription";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const Profile = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { isPro, loading: subscriptionLoading } = useSubscription();
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [isAdmin, setIsAdmin] = useState(false);
@@ -454,7 +457,25 @@ const Profile = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <InviteUserDialog />
+                {subscriptionLoading ? (
+                  <p className="text-muted-foreground">Előfizetés ellenőrzése...</p>
+                ) : isPro ? (
+                  <InviteUserDialog />
+                ) : (
+                  <Alert className="border-yellow-500/50 bg-yellow-500/10">
+                    <Crown className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
+                    <AlertDescription className="text-sm">
+                      Felhasználók meghívása csak Pro előfizetéssel érhető el.{" "}
+                      <Button
+                        variant="link"
+                        className="h-auto p-0 text-yellow-600 dark:text-yellow-400"
+                        onClick={() => navigate("/subscriptions")}
+                      >
+                        Váltson Pro csomagra
+                      </Button>
+                    </AlertDescription>
+                  </Alert>
+                )}
               </CardContent>
             </Card>
           )}
