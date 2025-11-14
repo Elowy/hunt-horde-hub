@@ -647,6 +647,36 @@ export type Database = {
         }
         Relationships: []
       }
+      trial_subscriptions: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          newsletter_subscribed: boolean
+          started_at: string
+          tier: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at: string
+          id?: string
+          newsletter_subscribed?: boolean
+          started_at?: string
+          tier?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          newsletter_subscribed?: boolean
+          started_at?: string
+          tier?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string | null

@@ -24,7 +24,8 @@ const Register = () => {
     userType: "hunter_society",
     hunterLicenseNumber: "",
     birthDate: "",
-    privacyPolicyAccepted: false
+    privacyPolicyAccepted: false,
+    newsletterSubscribed: false
   });
 
   const [loading, setLoading] = useState(false);
@@ -97,9 +98,24 @@ const Register = () => {
       }
 
       if (data.user) {
+        // Ha feliratkozott a hírlevélre, létrehozzuk a próbaidőszakot
+        if (formData.newsletterSubscribed) {
+          const expiresAt = new Date();
+          expiresAt.setMonth(expiresAt.getMonth() + 1);
+          
+          await supabase.from("trial_subscriptions").insert({
+            user_id: data.user.id,
+            tier: "pro",
+            expires_at: expiresAt.toISOString(),
+            newsletter_subscribed: true,
+          });
+        }
+
         toast({
           title: "Sikeres regisztráció!",
-          description: "Fiókja létrehozva. Átirányítás..."
+          description: formData.newsletterSubscribed 
+            ? "Fiókja létrehozva. 1 hónap ingyenes Pro előfizetést kapott!" 
+            : "Fiókja létrehozva. Átirányítás...",
         });
         
         setTimeout(() => {
@@ -323,6 +339,17 @@ const Register = () => {
                 </Label>
               </div>
             )}
+
+            <div className="flex items-start space-x-2">
+              <Checkbox
+                id="newsletter"
+                checked={formData.newsletterSubscribed}
+                onCheckedChange={(checked) => handleInputChange("newsletterSubscribed", checked as boolean)}
+              />
+              <Label htmlFor="newsletter" className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                Feliratkozom a hírlevélre és kapok 1 hónap ingyenes Pro előfizetést! 🎁
+              </Label>
+            </div>
 
             <Button
               type="submit" 
