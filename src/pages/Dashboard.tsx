@@ -33,7 +33,7 @@ import { ViewAnimalDialog } from "@/components/ViewAnimalDialog";
 import { EditAnimalDialog } from "@/components/EditAnimalDialog";
 import { CreateTransportDialog } from "@/components/CreateTransportDialog";
 import { DashboardMenu } from "@/components/DashboardMenu";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import jsPDF from "jspdf";
 
 interface StorageLocation {
@@ -576,6 +576,33 @@ const Dashboard = () => {
     });
   };
 
+  const getCurrentMonthRevenue = () => {
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+    
+    const monthlyAnimals = animals.filter(a => {
+      if (!a.cooling_date) return false;
+      const date = new Date(a.cooling_date);
+      return date.getMonth() === currentMonth && date.getFullYear() === currentYear;
+    });
+    
+    return monthlyAnimals.reduce((sum, animal) => {
+      return sum + getAnimalPrice(animal).gross;
+    }, 0);
+  };
+
+  const getCapacityData = () => {
+    const totalCapacity = locations.reduce((sum, loc) => sum + (loc.capacity || 0), 0);
+    const coolingAnimals = animals.filter(a => !a.is_transported).length;
+    const freeSpace = Math.max(0, totalCapacity - coolingAnimals);
+    
+    return [
+      { name: 'Hűtött állatok', value: coolingAnimals, color: '#10b981' },
+      { name: 'Szabad helyek', value: freeSpace, color: '#94a3b8' },
+    ];
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -690,49 +717,55 @@ const Dashboard = () => {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium text-muted-foreground">
-                Összes állat
+                Kapacitás kihasználtság
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{animals.length}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Helyszínek
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{locations.length}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                🦌 Szarvas
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {animals.filter(a => a.species === "🦌 Szarvas").length}
+              <div className="h-[200px] flex items-center justify-center">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={getCapacityData()}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={({ name, value }) => `${name}: ${value}`}
+                      outerRadius={80}
+                      fill="#8884d8"
+                      dataKey="value"
+                    >
+                      {getCapacityData().map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
               </div>
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium text-muted-foreground">
-                🐗 Vaddisznó
+                Havi bevétel (aktuális hónap)
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
-                {animals.filter(a => a.species === "🐗 Vaddisznó").length}
+              <div className="text-3xl font-bold text-green-600 dark:text-green-400">
+                {getCurrentMonthRevenue().toLocaleString('hu-HU')} Ft
               </div>
+              <p className="text-sm text-muted-foreground mt-2">
+                {animals.filter(a => {
+                  if (!a.cooling_date) return false;
+                  const date = new Date(a.cooling_date);
+                  const now = new Date();
+                  return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
+                }).length} állat hűtve ebben a hónapban
+              </p>
             </CardContent>
           </Card>
         </div>
