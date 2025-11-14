@@ -450,7 +450,7 @@ const Dashboard = () => {
               <TransportDocumentsDialog />
               <TransporterDialog />
               <PriceSettingsDialog onPriceUpdated={fetchData} />
-              <Button variant="outline" onClick={handleLogout} className="text-white border-white hover:bg-white/10">
+              <Button variant="outline" onClick={handleLogout} className="text-black border-black hover:bg-black/10">
                 <LogOut className="h-4 w-4 mr-2" />
                 Kijelentkezés
               </Button>
