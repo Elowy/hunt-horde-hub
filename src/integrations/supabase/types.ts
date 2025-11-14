@@ -27,11 +27,13 @@ export type Database = {
           hunter_name: string | null
           hunter_type: string | null
           id: string
+          is_transported: boolean | null
           notes: string | null
           sample_date: string | null
           sample_id: string | null
           species: string
           storage_location_id: string
+          transported_at: string | null
           updated_at: string
           user_id: string
           vet_check: boolean | null
@@ -50,11 +52,13 @@ export type Database = {
           hunter_name?: string | null
           hunter_type?: string | null
           id?: string
+          is_transported?: boolean | null
           notes?: string | null
           sample_date?: string | null
           sample_id?: string | null
           species: string
           storage_location_id: string
+          transported_at?: string | null
           updated_at?: string
           user_id: string
           vet_check?: boolean | null
@@ -73,11 +77,13 @@ export type Database = {
           hunter_name?: string | null
           hunter_type?: string | null
           id?: string
+          is_transported?: boolean | null
           notes?: string | null
           sample_date?: string | null
           sample_id?: string | null
           species?: string
           storage_location_id?: string
+          transported_at?: string | null
           updated_at?: string
           user_id?: string
           vet_check?: boolean | null
