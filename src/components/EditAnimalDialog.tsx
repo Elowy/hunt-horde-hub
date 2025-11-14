@@ -120,23 +120,13 @@ export const EditAnimalDialog = ({ animal, locations, onAnimalUpdated }: EditAni
   }, [open]);
 
   const calculatePrice = () => {
-    console.log('EditAnimal - Calculating price...', {
-      weight: formData.weight,
-      species: formData.species,
-      class: formData.class,
-      priceSettings: priceSettings.length,
-      vatRate
-    });
-
     if (!formData.weight || !formData.species || !formData.class) {
-      console.log('EditAnimal - Missing required fields');
       setCalculatedPrice({ net: 0, gross: 0 });
       return;
     }
 
     const weight = parseFloat(formData.weight);
     if (isNaN(weight)) {
-      console.log('EditAnimal - Invalid weight');
       setCalculatedPrice({ net: 0, gross: 0 });
       return;
     }
@@ -145,18 +135,13 @@ export const EditAnimalDialog = ({ animal, locations, onAnimalUpdated }: EditAni
       (p) => p.species === formData.species && p.class === formData.class
     );
 
-    console.log('EditAnimal - Found price setting:', priceSetting);
-
     if (!priceSetting) {
-      console.log('EditAnimal - No matching price setting found');
       setCalculatedPrice({ net: 0, gross: 0 });
       return;
     }
 
     const netPrice = weight * priceSetting.price_per_kg;
     const grossPrice = netPrice * (1 + vatRate / 100);
-
-    console.log('EditAnimal - Calculated prices:', { netPrice, grossPrice });
 
     setCalculatedPrice({
       net: Math.round(netPrice),
