@@ -17,10 +17,19 @@ interface StorageLocation {
   is_default: boolean;
 }
 
+interface PriceSetting {
+  species: string;
+  class: string;
+  price_per_kg: number;
+}
+
 const AddAnimal = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [locations, setLocations] = useState<StorageLocation[]>([]);
+  const [priceSettings, setPriceSettings] = useState<PriceSetting[]>([]);
+  const [vatRate, setVatRate] = useState<number>(27);
+  const [calculatedPrice, setCalculatedPrice] = useState<{ net: number; gross: number }>({ net: 0, gross: 0 });
   const [loading, setLoading] = useState(false);
   const [showMore, setShowMore] = useState(false);
   
@@ -42,6 +51,8 @@ const AddAnimal = () => {
   useEffect(() => {
     checkAuth();
     fetchLocations();
+    fetchPriceSettings();
+    fetchVatRate();
   }, []);
 
   const checkAuth = async () => {
@@ -86,6 +97,77 @@ const AddAnimal = () => {
         variant: "destructive",
       });
     }
+  };
+
+  const fetchPriceSettings = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from("price_settings")
+        .select("*")
+        .eq("user_id", user.id);
+
+      if (error) throw error;
+      setPriceSettings(data || []);
+    } catch (error: any) {
+      console.error("Error fetching price settings:", error);
+    }
+  };
+
+  const fetchVatRate = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("vat_rate")
+        .eq("id", user.id)
+        .single();
+
+      if (error) throw error;
+      if (data?.vat_rate) {
+        setVatRate(data.vat_rate);
+      }
+    } catch (error: any) {
+      console.error("Error fetching VAT rate:", error);
+    }
+  };
+
+  useEffect(() => {
+    calculatePrice();
+  }, [formData.weight, formData.type, formData.class, priceSettings, vatRate]);
+
+  const calculatePrice = () => {
+    if (!formData.weight || !formData.type || !formData.class) {
+      setCalculatedPrice({ net: 0, gross: 0 });
+      return;
+    }
+
+    const weight = parseFloat(formData.weight);
+    if (isNaN(weight)) {
+      setCalculatedPrice({ net: 0, gross: 0 });
+      return;
+    }
+
+    const priceSetting = priceSettings.find(
+      (p) => p.species === formData.type && p.class === formData.class
+    );
+
+    if (!priceSetting) {
+      setCalculatedPrice({ net: 0, gross: 0 });
+      return;
+    }
+
+    const netPrice = weight * priceSetting.price_per_kg;
+    const grossPrice = netPrice * (1 + vatRate / 100);
+
+    setCalculatedPrice({
+      net: Math.round(netPrice),
+      gross: Math.round(grossPrice),
+    });
   };
 
   const handleInputChange = (field: string, value: string) => {
@@ -281,6 +363,19 @@ const AddAnimal = () => {
                   />
                 </div>
               </div>
+
+              {calculatedPrice.net > 0 && (
+                <div className="bg-muted/50 p-4 rounded-lg space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">Nettó ár:</span>
+                    <span className="text-lg font-bold">{calculatedPrice.net.toLocaleString("hu-HU")} Ft</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">Bruttó ár (ÁFA {vatRate}%):</span>
+                    <span className="text-lg">{calculatedPrice.gross.toLocaleString("hu-HU")} Ft</span>
+                  </div>
+                </div>
+              )}
 
               <Collapsible open={showMore} onOpenChange={setShowMore}>
                 <CollapsibleTrigger asChild>
