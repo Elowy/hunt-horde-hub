@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { ArrowRight, Shield, Database, Users, CheckCircle } from "lucide-react";
+import { ArrowRight, Shield, Database, Users, CheckCircle, LogIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import heroImage from "@/assets/hero-forest.jpg";
@@ -10,27 +10,27 @@ const Index = () => {
   const features = [
     {
       icon: Database,
-      title: "Animal Inventory Management",
-      description: "Track animal IDs, types, weights, locations, and storage status with precision"
+      title: "Vadászati Nyilvántartás",
+      description: "Állat azonosítók, típusok, súlyok, helyszínek és hűtési állapotok pontos követése"
     },
     {
       icon: Shield,
-      title: "Secure Data Storage", 
-      description: "Professional-grade security for your hunting records and company information"
+      title: "Biztonságos Adattárolás", 
+      description: "Professzionális szintű biztonság a vadászati nyilvántartásokhoz és céges adatokhoz"
     },
     {
       icon: Users,
-      title: "Multi-User Access",
-      description: "Register your hunting company and manage team access to inventory data"
+      title: "Több Felhasználó",
+      description: "Regisztrálja cégét és kezelje a csapat hozzáférését a nyilvántartási adatokhoz"
     }
   ];
 
   const benefits = [
-    "Streamlined animal record keeping",
-    "Professional storage management",
-    "Real-time inventory tracking", 
-    "Secure company registration",
-    "Easy-to-use dashboard interface"
+    "Egyszerűsített állat nyilvántartás",
+    "Professzionális tároló kezelés",
+    "Valós idejű készlet követés", 
+    "Biztonságos céges regisztráció",
+    "Könnyen használható felület"
   ];
 
   return (
@@ -46,11 +46,11 @@ const Index = () => {
         
         <div className="relative z-10 text-center text-white max-w-4xl mx-auto px-6">
           <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight">
-            Hunt Storage <span className="text-hunt-orange">Solutions</span>
+            Vadászati Hűtés <span className="text-hunt-orange">Kezelő</span>
           </h1>
           <p className="text-xl md:text-2xl mb-8 text-white/90 max-w-2xl mx-auto leading-relaxed">
-            Professional animal inventory management for hunting companies. 
-            Secure, efficient, and built for the modern hunting industry.
+            Professzionális állat nyilvántartás vadászati cégek számára. 
+            Biztonságos, hatékony és modern megoldás a vadászati iparág számára.
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -60,8 +60,17 @@ const Index = () => {
               className="text-lg px-8 py-6"
               onClick={() => navigate("/register")}
             >
-              Register Your Company
+              Regisztráció
               <ArrowRight className="ml-2 h-5 w-5" />
+            </Button>
+            <Button 
+              variant="outline" 
+              size="lg"
+              className="text-lg px-8 py-6 bg-white/10 text-white border-white/20 hover:bg-white/20"
+              onClick={() => navigate("/login")}
+            >
+              <LogIn className="mr-2 h-5 w-5" />
+              Bejelentkezés
             </Button>
             <Button 
               variant="outline" 
@@ -69,7 +78,7 @@ const Index = () => {
               className="text-lg px-8 py-6 bg-white/10 text-white border-white/20 hover:bg-white/20"
               onClick={() => navigate("/dashboard")}
             >
-              View Demo
+              Demó Megtekintése
             </Button>
           </div>
         </div>
@@ -80,10 +89,10 @@ const Index = () => {
         <div className="container mx-auto px-6">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold text-forest-deep mb-4">
-              Complete Hunting Inventory Management
+              Komplett Vadászati Nyilvántartás Kezelés
             </h2>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Everything you need to manage your hunting company's animal storage and records
+              Minden ami szükséges a vadászati cég állat tárolásának és nyilvántartásának kezeléséhez
             </p>
           </div>
 
@@ -113,11 +122,11 @@ const Index = () => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div>
               <h2 className="text-4xl font-bold text-forest-deep mb-6">
-                Why Choose Hunt Storage Solutions?
+                Miért válassza a Vadászati Hűtés Kezelőt?
               </h2>
               <p className="text-lg text-muted-foreground mb-8">
-                Built specifically for hunting companies, our platform provides the tools 
-                you need to manage your animal inventory with professional precision.
+                Kifejezetten vadászati cégek számára készült, platformunk biztosítja a szükséges 
+                eszközöket az állat nyilvántartás professzionális pontosságú kezeléséhez.
               </p>
               
               <div className="space-y-4">
@@ -132,9 +141,9 @@ const Index = () => {
             
             <Card className="p-8">
               <CardHeader className="text-center pb-6">
-                <CardTitle className="text-2xl text-forest-deep">Ready to Get Started?</CardTitle>
+                <CardTitle className="text-2xl text-forest-deep">Készen áll a kezdésre?</CardTitle>
                 <CardDescription className="text-base">
-                  Join the growing number of hunting companies using our platform
+                  Csatlakozzon a platformunkat használó vadászati cégek növekvő számához
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -144,14 +153,14 @@ const Index = () => {
                   size="lg"
                   onClick={() => navigate("/register")}
                 >
-                  Register Your Company Now
+                  Regisztrálja Cégét Most
                 </Button>
                 <Button 
                   variant="outline" 
                   className="w-full"
                   onClick={() => navigate("/dashboard")}
                 >
-                  Explore Dashboard Demo
+                  Fedezze Fel a Demót
                 </Button>
               </CardContent>
             </Card>
@@ -162,16 +171,16 @@ const Index = () => {
       {/* Footer */}
       <footer className="bg-forest-deep text-white py-12">
         <div className="container mx-auto px-6 text-center">
-          <h3 className="text-2xl font-bold mb-4">Hunt Storage Solutions</h3>
+          <h3 className="text-2xl font-bold mb-4">Vadászati Hűtés Kezelő</h3>
           <p className="text-white/80 mb-6">
-            Professional animal inventory management for the modern hunting industry
+            Professzionális állat nyilvántartás kezelés a modern vadászati iparág számára
           </p>
           <div className="flex justify-center gap-4">
             <Button variant="outline" className="text-white border-white/20 hover:bg-white/10">
-              Contact Support
+              Kapcsolat
             </Button>
             <Button variant="link" className="text-white hover:text-hunt-orange">
-              Privacy Policy
+              Adatvédelem
             </Button>
           </div>
         </div>

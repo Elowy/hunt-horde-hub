@@ -5,8 +5,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, PlusCircle } from "lucide-react";
+import { ArrowLeft, PlusCircle, ChevronDown, ChevronUp } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 interface StorageLocation {
@@ -20,6 +22,7 @@ const AddAnimal = () => {
   const { toast } = useToast();
   const [locations, setLocations] = useState<StorageLocation[]>([]);
   const [loading, setLoading] = useState(false);
+  const [showMore, setShowMore] = useState(false);
   
   const [formData, setFormData] = useState({
     animalId: "",
@@ -28,6 +31,12 @@ const AddAnimal = () => {
     gender: "",
     class: "",
     weight: "",
+    hunterType: "",
+    hunterName: "",
+    age: "",
+    sampleId: "",
+    vetCheck: "",
+    notes: "",
   });
 
   useEffect(() => {
@@ -58,7 +67,6 @@ const AddAnimal = () => {
       const locationsList = data || [];
       setLocations(locationsList);
 
-      // Auto-select default location
       const defaultLocation = locationsList.find(l => l.is_default);
       if (defaultLocation) {
         setFormData(prev => ({ ...prev, storageLocationId: defaultLocation.id }));
@@ -117,6 +125,12 @@ const AddAnimal = () => {
         gender: formData.gender,
         weight: formData.weight ? parseFloat(formData.weight) : null,
         class: formData.class,
+        hunter_type: formData.hunterType || null,
+        hunter_name: formData.hunterName || null,
+        age: formData.age || null,
+        sample_id: formData.sampleId || null,
+        vet_check: formData.vetCheck === "yes",
+        notes: formData.notes || null,
         cooling_date: new Date().toISOString(),
       });
 
@@ -127,7 +141,6 @@ const AddAnimal = () => {
         description: `${formData.type} (ID: ${formData.animalId}) hozzáadva a tárolóhoz.`,
       });
       
-      // Navigate back to dashboard
       setTimeout(() => navigate("/dashboard"), 1500);
     } catch (error: any) {
       toast({
@@ -184,6 +197,7 @@ const AddAnimal = () => {
                   <Select 
                     value={formData.storageLocationId} 
                     onValueChange={(value) => handleInputChange("storageLocationId", value)}
+                    required
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Válasszon helyszínt" />
@@ -199,37 +213,49 @@ const AddAnimal = () => {
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="type">Állat Típusa *</Label>
-                  <Select value={formData.type} onValueChange={(value) => handleInputChange("type", value)}>
+                  <Label htmlFor="type">Vadfaj *</Label>
+                  <Select 
+                    value={formData.type} 
+                    onValueChange={(value) => handleInputChange("type", value)}
+                    required
+                  >
                     <SelectTrigger>
-                      <SelectValue placeholder="Válasszon állattípust" />
+                      <SelectValue placeholder="Válasszon vadfajt" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Vaddisznó">Vaddisznó</SelectItem>
-                      <SelectItem value="Gím Szarvas">Gím Szarvas</SelectItem>
-                      <SelectItem value="Dám Szarvas">Dám Szarvas</SelectItem>
-                      <SelectItem value="Őz">Őz</SelectItem>
-                      <SelectItem value="Muflon">Muflon</SelectItem>
+                      <SelectItem value="Vaddisznó">🐗 Vaddisznó</SelectItem>
+                      <SelectItem value="Gím Szarvas">🦌 Gím Szarvas</SelectItem>
+                      <SelectItem value="Dám Szarvas">🦌 Dám Szarvas</SelectItem>
+                      <SelectItem value="Őz">🦌 Őz</SelectItem>
+                      <SelectItem value="Muflon">🐏 Muflon</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="gender">Nem</Label>
-                  <Select value={formData.gender} onValueChange={(value) => handleInputChange("gender", value)}>
+                  <Label htmlFor="gender">Nem *</Label>
+                  <Select 
+                    value={formData.gender} 
+                    onValueChange={(value) => handleInputChange("gender", value)}
+                    required
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Válasszon nemet" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Hím">Hím</SelectItem>
-                      <SelectItem value="Nőstény">Nőstény</SelectItem>
+                      <SelectItem value="Hím">♂️ Hím</SelectItem>
+                      <SelectItem value="Nőstény">♀️ Nőstény</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="class">Osztály</Label>
-                  <Select value={formData.class} onValueChange={(value) => handleInputChange("class", value)}>
+                  <Label htmlFor="class">Osztály *</Label>
+                  <Select 
+                    value={formData.class} 
+                    onValueChange={(value) => handleInputChange("class", value)}
+                    required
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Válasszon osztályt" />
                     </SelectTrigger>
@@ -243,7 +269,7 @@ const AddAnimal = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="weight">Súly (kg)</Label>
+                  <Label htmlFor="weight">Súly (kg) *</Label>
                   <Input
                     id="weight"
                     type="number"
@@ -251,12 +277,110 @@ const AddAnimal = () => {
                     value={formData.weight}
                     onChange={(e) => handleInputChange("weight", e.target.value)}
                     placeholder="pl. 85.5"
+                    required
                   />
                 </div>
               </div>
 
+              <Collapsible open={showMore} onOpenChange={setShowMore}>
+                <CollapsibleTrigger asChild>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    className="w-full flex items-center justify-between"
+                  >
+                    <span>További információk (opcionális)</span>
+                    {showMore ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                  </Button>
+                </CollapsibleTrigger>
+                
+                <CollapsibleContent className="mt-4 space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="hunterType">Vadász Típusa</Label>
+                      <Select 
+                        value={formData.hunterType} 
+                        onValueChange={(value) => handleInputChange("hunterType", value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Válasszon típust" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Vadőr">Vadőr</SelectItem>
+                          <SelectItem value="Tag">Tag</SelectItem>
+                          <SelectItem value="Bérvadász">Bérvadász</SelectItem>
+                          <SelectItem value="IB vendég">IB vendég</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="hunterName">Vadász Neve</Label>
+                      <Input
+                        id="hunterName"
+                        value={formData.hunterName}
+                        onChange={(e) => handleInputChange("hunterName", e.target.value)}
+                        placeholder="pl. Kovács János"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="age">Életkor</Label>
+                      <Input
+                        id="age"
+                        value={formData.age}
+                        onChange={(e) => handleInputChange("age", e.target.value)}
+                        placeholder="pl. 3 év"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="sampleId">Minta ID (Vaddisznó)</Label>
+                      <Input
+                        id="sampleId"
+                        value={formData.sampleId}
+                        onChange={(e) => handleInputChange("sampleId", e.target.value)}
+                        placeholder="pl. M-2024-001"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="vetCheck">Állatorvosi Vizsgálat</Label>
+                      <Select 
+                        value={formData.vetCheck} 
+                        onValueChange={(value) => handleInputChange("vetCheck", value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Válasszon" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="yes">Igen</SelectItem>
+                          <SelectItem value="no">Nem</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="notes">Jegyzetek</Label>
+                    <Textarea
+                      id="notes"
+                      value={formData.notes}
+                      onChange={(e) => handleInputChange("notes", e.target.value)}
+                      placeholder="További megjegyzések az állatról..."
+                      rows={3}
+                    />
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+
               <div className="flex gap-4 pt-4">
-                <Button type="submit" className="flex-1" variant="hunting" disabled={loading || locations.length === 0}>
+                <Button 
+                  type="submit" 
+                  className="flex-1" 
+                  variant="hunting" 
+                  disabled={loading || locations.length === 0}
+                >
                   <PlusCircle className="w-4 h-4 mr-2" />
                   {loading ? "Mentés..." : "Állat Hozzáadása"}
                 </Button>
