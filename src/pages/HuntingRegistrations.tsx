@@ -87,8 +87,13 @@ const HuntingRegistrations = () => {
     try {
       const { data, error } = await supabase
         .from("security_zones")
-        .select("*")
-        .order("name");
+        .select(`
+          *,
+          settlements (
+            name
+          )
+        `)
+        .order("display_order", { ascending: true });
 
       if (error) throw error;
       setZones(data || []);
