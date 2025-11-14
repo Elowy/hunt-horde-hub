@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Table,
   TableBody,
@@ -48,6 +49,8 @@ interface Animal {
   storage_location_id: string;
   hunter_name: string | null;
   class: string | null;
+  is_transported: boolean;
+  transported_at: string | null;
 }
 
 interface PriceSetting {
@@ -237,13 +240,14 @@ const Dashboard = () => {
 
       // Elszállító mentése az adatbázisba
       const documentNumber = `ESZ-${Date.now()}`;
+      const transportDate = new Date().toISOString();
       
       const { data: transportDoc, error: docError } = await supabase
         .from("transport_documents")
         .insert({
           user_id: user.id,
           document_number: documentNumber,
-          transport_date: new Date().toISOString(),
+          transport_date: transportDate,
           total_weight: totalWeight,
           total_price: totalPrice,
           animal_count: selectedAnimalsList.length,
@@ -264,6 +268,17 @@ const Dashboard = () => {
         .insert(items);
 
       if (itemsError) throw itemsError;
+
+      // Állatok megjelölése elszállítottként
+      const { error: updateError } = await supabase
+        .from("animals")
+        .update({ 
+          is_transported: true,
+          transported_at: transportDate
+        })
+        .in("id", Array.from(selectedAnimals));
+
+      if (updateError) throw updateError;
 
       // PDF generálás
       const doc = new jsPDF();
@@ -311,10 +326,11 @@ const Dashboard = () => {
       
       toast({
         title: "Siker!",
-        description: "Elszállító létrehozva és mentve!",
+        description: "Elszállító létrehozva és állatok elszállítva!",
       });
       
       setSelectedAnimals(new Set());
+      fetchData(); // Refresh data to show updated transport status
     } catch (error: any) {
       toast({
         title: "Hiba",
@@ -333,6 +349,10 @@ const Dashboard = () => {
     
     return matchesSearch && matchesFilter;
   });
+
+  // Szétválasztás hűtött és elszállított állatokra
+  const cooledAnimals = filteredAnimals.filter(animal => !animal.is_transported);
+  const transportedAnimals = filteredAnimals.filter(animal => animal.is_transported);
 
   const getLocationName = (locationId: string) => {
     const location = locations.find(l => l.id === locationId);
@@ -567,17 +587,7 @@ const Dashboard = () => {
             </Select>
           </div>
 
-          {/* Elszállító gomb */}
-          {selectedAnimals.size > 0 && (
-            <div className="mb-4 flex justify-end">
-              <Button onClick={generateTransportPDF} variant="default">
-                <FileDown className="h-4 w-4 mr-2" />
-                Elszállító készítése ({selectedAnimals.size} állat)
-              </Button>
-            </div>
-          )}
-
-          {/* Táblázat */}
+          {/* Táblázat - Tabs-okkal */}
           {animals.length === 0 ? (
             <Card>
               <CardContent className="py-8 text-center text-muted-foreground">
@@ -585,72 +595,148 @@ const Dashboard = () => {
               </CardContent>
             </Card>
           ) : (
-            <Card>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[50px]">
-                      <Truck className="h-4 w-4" />
-                    </TableHead>
-                    <TableHead>Azonosító</TableHead>
-                    <TableHead>Faj</TableHead>
-                    <TableHead>Súly (kg)</TableHead>
-                    <TableHead>Osztály</TableHead>
-                    <TableHead>Ár (Ft)</TableHead>
-                    <TableHead>Vadász</TableHead>
-                    <TableHead>Helyszín</TableHead>
-                    <TableHead>Dátum</TableHead>
-                    <TableHead className="text-right">Műveletek</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredAnimals.map((animal) => {
-                    const price = getAnimalPrice(animal);
-                    return (
-                      <TableRow key={animal.id}>
-                        <TableCell>
-                          <Checkbox
-                            checked={selectedAnimals.has(animal.id)}
-                            onCheckedChange={() => toggleAnimalSelection(animal.id)}
-                          />
-                        </TableCell>
-                        <TableCell className="font-medium">{animal.animal_id}</TableCell>
-                        <TableCell>{animal.species}</TableCell>
-                        <TableCell>{animal.weight || "-"}</TableCell>
-                        <TableCell>{animal.class || "-"}</TableCell>
-                        <TableCell className="font-semibold">
-                          {price > 0 ? Math.round(price).toLocaleString("hu-HU") : "-"}
-                        </TableCell>
-                        <TableCell>{animal.hunter_name || "-"}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline">
-                            {getLocationName(animal.storage_location_id)}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          {animal.cooling_date
-                            ? new Date(animal.cooling_date).toLocaleDateString("hu-HU")
-                            : "-"}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
-                            <Button variant="ghost" size="sm">
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                            <Button variant="ghost" size="sm">
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button variant="ghost" size="sm">
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
+            <Tabs defaultValue="cooled" className="w-full">
+              <TabsList className="grid w-full max-w-md grid-cols-2">
+                <TabsTrigger value="cooled">
+                  Jelenleg hűtött állatok ({cooledAnimals.length})
+                </TabsTrigger>
+                <TabsTrigger value="transported">
+                  Már elszállított állatok ({transportedAnimals.length})
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="cooled">
+                {/* Elszállító gomb */}
+                {selectedAnimals.size > 0 && (
+                  <div className="mb-4 flex justify-end">
+                    <Button onClick={generateTransportPDF} variant="default">
+                      <FileDown className="h-4 w-4 mr-2" />
+                      Elszállító készítése ({selectedAnimals.size} állat)
+                    </Button>
+                  </div>
+                )}
+                <Card>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-[50px]">
+                          <Truck className="h-4 w-4" />
+                        </TableHead>
+                        <TableHead>Azonosító</TableHead>
+                        <TableHead>Faj</TableHead>
+                        <TableHead>Súly (kg)</TableHead>
+                        <TableHead>Osztály</TableHead>
+                        <TableHead>Ár (Ft)</TableHead>
+                        <TableHead>Vadász</TableHead>
+                        <TableHead>Helyszín</TableHead>
+                        <TableHead>Dátum</TableHead>
+                        <TableHead className="text-right">Műveletek</TableHead>
                       </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </Card>
+                    </TableHeader>
+                    <TableBody>
+                      {cooledAnimals.map((animal) => {
+                        const price = getAnimalPrice(animal);
+                        return (
+                          <TableRow key={animal.id}>
+                            <TableCell>
+                              <Checkbox
+                                checked={selectedAnimals.has(animal.id)}
+                                onCheckedChange={() => toggleAnimalSelection(animal.id)}
+                              />
+                            </TableCell>
+                            <TableCell className="font-medium">{animal.animal_id}</TableCell>
+                            <TableCell>{animal.species}</TableCell>
+                            <TableCell>{animal.weight || "-"}</TableCell>
+                            <TableCell>{animal.class || "-"}</TableCell>
+                            <TableCell className="font-semibold">
+                              {price > 0 ? Math.round(price).toLocaleString("hu-HU") : "-"}
+                            </TableCell>
+                            <TableCell>{animal.hunter_name || "-"}</TableCell>
+                            <TableCell>
+                              <Badge variant="outline">
+                                {getLocationName(animal.storage_location_id)}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              {animal.cooling_date
+                                ? new Date(animal.cooling_date).toLocaleDateString("hu-HU")
+                                : "-"}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex justify-end gap-2">
+                                <Button variant="ghost" size="sm">
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                                <Button variant="ghost" size="sm">
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button variant="ghost" size="sm">
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="transported">
+                <Card>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Azonosító</TableHead>
+                        <TableHead>Faj</TableHead>
+                        <TableHead>Súly (kg)</TableHead>
+                        <TableHead>Osztály</TableHead>
+                        <TableHead>Ár (Ft)</TableHead>
+                        <TableHead>Vadász</TableHead>
+                        <TableHead>Helyszín</TableHead>
+                        <TableHead>Elszállítva</TableHead>
+                        <TableHead className="text-right">Műveletek</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {transportedAnimals.map((animal) => {
+                        const price = getAnimalPrice(animal);
+                        return (
+                          <TableRow key={animal.id}>
+                            <TableCell className="font-medium">{animal.animal_id}</TableCell>
+                            <TableCell>{animal.species}</TableCell>
+                            <TableCell>{animal.weight || "-"}</TableCell>
+                            <TableCell>{animal.class || "-"}</TableCell>
+                            <TableCell className="font-semibold">
+                              {price > 0 ? Math.round(price).toLocaleString("hu-HU") : "-"}
+                            </TableCell>
+                            <TableCell>{animal.hunter_name || "-"}</TableCell>
+                            <TableCell>
+                              <Badge variant="outline">
+                                {getLocationName(animal.storage_location_id)}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              {animal.transported_at
+                                ? new Date(animal.transported_at).toLocaleDateString("hu-HU")
+                                : "-"}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex justify-end gap-2">
+                                <Button variant="ghost" size="sm">
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </Card>
+              </TabsContent>
+            </Tabs>
           )}
         </div>
       </div>
