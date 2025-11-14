@@ -114,11 +114,12 @@ export const PriceSettingsDialog = ({ onPriceUpdated }: { onPriceUpdated: () => 
 
       toast({
         title: "Siker!",
-        description: "Árak mentve!",
+        description: "Árak mentve és frissítve!",
       });
 
       await fetchPriceSettings();
-      onPriceUpdated();
+      setOpen(false); // Close dialog
+      onPriceUpdated(); // Trigger parent refresh
     } catch (error: any) {
       toast({
         title: "Hiba",
