@@ -21,15 +21,45 @@ export const useSubscription = () => {
         return;
       }
 
+      // Ellenőrizzük a próbaidőszakot először
+      const { data: trialData } = await supabase
+        .from("trial_subscriptions")
+        .select("*")
+        .eq("user_id", session.user.id)
+        .single();
+
+      if (trialData) {
+        const expiresAt = new Date(trialData.expires_at);
+        const now = new Date();
+        
+        if (expiresAt > now) {
+          setProductId("trial_pro");
+          setIsPro(true);
+          setLoading(false);
+          return;
+        }
+      }
+
+      // Ellenőrizzük az örökös előfizetéseket
+      const { data: lifetimeData } = await supabase
+        .from("lifetime_subscriptions")
+        .select("*")
+        .eq("user_id", session.user.id)
+        .single();
+
+      if (lifetimeData) {
+        setProductId(lifetimeData.tier);
+        setIsPro(lifetimeData.tier === "pro");
+        setLoading(false);
+        return;
+      }
+
+      // Ellenőrizzük a Stripe előfizetéseket
       const { data, error } = await supabase.functions.invoke("check-subscription", {
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
 
-      if (error) {
-        console.error("Error checking subscription:", error);
-        setIsPro(false);
-        return;
-      }
+      if (error) throw error;
 
       setProductId(data.product_id);
       setIsPro(data.product_id === "pro" || PRO_PRODUCT_IDS.includes(data.product_id));
