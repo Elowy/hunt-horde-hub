@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Menu, X, User, Users, FileText, Truck, Settings, LogOut, UserPlus } from "lucide-react";
+import { Menu, X, User, Users, FileText, Truck, Settings, LogOut, UserPlus, Crown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -47,17 +47,12 @@ export const DashboardMenu = ({ isAdmin, onLogout, onPriceUpdated }: DashboardMe
               <User className="mr-2 h-4 w-4" />
               Profilom
             </Button>
-          </div>
-
-          {isAdmin && (
-            <>
-              <div className="ml-6 space-y-2">
-                <div className="w-full">
-                  <InviteUserDialog />
-                </div>
+            {isAdmin && (
+              <div className="ml-6">
+                <InviteUserDialog />
               </div>
-            </>
-          )}
+            )}
+          </div>
 
           <Separator />
 
@@ -99,6 +94,18 @@ export const DashboardMenu = ({ isAdmin, onLogout, onPriceUpdated }: DashboardMe
               <ThemeToggle />
             </div>
           </div>
+
+          <Separator />
+
+          {/* Előfizetések */}
+          <Button
+            variant="ghost"
+            className="w-full justify-start bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-600 dark:text-yellow-400"
+            onClick={() => handleNavigation("/subscriptions")}
+          >
+            <Crown className="mr-2 h-4 w-4" />
+            Előfizetések
+          </Button>
 
           <Separator />
 

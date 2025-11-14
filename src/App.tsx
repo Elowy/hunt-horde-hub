@@ -11,6 +11,7 @@ import Login from "./pages/Login";
 import AddAnimal from "./pages/AddAnimal";
 import Profile from "./pages/Profile";
 import Users from "./pages/Users";
+import Subscriptions from "./pages/Subscriptions";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -30,6 +31,7 @@ const App = () => (
             <Route path="/add-animal" element={<AddAnimal />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/users" element={<Users />} />
+            <Route path="/subscriptions" element={<Subscriptions />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
