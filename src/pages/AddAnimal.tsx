@@ -5,7 +5,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, PlusCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 interface StorageLocation {
   id: string;
   name: string;
+  is_default: boolean;
 }
 
 const AddAnimal = () => {
@@ -25,32 +25,9 @@ const AddAnimal = () => {
     animalId: "",
     storageLocationId: "",
     type: "",
-    subtype: "",
     gender: "",
-    age: "",
     class: "",
     weight: "",
-    location: "",
-    village: "",
-    gpsLatitude: "",
-    gpsLongitude: "",
-    huntDate: "",
-    hunter: "",
-    hunterType: "",
-    status: "processing",
-    notes: "",
-    comment: "",
-    sampleId: "",
-    sampleReturnId: "",
-    animalDoctor: "",
-    refoundFeeWildBoar: "",
-    shootFeeWildBoar: "",
-    sampleCollectionFeeWildBoar: "",
-    shoppingId: "",
-    usage: "",
-    priceWithVat: "",
-    priceWithoutVat: "",
-    invoiceNo: ""
   });
 
   useEffect(() => {
@@ -72,14 +49,22 @@ const AddAnimal = () => {
 
       const { data, error } = await supabase
         .from("storage_locations")
-        .select("id, name")
+        .select("id, name, is_default")
         .eq("user_id", user.id)
         .order("name");
 
       if (error) throw error;
-      setLocations(data || []);
+      
+      const locationsList = data || [];
+      setLocations(locationsList);
 
-      if (data && data.length === 0) {
+      // Auto-select default location
+      const defaultLocation = locationsList.find(l => l.is_default);
+      if (defaultLocation) {
+        setFormData(prev => ({ ...prev, storageLocationId: defaultLocation.id }));
+      }
+
+      if (locationsList.length === 0) {
         toast({
           title: "Figyelmeztetés",
           description: "Először hozzon létre egy hűtési helyszínt a Dashboard-on!",
@@ -95,23 +80,8 @@ const AddAnimal = () => {
     }
   };
 
-  const animalSubtypes = {
-    "vaddiszno": ["Kan", "Koca", "Süldő", "Malac"],
-    "gim-szarvas": ["Bika", "Tehén", "Ünő", "Borjú"],
-    "dam-szarvas": ["Bika", "Tehén", "Ünő", "Borjú"],
-    "oz": ["Bak", "Suta", "Gida"],
-    "muflon": ["Kos", "Jerke", "Bárány"]
-  };
-
   const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => {
-      const newData = { ...prev, [field]: value };
-      // Reset subtype when type changes
-      if (field === "type") {
-        newData.subtype = "";
-      }
-      return newData;
-    });
+    setFormData(prev => ({ ...prev, [field]: value }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -146,18 +116,8 @@ const AddAnimal = () => {
         species: formData.type,
         gender: formData.gender,
         weight: formData.weight ? parseFloat(formData.weight) : null,
-        age: formData.age,
-        condition: formData.status,
         class: formData.class,
-        hunter_type: formData.hunterType,
-        hunter_name: formData.hunter,
-        cooling_date: formData.huntDate || null,
-        expiry_date: null,
-        sample_id: formData.sampleId,
-        sample_date: null,
-        vet_check: !!formData.animalDoctor,
-        vet_notes: formData.animalDoctor,
-        notes: `${formData.notes}\n${formData.comment}`.trim(),
+        cooling_date: new Date().toISOString(),
       });
 
       if (error) throw error;
@@ -199,10 +159,10 @@ const AddAnimal = () => {
           <CardHeader>
             <CardTitle className="flex items-center text-hunt-dark">
               <PlusCircle className="w-6 h-6 mr-2" />
-              Állat Információk
+              Alapvető Állat Információk
             </CardTitle>
             <CardDescription>
-              Adja meg a tárolóba kerülő állat adatait
+              Adja meg az állat legfontosabb adatait
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -231,7 +191,7 @@ const AddAnimal = () => {
                     <SelectContent>
                       {locations.map((location) => (
                         <SelectItem key={location.id} value={location.id}>
-                          {location.name}
+                          {location.name} {location.is_default && "(Alapértelmezett)"}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -245,31 +205,11 @@ const AddAnimal = () => {
                       <SelectValue placeholder="Válasszon állattípust" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="vaddiszno">Vaddisznó</SelectItem>
-                      <SelectItem value="gim-szarvas">Gím Szarvas</SelectItem>
-                      <SelectItem value="dam-szarvas">Dám Szarvas</SelectItem>
-                      <SelectItem value="oz">Őz</SelectItem>
-                      <SelectItem value="muflon">Muflon</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="subtype">Állat Altípusa</Label>
-                  <Select 
-                    value={formData.subtype} 
-                    onValueChange={(value) => handleInputChange("subtype", value)}
-                    disabled={!formData.type}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder={formData.type ? "Válasszon altípust" : "Először válasszon állattípust"} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {formData.type && animalSubtypes[formData.type as keyof typeof animalSubtypes]?.map((subtype) => (
-                        <SelectItem key={subtype} value={subtype.toLowerCase().replace(/\s+/g, '-')}>
-                          {subtype}
-                        </SelectItem>
-                      ))}
+                      <SelectItem value="Vaddisznó">Vaddisznó</SelectItem>
+                      <SelectItem value="Gím Szarvas">Gím Szarvas</SelectItem>
+                      <SelectItem value="Dám Szarvas">Dám Szarvas</SelectItem>
+                      <SelectItem value="Őz">Őz</SelectItem>
+                      <SelectItem value="Muflon">Muflon</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -281,21 +221,10 @@ const AddAnimal = () => {
                       <SelectValue placeholder="Válasszon nemet" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="male">Hím</SelectItem>
-                      <SelectItem value="female">Nőstény</SelectItem>
-                      <SelectItem value="unknown">Ismeretlen</SelectItem>
+                      <SelectItem value="Hím">Hím</SelectItem>
+                      <SelectItem value="Nőstény">Nőstény</SelectItem>
                     </SelectContent>
                   </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="age">Kor</Label>
-                  <Input
-                    id="age"
-                    value={formData.age}
-                    onChange={(e) => handleInputChange("age", e.target.value)}
-                    placeholder="pl. 3 év vagy felnőtt"
-                  />
                 </div>
 
                 <div className="space-y-2">
@@ -305,10 +234,10 @@ const AddAnimal = () => {
                       <SelectValue placeholder="Válasszon osztályt" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="1-osztaly">1. osztály</SelectItem>
-                      <SelectItem value="2-osztaly">2. osztály</SelectItem>
-                      <SelectItem value="3-osztaly">3. osztály</SelectItem>
-                      <SelectItem value="kobzott">Kobzott</SelectItem>
+                      <SelectItem value="1. osztály">1. osztály</SelectItem>
+                      <SelectItem value="2. osztály">2. osztály</SelectItem>
+                      <SelectItem value="3. osztály">3. osztály</SelectItem>
+                      <SelectItem value="Kobzott">Kobzott</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -318,273 +247,12 @@ const AddAnimal = () => {
                   <Input
                     id="weight"
                     type="number"
+                    step="0.1"
                     value={formData.weight}
                     onChange={(e) => handleInputChange("weight", e.target.value)}
-                    placeholder="pl. 80"
+                    placeholder="pl. 85.5"
                   />
                 </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="location">Helyszín *</Label>
-                  <Input
-                    id="location"
-                    value={formData.location}
-                    onChange={(e) => handleInputChange("location", e.target.value)}
-                    placeholder="pl. Északi gerinc"
-                    required
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="village">Település</Label>
-                  <Input
-                    id="village"
-                    value={formData.village}
-                    onChange={(e) => handleInputChange("village", e.target.value)}
-                    placeholder="pl. Folyóparti falu"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="gpsLatitude">GPS Szélesség</Label>
-                  <Input
-                    id="gpsLatitude"
-                    type="number"
-                    step="any"
-                    value={formData.gpsLatitude}
-                    onChange={(e) => handleInputChange("gpsLatitude", e.target.value)}
-                    placeholder="pl. 47.4979"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="gpsLongitude">GPS Hosszúság</Label>
-                  <Input
-                    id="gpsLongitude"
-                    type="number"
-                    step="any"
-                    value={formData.gpsLongitude}
-                    onChange={(e) => handleInputChange("gpsLongitude", e.target.value)}
-                    placeholder="pl. 19.0402"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="huntDate">Elejtés Dátuma *</Label>
-                  <Input
-                    id="huntDate"
-                    type="date"
-                    value={formData.huntDate}
-                    onChange={(e) => handleInputChange("huntDate", e.target.value)}
-                    required
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="hunter">Vadász Neve *</Label>
-                  <Input
-                    id="hunter"
-                    value={formData.hunter}
-                    onChange={(e) => handleInputChange("hunter", e.target.value)}
-                    placeholder="pl. Kovács János"
-                    required
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="hunterType">Vadász Típusa</Label>
-                  <Select value={formData.hunterType} onValueChange={(value) => handleInputChange("hunterType", value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Válasszon vadász típust" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="vador">Vadőr</SelectItem>
-                      <SelectItem value="tag">Tag</SelectItem>
-                      <SelectItem value="bervadasz">Bérvadász</SelectItem>
-                      <SelectItem value="ib-vendeg">IB vendég</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              {/* Sample and Medical Information */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-hunt-dark border-b pb-2">Minta & Orvosi Információ (Kizárólag Vaddisznók esetében)</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="sampleId">Minta ID</Label>
-                    <Input
-                      id="sampleId"
-                      value={formData.sampleId}
-                      onChange={(e) => handleInputChange("sampleId", e.target.value)}
-                      placeholder="pl. MTA-2024-001"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="sampleReturnId">Minta Visszaadás ID</Label>
-                    <Input
-                      id="sampleReturnId"
-                      value={formData.sampleReturnId}
-                      onChange={(e) => handleInputChange("sampleReturnId", e.target.value)}
-                      placeholder="pl. VSZ-2024-001"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="animalDoctor">Állatorvos</Label>
-                    <Input
-                      id="animalDoctor"
-                      value={formData.animalDoctor}
-                      onChange={(e) => handleInputChange("animalDoctor", e.target.value)}
-                      placeholder="pl. Dr. Nagy István"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Wild Boar Specific Fees */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-hunt-dark border-b pb-2">Vaddisznó díjak (ha van)</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="refoundFeeWildBoar">Visszatérítési Díj</Label>
-                    <Input
-                      id="refoundFeeWildBoar"
-                      type="number"
-                      step="0.01"
-                      value={formData.refoundFeeWildBoar}
-                      onChange={(e) => handleInputChange("refoundFeeWildBoar", e.target.value)}
-                      placeholder="0.00"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="shootFeeWildBoar">Elejtési Díj</Label>
-                    <Input
-                      id="shootFeeWildBoar"
-                      type="number"
-                      step="0.01"
-                      value={formData.shootFeeWildBoar}
-                      onChange={(e) => handleInputChange("shootFeeWildBoar", e.target.value)}
-                      placeholder="0.00"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="sampleCollectionFeeWildBoar">Mintavételi Díj</Label>
-                    <Input
-                      id="sampleCollectionFeeWildBoar"
-                      type="number"
-                      step="0.01"
-                      value={formData.sampleCollectionFeeWildBoar}
-                      onChange={(e) => handleInputChange("sampleCollectionFeeWildBoar", e.target.value)}
-                      placeholder="0.00"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Commercial Information */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-hunt-dark border-b pb-2">Kereskedelmi Információk</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="shoppingId">Vásárlási ID</Label>
-                    <Input
-                      id="shoppingId"
-                      value={formData.shoppingId}
-                      onChange={(e) => handleInputChange("shoppingId", e.target.value)}
-                      placeholder="pl. VAS-2024-001"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="usage">Felhasználás</Label>
-                    <Select value={formData.usage} onValueChange={(value) => handleInputChange("usage", value)}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Válasszon felhasználást" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="personal">Személyes</SelectItem>
-                        <SelectItem value="commercial">Kereskedelmi</SelectItem>
-                        <SelectItem value="trophy">Trófea</SelectItem>
-                        <SelectItem value="meat">Húsfeldolgozás</SelectItem>
-                        <SelectItem value="research">Kutatás</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="priceWithVat">Ár ÁFA-val</Label>
-                    <Input
-                      id="priceWithVat"
-                      type="number"
-                      step="0.01"
-                      value={formData.priceWithVat}
-                      onChange={(e) => handleInputChange("priceWithVat", e.target.value)}
-                      placeholder="0.00"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="priceWithoutVat">Ár ÁFA nélkül</Label>
-                    <Input
-                      id="priceWithoutVat"
-                      type="number"
-                      step="0.01"
-                      value={formData.priceWithoutVat}
-                      onChange={(e) => handleInputChange("priceWithoutVat", e.target.value)}
-                      placeholder="0.00"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="invoiceNo">Számla Szám</Label>
-                    <Input
-                      id="invoiceNo"
-                      value={formData.invoiceNo}
-                      onChange={(e) => handleInputChange("invoiceNo", e.target.value)}
-                      placeholder="pl. SZA-2024-001"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="status">Feldolgozási Állapot</Label>
-                <Select value={formData.status} onValueChange={(value) => handleInputChange("status", value)}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="processing">Feldolgozás alatt</SelectItem>
-                    <SelectItem value="ready">Kész</SelectItem>
-                    <SelectItem value="picked-up">Átvéve</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="notes">További Megjegyzések</Label>
-                <Textarea
-                  id="notes"
-                  value={formData.notes}
-                  onChange={(e) => handleInputChange("notes", e.target.value)}
-                  placeholder="További információk az állatról..."
-                  rows={3}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="comment">Megjegyzés</Label>
-                <Textarea
-                  id="comment"
-                  value={formData.comment}
-                  onChange={(e) => handleInputChange("comment", e.target.value)}
-                  placeholder="További megjegyzések vagy speciális utasítások..."
-                  rows={3}
-                />
               </div>
 
               <div className="flex gap-4 pt-4">

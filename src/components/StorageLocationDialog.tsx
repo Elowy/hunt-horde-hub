@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -28,6 +29,7 @@ export const StorageLocationDialog = ({ onLocationAdded }: StorageLocationDialog
     address: "",
     capacity: "",
     notes: "",
+    isDefault: false,
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -52,6 +54,7 @@ export const StorageLocationDialog = ({ onLocationAdded }: StorageLocationDialog
         address: formData.address,
         capacity: formData.capacity ? parseInt(formData.capacity) : null,
         notes: formData.notes,
+        is_default: formData.isDefault,
       });
 
       if (error) throw error;
@@ -61,7 +64,7 @@ export const StorageLocationDialog = ({ onLocationAdded }: StorageLocationDialog
         description: "Hűtési helyszín sikeresen hozzáadva!",
       });
 
-      setFormData({ name: "", address: "", capacity: "", notes: "" });
+      setFormData({ name: "", address: "", capacity: "", notes: "", isDefault: false });
       setOpen(false);
       onLocationAdded();
     } catch (error: any) {
@@ -132,6 +135,17 @@ export const StorageLocationDialog = ({ onLocationAdded }: StorageLocationDialog
               placeholder="További információk..."
               rows={3}
             />
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="isDefault"
+              checked={formData.isDefault}
+              onCheckedChange={(checked) => setFormData({ ...formData, isDefault: checked as boolean })}
+            />
+            <Label htmlFor="isDefault" className="text-sm font-normal cursor-pointer">
+              Beállítás alapértelmezett helyszínként
+            </Label>
           </div>
 
           <div className="flex gap-3 justify-end">
