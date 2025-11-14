@@ -98,15 +98,23 @@ export const DashboardMenu = ({ isAdmin, onLogout, onPriceUpdated }: DashboardMe
               <Button
                 variant="ghost"
                 className="w-full justify-start"
+                onClick={() => handleNavigation("/add-animal")}
+              >
+                <FileText className="mr-2 h-4 w-4" />
+                Vad felvétele
+              </Button>
+              <Button
+                variant="ghost"
+                className="w-full justify-start"
                 onClick={() => handleNavigation("/hunting-registrations")}
               >
                 <CalendarCheck className="mr-2 h-4 w-4" />
                 Vadászati beiratkozások
               </Button>
+              {isAdmin && <SettlementsAndZonesDialog />}
               <TransportDocumentsDialog />
               <TransporterDialog />
               <PriceSettingsDialog onPriceUpdated={onPriceUpdated} />
-              {isAdmin && <SettlementsAndZonesDialog />}
             </div>
           </div>
 

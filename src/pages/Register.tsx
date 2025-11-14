@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { Building2, Mail, Phone, MapPin, User, Lock } from "lucide-react";
+import { Building2, Mail, Phone, MapPin, User, Lock, FileText, CalendarCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -20,12 +21,15 @@ const Register = () => {
     address: "",
     password: "",
     confirmPassword: "",
-    userType: "hunter_society"
+    userType: "hunter_society",
+    hunterLicenseNumber: "",
+    birthDate: "",
+    privacyPolicyAccepted: false
   });
 
   const [loading, setLoading] = useState(false);
 
-  const handleInputChange = (field: string, value: string) => {
+  const handleInputChange = (field: string, value: string | boolean) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
@@ -50,6 +54,15 @@ const Register = () => {
       return;
     }
 
+    if (formData.userType === "hunter" && !formData.privacyPolicyAccepted) {
+      toast({
+        title: "Hiba",
+        description: "El kell fogadnia az adatvédelmi nyilatkozatot!",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -59,12 +72,15 @@ const Register = () => {
         options: {
           emailRedirectTo: `${window.location.origin}/`,
           data: {
-            company_name: formData.companyName,
+            company_name: formData.userType !== "hunter" ? formData.companyName : null,
             contact_name: formData.contactName,
             contact_email: formData.email,
             contact_phone: formData.phone,
             address: formData.address,
             user_type: formData.userType,
+            hunter_license_number: formData.userType === "hunter" ? formData.hunterLicenseNumber : null,
+            birth_date: formData.userType === "hunter" ? formData.birthDate : null,
+            privacy_policy_accepted: formData.userType === "hunter" ? formData.privacyPolicyAccepted : null,
           },
         },
       });
@@ -129,38 +145,89 @@ const Register = () => {
                 >
                   <option value="hunter_society">Vadásztársaság</option>
                   <option value="buyer">Felvásárló</option>
+                  <option value="hunter">Vadász</option>
                 </select>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="companyName" className="flex items-center gap-2">
-                  <Building2 className="h-4 w-4 text-forest-deep" />
-                  Cég név
-                </Label>
-                <Input
-                  id="companyName"
-                  type="text"
-                  placeholder="Your Hunting Company"
-                  value={formData.companyName}
-                  onChange={(e) => handleInputChange("companyName", e.target.value)}
-                  required
-                />
-              </div>
+              {formData.userType !== "hunter" ? (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="companyName" className="flex items-center gap-2">
+                      <Building2 className="h-4 w-4 text-forest-deep" />
+                      Cég név
+                    </Label>
+                    <Input
+                      id="companyName"
+                      type="text"
+                      placeholder="Your Hunting Company"
+                      value={formData.companyName}
+                      onChange={(e) => handleInputChange("companyName", e.target.value)}
+                      required
+                    />
+                  </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="contactName" className="flex items-center gap-2">
-                  <User className="h-4 w-4 text-forest-deep" />
-                  Contact Name
-                </Label>
-                <Input
-                  id="contactName"
-                  type="text"
-                  placeholder="John Doe"
-                  value={formData.contactName}
-                  onChange={(e) => handleInputChange("contactName", e.target.value)}
-                  required
-                />
-              </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="contactName" className="flex items-center gap-2">
+                      <User className="h-4 w-4 text-forest-deep" />
+                      Contact Name
+                    </Label>
+                    <Input
+                      id="contactName"
+                      type="text"
+                      placeholder="John Doe"
+                      value={formData.contactName}
+                      onChange={(e) => handleInputChange("contactName", e.target.value)}
+                      required
+                    />
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="contactName" className="flex items-center gap-2">
+                      <User className="h-4 w-4 text-forest-deep" />
+                      Név
+                    </Label>
+                    <Input
+                      id="contactName"
+                      type="text"
+                      placeholder="Kovács János"
+                      value={formData.contactName}
+                      onChange={(e) => handleInputChange("contactName", e.target.value)}
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="hunterLicenseNumber" className="flex items-center gap-2">
+                      <FileText className="h-4 w-4 text-forest-deep" />
+                      Vadászjegyszám
+                    </Label>
+                    <Input
+                      id="hunterLicenseNumber"
+                      type="text"
+                      placeholder="VJ-123456"
+                      value={formData.hunterLicenseNumber}
+                      onChange={(e) => handleInputChange("hunterLicenseNumber", e.target.value)}
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="birthDate" className="flex items-center gap-2">
+                      <CalendarCheck className="h-4 w-4 text-forest-deep" />
+                      Születési idő
+                    </Label>
+                    <Input
+                      id="birthDate"
+                      type="date"
+                      value={formData.birthDate}
+                      onChange={(e) => handleInputChange("birthDate", e.target.value)}
+                      required
+                    />
+                  </div>
+                </>
+              )}
 
               <div className="space-y-2">
                 <Label htmlFor="email" className="flex items-center gap-2">
@@ -243,7 +310,21 @@ const Register = () => {
               </div>
             </div>
 
-            <Button 
+            {formData.userType === "hunter" && (
+              <div className="flex items-start space-x-2">
+                <Checkbox
+                  id="privacyPolicy"
+                  checked={formData.privacyPolicyAccepted}
+                  onCheckedChange={(checked) => handleInputChange("privacyPolicyAccepted", checked as boolean)}
+                  required
+                />
+                <Label htmlFor="privacyPolicy" className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                  Elfogadom az adatvédelmi nyilatkozatot
+                </Label>
+              </div>
+            )}
+
+            <Button
               type="submit" 
               variant="hunting" 
               className="w-full" 
