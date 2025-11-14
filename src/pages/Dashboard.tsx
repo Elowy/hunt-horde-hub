@@ -26,6 +26,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { StorageLocationDialog } from "@/components/StorageLocationDialog";
 import { PriceSettingsDialog } from "@/components/PriceSettingsDialog";
 import { TransportDocumentsDialog } from "@/components/TransportDocumentsDialog";
+import { TransporterDialog } from "@/components/TransporterDialog";
+import { EditStorageLocationDialog } from "@/components/EditStorageLocationDialog";
 import jsPDF from "jspdf";
 
 interface StorageLocation {
@@ -34,6 +36,7 @@ interface StorageLocation {
   address: string | null;
   capacity: number | null;
   is_default: boolean;
+  notes: string | null;
 }
 
 interface Animal {
@@ -134,6 +137,44 @@ const Dashboard = () => {
       toast({
         title: "Siker!",
         description: "Alapértelmezett helyszín beállítva!",
+      });
+
+      fetchData();
+    } catch (error: any) {
+      toast({
+        title: "Hiba",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteLocation = async (locationId: string) => {
+    // Check if there are animals at this location
+    const animalsAtLocation = animals.filter(a => a.storage_location_id === locationId);
+    
+    if (animalsAtLocation.length > 0) {
+      toast({
+        title: "Hiba",
+        description: `Nem törölhető a helyszín, mert ${animalsAtLocation.length} állat található ott!`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!confirm("Biztosan törli ezt a helyszínt?")) return;
+
+    try {
+      const { error } = await supabase
+        .from("storage_locations")
+        .delete()
+        .eq("id", locationId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Siker!",
+        description: "Helyszín törölve!",
       });
 
       fetchData();
@@ -301,14 +342,14 @@ const Dashboard = () => {
   const getLocationStats = (locationId: string) => {
     const locationAnimals = animals.filter(a => a.storage_location_id === locationId);
     
-    // Calculate total price in HUF
+    // Calculate total price in HUF for animals at this location
     const totalPrice = locationAnimals.reduce((sum, animal) => {
       return sum + getAnimalPrice(animal);
     }, 0);
     
     const currentCount = locationAnimals.length;
     
-    // Havi elszállított - az aktuális hónapban hozzáadott állatok
+    // Havi elszállított
     const currentMonth = new Date().getMonth();
     const currentYear = new Date().getFullYear();
     const monthlyShipped = locationAnimals.filter(a => {
@@ -342,8 +383,9 @@ const Dashboard = () => {
               <h1 className="text-3xl font-bold mb-2">Állat Nyilvántartó</h1>
               <p className="text-primary-foreground/90">Vadászati nyilvántartás és hűtés kezelése</p>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <TransportDocumentsDialog />
+              <TransporterDialog />
               <PriceSettingsDialog onPriceUpdated={fetchData} />
               <Button variant="outline" onClick={handleLogout} className="text-white border-white hover:bg-white/10">
                 <LogOut className="h-4 w-4 mr-2" />
@@ -385,16 +427,27 @@ const Dashboard = () => {
                             </Badge>
                           )}
                         </div>
-                        {!location.is_default && (
+                        <div className="flex items-center gap-1">
+                          {!location.is_default && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleSetDefaultLocation(location.id)}
+                              className="h-8 w-8 p-0"
+                            >
+                              <Star className="h-4 w-4 text-muted-foreground hover:text-hunt-orange" />
+                            </Button>
+                          )}
+                          <EditStorageLocationDialog location={location} onLocationUpdated={fetchData} />
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handleSetDefaultLocation(location.id)}
+                            onClick={() => handleDeleteLocation(location.id)}
                             className="h-8 w-8 p-0"
                           >
-                            <Star className="h-4 w-4 text-muted-foreground hover:text-hunt-orange" />
+                            <Trash2 className="h-4 w-4 text-muted-foreground hover:text-destructive" />
                           </Button>
-                        )}
+                        </div>
                       </div>
                     </CardHeader>
                     <CardContent className="space-y-2">

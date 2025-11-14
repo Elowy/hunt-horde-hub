@@ -184,6 +184,22 @@ export const PriceSettingsDialog = ({ onPriceUpdated }: { onPriceUpdated: () => 
               ))}
             </TableBody>
           </Table>
+          <div className="mt-6 flex justify-end gap-4">
+            <div className="flex items-center gap-2">
+              <Label htmlFor="vat">ÁFA (%):</Label>
+              <Input
+                id="vat"
+                type="number"
+                min="0"
+                max="100"
+                className="w-20"
+                placeholder="27"
+              />
+            </div>
+            <Button onClick={handleSaveAll} disabled={loading}>
+              {loading ? "Mentés..." : "Összes ár mentése"}
+            </Button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
