@@ -133,6 +133,7 @@ export type Database = {
           capacity: number | null
           created_at: string
           id: string
+          is_default: boolean | null
           name: string
           notes: string | null
           updated_at: string
@@ -143,6 +144,7 @@ export type Database = {
           capacity?: number | null
           created_at?: string
           id?: string
+          is_default?: boolean | null
           name: string
           notes?: string | null
           updated_at?: string
@@ -153,6 +155,7 @@ export type Database = {
           capacity?: number | null
           created_at?: string
           id?: string
+          is_default?: boolean | null
           name?: string
           notes?: string | null
           updated_at?: string

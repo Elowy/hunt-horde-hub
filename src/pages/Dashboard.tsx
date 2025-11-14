@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Search, Filter, Eye, Edit, Trash2, MapPin, LogOut } from "lucide-react";
+import { Plus, Search, Filter, Eye, Edit, Trash2, MapPin, LogOut, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -29,6 +29,7 @@ interface StorageLocation {
   name: string;
   address: string | null;
   capacity: number | null;
+  is_default: boolean;
 }
 
 interface Animal {
@@ -102,6 +103,30 @@ const Dashboard = () => {
     navigate("/login");
   };
 
+  const handleSetDefaultLocation = async (locationId: string) => {
+    try {
+      const { error } = await supabase
+        .from("storage_locations")
+        .update({ is_default: true })
+        .eq("id", locationId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Siker!",
+        description: "Alapértelmezett helyszín beállítva!",
+      });
+
+      fetchData();
+    } catch (error: any) {
+      toast({
+        title: "Hiba",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
   const filteredAnimals = animals.filter(animal => {
     const matchesSearch = 
       animal.species.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -164,13 +189,28 @@ const Dashboard = () => {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {locations.map((location) => (
-                <Card key={location.id}>
+                <Card key={location.id} className={location.is_default ? "border-hunt-orange border-2" : ""}>
                   <CardHeader className="pb-3">
                     <div className="flex items-start justify-between">
                       <div className="flex items-center gap-2">
                         <MapPin className="h-5 w-5 text-hunt-orange" />
                         <CardTitle className="text-lg">{location.name}</CardTitle>
+                        {location.is_default && (
+                          <Badge variant="outline" className="text-hunt-orange border-hunt-orange">
+                            Alapértelmezett
+                          </Badge>
+                        )}
                       </div>
+                      {!location.is_default && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleSetDefaultLocation(location.id)}
+                          className="h-8 w-8 p-0"
+                        >
+                          <Star className="h-4 w-4 text-muted-foreground hover:text-hunt-orange" />
+                        </Button>
+                      )}
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-2">
