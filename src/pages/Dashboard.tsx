@@ -29,6 +29,8 @@ import { PriceSettingsDialog } from "@/components/PriceSettingsDialog";
 import { TransportDocumentsDialog } from "@/components/TransportDocumentsDialog";
 import { TransporterDialog } from "@/components/TransporterDialog";
 import { EditStorageLocationDialog } from "@/components/EditStorageLocationDialog";
+import { ViewAnimalDialog } from "@/components/ViewAnimalDialog";
+import { EditAnimalDialog } from "@/components/EditAnimalDialog";
 import jsPDF from "jspdf";
 
 interface StorageLocation {
@@ -44,11 +46,21 @@ interface Animal {
   id: string;
   animal_id: string;
   species: string;
+  gender: string | null;
   weight: number | null;
+  class: string | null;
   cooling_date: string | null;
   storage_location_id: string;
   hunter_name: string | null;
-  class: string | null;
+  hunter_type: string | null;
+  age: string | null;
+  condition: string | null;
+  sample_id: string | null;
+  sample_date: string | null;
+  expiry_date: string | null;
+  vet_check: boolean | null;
+  vet_notes: string | null;
+  notes: string | null;
   is_transported: boolean;
   transported_at: string | null;
 }
@@ -140,6 +152,37 @@ const Dashboard = () => {
       toast({
         title: "Siker!",
         description: "Alapértelmezett helyszín beállítva!",
+      });
+
+      fetchData();
+    } catch (error: any) {
+      toast({
+        title: "Hiba",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteAnimal = async (animal: Animal) => {
+    const locationName = getLocationName(animal.storage_location_id);
+    const confirmed = window.confirm(
+      `Biztos törli a(z) ${locationName} helyszínről a(z) ${animal.animal_id} azonosítójú ${animal.species} vadfajú ${animal.weight || 0} kg súlyú vadat?`
+    );
+
+    if (!confirmed) return;
+
+    try {
+      const { error } = await supabase
+        .from("animals")
+        .delete()
+        .eq("id", animal.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Siker!",
+        description: "Állat törölve!",
       });
 
       fetchData();
@@ -664,13 +707,21 @@ const Dashboard = () => {
                             </TableCell>
                             <TableCell className="text-right">
                               <div className="flex justify-end gap-2">
-                                <Button variant="ghost" size="sm">
-                                  <Eye className="h-4 w-4" />
-                                </Button>
-                                <Button variant="ghost" size="sm">
-                                  <Edit className="h-4 w-4" />
-                                </Button>
-                                <Button variant="ghost" size="sm">
+                                <ViewAnimalDialog 
+                                  animal={animal} 
+                                  locationName={getLocationName(animal.storage_location_id)}
+                                  price={price}
+                                />
+                                <EditAnimalDialog 
+                                  animal={animal} 
+                                  locations={locations}
+                                  onAnimalUpdated={fetchData}
+                                />
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm"
+                                  onClick={() => handleDeleteAnimal(animal)}
+                                >
                                   <Trash2 className="h-4 w-4" />
                                 </Button>
                               </div>
@@ -724,9 +775,11 @@ const Dashboard = () => {
                             </TableCell>
                             <TableCell className="text-right">
                               <div className="flex justify-end gap-2">
-                                <Button variant="ghost" size="sm">
-                                  <Eye className="h-4 w-4" />
-                                </Button>
+                                <ViewAnimalDialog 
+                                  animal={animal} 
+                                  locationName={getLocationName(animal.storage_location_id)}
+                                  price={price}
+                                />
                               </div>
                             </TableCell>
                           </TableRow>
