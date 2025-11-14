@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Search, Filter, Eye, Edit, Trash2, MapPin, LogOut, Star, Truck, FileDown } from "lucide-react";
+import { Plus, Search, Filter, Eye, Edit, Trash2, MapPin, LogOut, Star, Truck, FileDown, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -32,6 +32,7 @@ import { EditStorageLocationDialog } from "@/components/EditStorageLocationDialo
 import { ViewAnimalDialog } from "@/components/ViewAnimalDialog";
 import { EditAnimalDialog } from "@/components/EditAnimalDialog";
 import { CreateTransportDialog } from "@/components/CreateTransportDialog";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import jsPDF from "jspdf";
 
 interface StorageLocation {
@@ -527,6 +528,41 @@ const Dashboard = () => {
     };
   };
 
+  const getMonthlyRevenueData = () => {
+    const monthlyData: { [key: string]: number } = {};
+    const now = new Date();
+    
+    // Utolsó 12 hónap inicializálása
+    for (let i = 11; i >= 0; i--) {
+      const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      monthlyData[monthKey] = 0;
+    }
+    
+    // Állatok összegzése hónapok szerint
+    animals.forEach((animal) => {
+      if (!animal.cooling_date) return;
+      
+      const coolingDate = new Date(animal.cooling_date);
+      const monthKey = `${coolingDate.getFullYear()}-${String(coolingDate.getMonth() + 1).padStart(2, '0')}`;
+      
+      if (monthlyData.hasOwnProperty(monthKey)) {
+        const price = getAnimalPrice(animal);
+        monthlyData[monthKey] += price.gross;
+      }
+    });
+    
+    // Átalakítás chart formátumra
+    return Object.entries(monthlyData).map(([month, revenue]) => {
+      const [year, monthNum] = month.split('-');
+      const monthNames = ['Jan', 'Feb', 'Már', 'Ápr', 'Máj', 'Jún', 'Júl', 'Aug', 'Szep', 'Okt', 'Nov', 'Dec'];
+      return {
+        month: `${monthNames[parseInt(monthNum) - 1]} ${year}`,
+        revenue: Math.round(revenue),
+      };
+    });
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -686,6 +722,39 @@ const Dashboard = () => {
               <div className="text-2xl font-bold">
                 {animals.filter(a => a.species === "🐗 Vaddisznó").length}
               </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Statisztika */}
+        <div className="mb-8">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <TrendingUp className="h-5 w-5" />
+                Statisztika
+              </CardTitle>
+              <CardDescription>Havi bevételek a hűtött állatok alapján</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={getMonthlyRevenueData()}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="month" />
+                  <YAxis />
+                  <Tooltip 
+                    formatter={(value: number) => `${value.toLocaleString('hu-HU')} Ft`}
+                    labelStyle={{ color: '#000' }}
+                  />
+                  <Legend />
+                  <Bar 
+                    dataKey="revenue" 
+                    name="Bevétel (Ft)" 
+                    fill="hsl(var(--primary))" 
+                    radius={[8, 8, 0, 0]}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
             </CardContent>
           </Card>
         </div>
