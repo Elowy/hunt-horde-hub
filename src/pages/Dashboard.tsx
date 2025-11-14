@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Search, Filter, Eye, Edit, Trash2, MapPin, LogOut, Star } from "lucide-react";
+import { Plus, Search, Filter, Eye, Edit, Trash2, MapPin, LogOut, Star, Truck, FileDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Table,
   TableBody,
@@ -23,6 +24,8 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { StorageLocationDialog } from "@/components/StorageLocationDialog";
+import { PriceSettingsDialog } from "@/components/PriceSettingsDialog";
+import jsPDF from "jspdf";
 
 interface StorageLocation {
   id: string;
@@ -43,6 +46,13 @@ interface Animal {
   class: string | null;
 }
 
+interface PriceSetting {
+  id: string;
+  species: string;
+  class: string;
+  price_per_kg: number;
+}
+
 const Dashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -50,7 +60,9 @@ const Dashboard = () => {
   const [filterLocation, setFilterLocation] = useState("all");
   const [animals, setAnimals] = useState<Animal[]>([]);
   const [locations, setLocations] = useState<StorageLocation[]>([]);
+  const [priceSettings, setPriceSettings] = useState<PriceSetting[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedAnimals, setSelectedAnimals] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     checkAuth();
@@ -69,7 +81,7 @@ const Dashboard = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const [locationsResult, animalsResult] = await Promise.all([
+      const [locationsResult, animalsResult, pricesResult] = await Promise.all([
         supabase
           .from("storage_locations")
           .select("*")
@@ -80,13 +92,19 @@ const Dashboard = () => {
           .select("*")
           .eq("user_id", user.id)
           .order("created_at", { ascending: false }),
+        supabase
+          .from("price_settings")
+          .select("*")
+          .eq("user_id", user.id),
       ]);
 
       if (locationsResult.error) throw locationsResult.error;
       if (animalsResult.error) throw animalsResult.error;
+      if (pricesResult.error) throw pricesResult.error;
 
       setLocations(locationsResult.data || []);
       setAnimals(animalsResult.data || []);
+      setPriceSettings(pricesResult.data || []);
     } catch (error: any) {
       toast({
         title: "Hiba",
@@ -127,6 +145,96 @@ const Dashboard = () => {
     }
   };
 
+  const toggleAnimalSelection = (animalId: string) => {
+    const newSelected = new Set(selectedAnimals);
+    if (newSelected.has(animalId)) {
+      newSelected.delete(animalId);
+    } else {
+      newSelected.add(animalId);
+    }
+    setSelectedAnimals(newSelected);
+  };
+
+  const getAnimalPrice = (animal: Animal) => {
+    if (!animal.weight || !animal.species || !animal.class) return 0;
+    
+    const priceSetting = priceSettings.find(
+      (p) => p.species === animal.species && p.class === animal.class
+    );
+    
+    if (!priceSetting) return 0;
+    
+    return animal.weight * priceSetting.price_per_kg;
+  };
+
+  const generateTransportPDF = () => {
+    if (selectedAnimals.size === 0) {
+      toast({
+        title: "Figyelmeztetés",
+        description: "Válasszon ki legalább egy állatot!",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const selectedAnimalsList = animals.filter(a => selectedAnimals.has(a.id));
+    const doc = new jsPDF();
+    
+    // Címsor
+    doc.setFontSize(20);
+    doc.text("Elszallito", 105, 20, { align: "center" });
+    
+    doc.setFontSize(12);
+    doc.text(`Datum: ${new Date().toLocaleDateString("hu-HU")}`, 20, 35);
+    
+    // Táblázat fejléc
+    let yPos = 50;
+    doc.setFontSize(10);
+    doc.text("Azonosito", 20, yPos);
+    doc.text("Faj", 60, yPos);
+    doc.text("Osztaly", 90, yPos);
+    doc.text("Suly (kg)", 120, yPos);
+    doc.text("Ar (Ft)", 160, yPos);
+    
+    yPos += 10;
+    
+    // Adatok
+    let totalWeight = 0;
+    let totalPrice = 0;
+    
+    selectedAnimalsList.forEach((animal) => {
+      const price = getAnimalPrice(animal);
+      totalWeight += animal.weight || 0;
+      totalPrice += price;
+      
+      doc.text(animal.animal_id, 20, yPos);
+      doc.text(animal.species, 60, yPos);
+      doc.text(animal.class || "-", 90, yPos);
+      doc.text((animal.weight || 0).toString(), 120, yPos);
+      doc.text(Math.round(price).toLocaleString("hu-HU"), 160, yPos);
+      
+      yPos += 8;
+      
+      if (yPos > 270) {
+        doc.addPage();
+        yPos = 20;
+      }
+    });
+    
+    // Összegzés
+    yPos += 10;
+    doc.setFontSize(12);
+    doc.text(`Osszes suly: ${totalWeight.toFixed(2)} kg`, 20, yPos);
+    doc.text(`Osszes ar: ${Math.round(totalPrice).toLocaleString("hu-HU")} Ft`, 120, yPos);
+    
+    doc.save(`elszallito_${new Date().toISOString().split('T')[0]}.pdf`);
+    
+    toast({
+      title: "Siker!",
+      description: "Elszállító PDF létrehozva!",
+    });
+  };
+
   const filteredAnimals = animals.filter(animal => {
     const matchesSearch = 
       animal.species.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -142,8 +250,25 @@ const Dashboard = () => {
     return location?.name || "Ismeretlen";
   };
 
-  const getAnimalsByLocation = (locationId: string) => {
-    return animals.filter(a => a.storage_location_id === locationId).length;
+  const getLocationStats = (locationId: string) => {
+    const locationAnimals = animals.filter(a => a.storage_location_id === locationId);
+    const totalWeight = locationAnimals.reduce((sum, a) => sum + (a.weight || 0), 0);
+    const currentCount = locationAnimals.length;
+    
+    // Havi elszállított - az aktuális hónapban hozzáadott állatok (ez egy egyszerűsített példa)
+    const currentMonth = new Date().getMonth();
+    const currentYear = new Date().getFullYear();
+    const monthlyShipped = locationAnimals.filter(a => {
+      if (!a.cooling_date) return false;
+      const date = new Date(a.cooling_date);
+      return date.getMonth() === currentMonth && date.getFullYear() === currentYear;
+    }).length;
+
+    return {
+      totalWeight: totalWeight.toFixed(2),
+      currentCount,
+      monthlyShipped,
+    };
   };
 
   if (loading) {
@@ -164,10 +289,13 @@ const Dashboard = () => {
               <h1 className="text-3xl font-bold mb-2">Állat Nyilvántartó</h1>
               <p className="text-primary-foreground/90">Vadászati nyilvántartás és hűtés kezelése</p>
             </div>
-            <Button variant="outline" onClick={handleLogout} className="text-white border-white hover:bg-white/10">
-              <LogOut className="h-4 w-4 mr-2" />
-              Kijelentkezés
-            </Button>
+            <div className="flex gap-2">
+              <PriceSettingsDialog onPriceUpdated={fetchData} />
+              <Button variant="outline" onClick={handleLogout} className="text-white border-white hover:bg-white/10">
+                <LogOut className="h-4 w-4 mr-2" />
+                Kijelentkezés
+              </Button>
+            </div>
           </div>
         </div>
       </div>
@@ -188,180 +316,214 @@ const Dashboard = () => {
             </Card>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {locations.map((location) => (
-                <Card key={location.id} className={location.is_default ? "border-hunt-orange border-2" : ""}>
-                  <CardHeader className="pb-3">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-2">
-                        <MapPin className="h-5 w-5 text-hunt-orange" />
-                        <CardTitle className="text-lg">{location.name}</CardTitle>
-                        {location.is_default && (
-                          <Badge variant="outline" className="text-hunt-orange border-hunt-orange">
-                            Alapértelmezett
-                          </Badge>
+              {locations.map((location) => {
+                const stats = getLocationStats(location.id);
+                return (
+                  <Card key={location.id} className={location.is_default ? "border-hunt-orange border-2" : ""}>
+                    <CardHeader className="pb-3">
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-2">
+                          <MapPin className="h-5 w-5 text-hunt-orange" />
+                          <CardTitle className="text-lg">{location.name}</CardTitle>
+                          {location.is_default && (
+                            <Badge variant="outline" className="text-hunt-orange border-hunt-orange">
+                              Alapértelmezett
+                            </Badge>
+                          )}
+                        </div>
+                        {!location.is_default && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleSetDefaultLocation(location.id)}
+                            className="h-8 w-8 p-0"
+                          >
+                            <Star className="h-4 w-4 text-muted-foreground hover:text-hunt-orange" />
+                          </Button>
                         )}
                       </div>
-                      {!location.is_default && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleSetDefaultLocation(location.id)}
-                          className="h-8 w-8 p-0"
-                        >
-                          <Star className="h-4 w-4 text-muted-foreground hover:text-hunt-orange" />
-                        </Button>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                      {location.address && (
+                        <p className="text-sm text-muted-foreground">{location.address}</p>
                       )}
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-2">
-                    {location.address && (
-                      <p className="text-sm text-muted-foreground">{location.address}</p>
-                    )}
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Állatok:</span>
-                      <span className="font-semibold">{getAnimalsByLocation(location.id)}</span>
-                    </div>
-                    {location.capacity && (
                       <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Kapacitás:</span>
-                        <span className="font-semibold">{location.capacity} db</span>
+                        <span className="text-muted-foreground">Teljes hűtési érték:</span>
+                        <span className="font-semibold">{stats.totalWeight} kg</span>
                       </div>
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Jelenlegi bentlévő:</span>
+                        <span className="font-semibold">{stats.currentCount} db</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Havi elszállított:</span>
+                        <span className="font-semibold">{stats.monthlyShipped} db</span>
+                      </div>
+                      {location.capacity && (
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">Kapacitás:</span>
+                          <span className="font-semibold">{location.capacity} db</span>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
           )}
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
           <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Összes állat</CardTitle>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Összes állat
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-forest-deep">{animals.length}</div>
+              <div className="text-2xl font-bold">{animals.length}</div>
             </CardContent>
           </Card>
-          
           <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Helyszínek</CardTitle>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Helyszínek
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-blue-600">{locations.length}</div>
+              <div className="text-2xl font-bold">{locations.length}</div>
             </CardContent>
           </Card>
-          
           <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Szarvasok</CardTitle>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                🦌 Szarvas
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-green-600">
-                {animals.filter(a => a.species.toLowerCase().includes("szarvas")).length}
+              <div className="text-2xl font-bold">
+                {animals.filter(a => a.species === "🦌 Szarvas").length}
               </div>
             </CardContent>
           </Card>
-          
           <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Vaddisznók</CardTitle>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                🐗 Vaddisznó
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-orange-600">
-                {animals.filter(a => a.species.toLowerCase().includes("disznó")).length}
+              <div className="text-2xl font-bold">
+                {animals.filter(a => a.species === "🐗 Vaddisznó").length}
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Search and Filters */}
-        <Card className="mb-6">
-          <CardContent className="pt-6">
-            <div className="flex flex-col md:flex-row gap-4">
-              <div className="flex-1 relative">
+        {/* Állat nyilvántartás */}
+        <div>
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-2xl font-bold text-forest-deep">Állat nyilvántartás</h2>
+            <Button onClick={() => navigate("/add-animal")}>
+              <Plus className="h-4 w-4 mr-2" />
+              Állat hozzáadása
+            </Button>
+          </div>
+
+          {/* Keresés és szűrés */}
+          <div className="flex gap-4 mb-4">
+            <div className="flex-1">
+              <div className="relative">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Keresés faj vagy azonosító alapján..."
+                  placeholder="Keresés azonosító vagy faj alapján..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"
                 />
               </div>
-              
-              <div className="flex gap-2">
-                <Select value={filterLocation} onValueChange={setFilterLocation}>
-                  <SelectTrigger className="w-[200px]">
-                    <Filter className="h-4 w-4 mr-2" />
-                    <SelectValue placeholder="Helyszín" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Minden helyszín</SelectItem>
-                    {locations.map((location) => (
-                      <SelectItem key={location.id} value={location.id}>
-                        {location.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                
-                <Button variant="hunting" onClick={() => navigate("/add-animal")}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Új állat
-                </Button>
-              </div>
             </div>
-          </CardContent>
-        </Card>
+            <Select value={filterLocation} onValueChange={setFilterLocation}>
+              <SelectTrigger className="w-[200px]">
+                <Filter className="h-4 w-4 mr-2" />
+                <SelectValue placeholder="Helyszín szűrés" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Minden helyszín</SelectItem>
+                {locations.map((location) => (
+                  <SelectItem key={location.id} value={location.id}>
+                    {location.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
-        {/* Animals Table */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Állat nyilvántartás</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {filteredAnimals.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                {animals.length === 0 
-                  ? "Még nincs állat. Adjon hozzá egyet a kezdéshez!"
-                  : "Nincs találat a keresési feltételeknek megfelelően."
-                }
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Vadazonosító</TableHead>
-                      <TableHead>Faj</TableHead>
-                      <TableHead>Súly (kg)</TableHead>
-                      <TableHead>Osztály</TableHead>
-                      <TableHead>Vadász</TableHead>
-                      <TableHead>Helyszín</TableHead>
-                      <TableHead>Dátum</TableHead>
-                      <TableHead className="text-right">Műveletek</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredAnimals.map((animal) => (
+          {/* Elszállító gomb */}
+          {selectedAnimals.size > 0 && (
+            <div className="mb-4 flex justify-end">
+              <Button onClick={generateTransportPDF} variant="default">
+                <FileDown className="h-4 w-4 mr-2" />
+                Elszállító készítése ({selectedAnimals.size} állat)
+              </Button>
+            </div>
+          )}
+
+          {/* Táblázat */}
+          {animals.length === 0 ? (
+            <Card>
+              <CardContent className="py-8 text-center text-muted-foreground">
+                Még nincs állat a nyilvántartásban. Adjon hozzá egyet a kezdéshez!
+              </CardContent>
+            </Card>
+          ) : (
+            <Card>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[50px]">
+                      <Truck className="h-4 w-4" />
+                    </TableHead>
+                    <TableHead>Azonosító</TableHead>
+                    <TableHead>Faj</TableHead>
+                    <TableHead>Súly (kg)</TableHead>
+                    <TableHead>Osztály</TableHead>
+                    <TableHead>Ár (Ft)</TableHead>
+                    <TableHead>Vadász</TableHead>
+                    <TableHead>Helyszín</TableHead>
+                    <TableHead>Dátum</TableHead>
+                    <TableHead className="text-right">Műveletek</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredAnimals.map((animal) => {
+                    const price = getAnimalPrice(animal);
+                    return (
                       <TableRow key={animal.id}>
+                        <TableCell>
+                          <Checkbox
+                            checked={selectedAnimals.has(animal.id)}
+                            onCheckedChange={() => toggleAnimalSelection(animal.id)}
+                          />
+                        </TableCell>
                         <TableCell className="font-medium">{animal.animal_id}</TableCell>
                         <TableCell>{animal.species}</TableCell>
                         <TableCell>{animal.weight || "-"}</TableCell>
-                        <TableCell>
-                          {animal.class ? (
-                            <Badge variant="outline">{animal.class}</Badge>
-                          ) : "-"}
+                        <TableCell>{animal.class || "-"}</TableCell>
+                        <TableCell className="font-semibold">
+                          {price > 0 ? Math.round(price).toLocaleString("hu-HU") : "-"}
                         </TableCell>
                         <TableCell>{animal.hunter_name || "-"}</TableCell>
-                        <TableCell>{getLocationName(animal.storage_location_id)}</TableCell>
                         <TableCell>
-                          {animal.cooling_date 
+                          <Badge variant="outline">
+                            {getLocationName(animal.storage_location_id)}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {animal.cooling_date
                             ? new Date(animal.cooling_date).toLocaleDateString("hu-HU")
-                            : "-"
-                          }
+                            : "-"}
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-2">
@@ -372,18 +534,18 @@ const Dashboard = () => {
                               <Edit className="h-4 w-4" />
                             </Button>
                             <Button variant="ghost" size="sm">
-                              <Trash2 className="h-4 w-4 text-destructive" />
+                              <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>
                         </TableCell>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </Card>
+          )}
+        </div>
       </div>
     </div>
   );
