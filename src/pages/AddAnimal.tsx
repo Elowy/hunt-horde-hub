@@ -305,11 +305,9 @@ const AddAnimal = () => {
                       <SelectValue placeholder="Válasszon vadfajt" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Vaddisznó">🐗 Vaddisznó</SelectItem>
-                      <SelectItem value="Gím Szarvas">🦌 Gím Szarvas</SelectItem>
-                      <SelectItem value="Dám Szarvas">🦌 Dám Szarvas</SelectItem>
-                      <SelectItem value="Őz">🦌 Őz</SelectItem>
-                      <SelectItem value="Muflon">🐏 Muflon</SelectItem>
+                      <SelectItem value="🐗 Vaddisznó">🐗 Vaddisznó</SelectItem>
+                      <SelectItem value="🦌 Szarvas">🦌 Szarvas</SelectItem>
+                      <SelectItem value="🐏 Őz">🐏 Őz</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
