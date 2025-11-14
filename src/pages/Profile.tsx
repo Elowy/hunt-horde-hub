@@ -1,18 +1,20 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Save, User } from "lucide-react";
+import { ArrowLeft, Save, User, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { InviteUserDialog } from "@/components/InviteUserDialog";
 
 const Profile = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState("");
+  const [isAdmin, setIsAdmin] = useState(false);
   const [formData, setFormData] = useState({
     companyName: "",
     contactName: "",
@@ -22,13 +24,35 @@ const Profile = () => {
     taxNumber: "",
   });
   const [passwordData, setPasswordData] = useState({
+    code: "",
     newPassword: "",
     confirmPassword: "",
   });
+  const [codeSent, setCodeSent] = useState(false);
+  const [sendingCode, setSendingCode] = useState(false);
 
   useEffect(() => {
     fetchProfileData();
+    checkAdminStatus();
   }, []);
+
+  const checkAdminStatus = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
+        .eq("role", "admin")
+        .maybeSingle();
+
+      setIsAdmin(!!roles);
+    } catch (error) {
+      console.error("Error checking admin status:", error);
+    }
+  };
 
   const fetchProfileData = async () => {
     try {
@@ -102,7 +126,43 @@ const Profile = () => {
     }
   };
 
+  const handleSendCode = async () => {
+    setSendingCode(true);
+    try {
+      const { error } = await supabase.functions.invoke("send-password-reset-code", {
+        body: { email },
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Siker!",
+        description: "Ellenőrző kód elküldve az email címére!",
+      });
+
+      setCodeSent(true);
+    } catch (error: any) {
+      console.error("Error sending code:", error);
+      toast({
+        title: "Hiba",
+        description: error.message || "Nem sikerült elküldeni a kódot.",
+        variant: "destructive",
+      });
+    } finally {
+      setSendingCode(false);
+    }
+  };
+
   const handleUpdatePassword = async () => {
+    if (!passwordData.code.trim()) {
+      toast({
+        title: "Hiba",
+        description: "Adja meg az ellenőrző kódot!",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (passwordData.newPassword !== passwordData.confirmPassword) {
       toast({
         title: "Hiba",
@@ -123,11 +183,34 @@ const Profile = () => {
 
     setLoading(true);
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Verify code
+      if (user.user_metadata?.password_reset_code !== passwordData.code) {
+        throw new Error("Hibás ellenőrző kód!");
+      }
+
+      // Check if code expired
+      const expiresAt = new Date(user.user_metadata?.password_reset_expires);
+      if (expiresAt < new Date()) {
+        throw new Error("Az ellenőrző kód lejárt!");
+      }
+
+      // Update password
       const { error } = await supabase.auth.updateUser({
         password: passwordData.newPassword,
       });
 
       if (error) throw error;
+
+      // Clear the code
+      await supabase.auth.updateUser({
+        data: {
+          password_reset_code: null,
+          password_reset_expires: null,
+        },
+      });
 
       toast({
         title: "Siker!",
@@ -135,9 +218,11 @@ const Profile = () => {
       });
 
       setPasswordData({
+        code: "",
         newPassword: "",
         confirmPassword: "",
       });
+      setCodeSent(false);
     } catch (error: any) {
       toast({
         title: "Hiba",
@@ -277,44 +362,102 @@ const Profile = () => {
             <CardHeader>
               <CardTitle>Jelszó módosítása</CardTitle>
               <CardDescription>
-                Állítson be új jelszót a fiókjához
+                Állítson be új jelszót a fiókjához. Először kérjen ellenőrző kódot.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="newPassword">Új jelszó</Label>
-                <Input
-                  id="newPassword"
-                  type="password"
-                  value={passwordData.newPassword}
-                  onChange={(e) =>
-                    setPasswordData({ ...passwordData, newPassword: e.target.value })
-                  }
-                  placeholder="••••••••"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="confirmPassword">Új jelszó megerősítése</Label>
-                <Input
-                  id="confirmPassword"
-                  type="password"
-                  value={passwordData.confirmPassword}
-                  onChange={(e) =>
-                    setPasswordData({ ...passwordData, confirmPassword: e.target.value })
-                  }
-                  placeholder="••••••••"
-                />
-              </div>
-              <Button
-                onClick={handleUpdatePassword}
-                disabled={loading || !passwordData.newPassword}
-                className="w-full"
-              >
-                <Save className="h-4 w-4 mr-2" />
-                Jelszó módosítása
-              </Button>
+              {!codeSent ? (
+                <>
+                  <p className="text-sm text-muted-foreground">
+                    Kattintson a gombra, hogy ellenőrző kódot küldjünk az email címére: <strong>{email}</strong>
+                  </p>
+                  <Button
+                    onClick={handleSendCode}
+                    disabled={sendingCode}
+                    className="w-full"
+                  >
+                    <Mail className="h-4 w-4 mr-2" />
+                    {sendingCode ? "Küldés..." : "Ellenőrző kód küldése"}
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="code">Ellenőrző kód (email-ben kapott)</Label>
+                    <Input
+                      id="code"
+                      type="text"
+                      value={passwordData.code}
+                      onChange={(e) =>
+                        setPasswordData({ ...passwordData, code: e.target.value })
+                      }
+                      placeholder="123456"
+                      maxLength={6}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="newPassword">Új jelszó</Label>
+                    <Input
+                      id="newPassword"
+                      type="password"
+                      value={passwordData.newPassword}
+                      onChange={(e) =>
+                        setPasswordData({ ...passwordData, newPassword: e.target.value })
+                      }
+                      placeholder="••••••••"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="confirmPassword">Új jelszó megerősítése</Label>
+                    <Input
+                      id="confirmPassword"
+                      type="password"
+                      value={passwordData.confirmPassword}
+                      onChange={(e) =>
+                        setPasswordData({ ...passwordData, confirmPassword: e.target.value })
+                      }
+                      placeholder="••••••••"
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setCodeSent(false);
+                        setPasswordData({ code: "", newPassword: "", confirmPassword: "" });
+                      }}
+                      className="flex-1"
+                    >
+                      Vissza
+                    </Button>
+                    <Button
+                      onClick={handleUpdatePassword}
+                      disabled={loading || !passwordData.code || !passwordData.newPassword}
+                      className="flex-1"
+                    >
+                      <Save className="h-4 w-4 mr-2" />
+                      Jelszó módosítása
+                    </Button>
+                  </div>
+                </>
+              )}
             </CardContent>
           </Card>
+
+          {/* Admin funkciók */}
+          {isAdmin && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Admin funkciók</CardTitle>
+                <CardDescription>
+                  Csak adminisztrátorok számára elérhető funkciók
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <InviteUserDialog />
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
     </div>

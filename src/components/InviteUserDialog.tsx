@@ -100,7 +100,7 @@ export const InviteUserDialog = () => {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" className="h-10">
+        <Button variant="outline" className="w-full justify-start">
           <UserPlus className="h-4 w-4 mr-2" />
           Felhasználó meghívása
         </Button>
