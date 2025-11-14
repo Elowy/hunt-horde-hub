@@ -270,12 +270,16 @@ export type Database = {
       profiles: {
         Row: {
           address: string | null
+          birth_date: string | null
           company_name: string | null
           contact_email: string | null
           contact_name: string | null
           contact_phone: string | null
           created_at: string
+          hunter_license_number: string | null
           id: string
+          privacy_policy_accepted: boolean | null
+          privacy_policy_accepted_at: string | null
           tax_number: string | null
           updated_at: string
           user_type: string | null
@@ -283,12 +287,16 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          birth_date?: string | null
           company_name?: string | null
           contact_email?: string | null
           contact_name?: string | null
           contact_phone?: string | null
           created_at?: string
+          hunter_license_number?: string | null
           id: string
+          privacy_policy_accepted?: boolean | null
+          privacy_policy_accepted_at?: string | null
           tax_number?: string | null
           updated_at?: string
           user_type?: string | null
@@ -296,12 +304,16 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          birth_date?: string | null
           company_name?: string | null
           contact_email?: string | null
           contact_name?: string | null
           contact_phone?: string | null
           created_at?: string
+          hunter_license_number?: string | null
           id?: string
+          privacy_policy_accepted?: boolean | null
+          privacy_policy_accepted_at?: string | null
           tax_number?: string | null
           updated_at?: string
           user_type?: string | null

@@ -25,7 +25,7 @@ export const InviteUserDialog = () => {
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const [email, setEmail] = useState("");
-  const [role, setRole] = useState<"editor" | "hunter">("hunter");
+  const [role, setRole] = useState<"admin" | "editor" | "viewer" | "hunter">("hunter");
   const [loading, setLoading] = useState(false);
 
   const handleInvite = async () => {
@@ -116,25 +116,29 @@ export const InviteUserDialog = () => {
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Vadász tag meghívása</DialogTitle>
+          <DialogTitle>Felhasználó meghívása</DialogTitle>
           <DialogDescription>
-            Küldjön meghívót egy új vadász tagnak. Választhatja ki a szerepkört:
+            Küldjön meghívót egy új felhasználónak és válassza ki a szerepkörét:
             <ul className="mt-2 ml-4 list-disc text-sm">
-              <li><strong>Vadász:</strong> Csak a hűtőben lévő vadakat tekintheti meg</li>
+              <li><strong>Admin:</strong> Teljes hozzáférés, felhasználók kezelése</li>
               <li><strong>Kezelő:</strong> Vadakat tud hozzáadni, de törölni vagy módosítani nem</li>
+              <li><strong>Megtekintő:</strong> Csak megtekintési jogosultság</li>
+              <li><strong>Vadász:</strong> Csak a hűtőben lévő vadakat tekintheti meg</li>
             </ul>
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-4">
           <div className="space-y-2">
             <Label htmlFor="role">Szerepkör</Label>
-            <Select value={role} onValueChange={(value: "editor" | "hunter") => setRole(value)}>
+            <Select value={role} onValueChange={(value: "admin" | "editor" | "viewer" | "hunter") => setRole(value)}>
               <SelectTrigger>
                 <SelectValue placeholder="Válasszon szerepkört" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="hunter">🏹 Vadász (csak megtekintés)</SelectItem>
+                <SelectItem value="admin">👑 Admin (teljes hozzáférés)</SelectItem>
                 <SelectItem value="editor">📝 Kezelő (hozzáadás engedélyezve)</SelectItem>
+                <SelectItem value="viewer">👁️ Megtekintő (csak olvasás)</SelectItem>
+                <SelectItem value="hunter">🏹 Vadász (csak megtekintés)</SelectItem>
               </SelectContent>
             </Select>
           </div>
