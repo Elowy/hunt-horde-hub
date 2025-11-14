@@ -103,18 +103,40 @@ export const DashboardMenu = ({ isAdmin, onLogout, onPriceUpdated }: DashboardMe
                 <FileText className="mr-2 h-4 w-4" />
                 Vad felvétele
               </Button>
-              <Button
-                variant="ghost"
-                className="w-full justify-start"
-                onClick={() => handleNavigation("/hunting-registrations")}
-              >
-                <CalendarCheck className="mr-2 h-4 w-4" />
-                Vadászati beiratkozások
-              </Button>
-              {isAdmin && <SettlementsAndZonesDialog />}
               <TransportDocumentsDialog />
               <TransporterDialog />
               <PriceSettingsDialog onPriceUpdated={onPriceUpdated} />
+            </div>
+          </div>
+
+          <Separator />
+
+          {/* Vadászati */}
+          <div className="space-y-2">
+            <p className="text-sm font-medium text-muted-foreground px-2">Vadászati</p>
+            <div className="space-y-2">
+              {subscriptionLoading ? (
+                <p className="text-xs text-muted-foreground px-2">Betöltés...</p>
+              ) : isPro ? (
+                <Button
+                  variant="ghost"
+                  className="w-full justify-start"
+                  onClick={() => handleNavigation("/hunting-registrations")}
+                >
+                  <CalendarCheck className="mr-2 h-4 w-4" />
+                  Vadászati beiratkozások
+                </Button>
+              ) : (
+                <Alert className="border-yellow-500/50 bg-yellow-500/10 py-2 mx-2">
+                  <AlertDescription className="text-xs flex items-center gap-2">
+                    <Crown className="h-3 w-3 text-yellow-600 dark:text-yellow-400 shrink-0" />
+                    <span className="text-yellow-700 dark:text-yellow-300">
+                      Beiratkozások - Csak Pro
+                    </span>
+                  </AlertDescription>
+                </Alert>
+              )}
+              {isAdmin && <SettlementsAndZonesDialog />}
             </div>
           </div>
 
