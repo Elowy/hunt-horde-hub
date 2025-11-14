@@ -478,21 +478,27 @@ const Dashboard = () => {
   };
 
   const getLocationStats = (locationId: string) => {
-    // Only count animals that are NOT transported
+    // Only count animals that are NOT transported for current count
     const locationAnimals = animals.filter(a => 
       a.storage_location_id === locationId && !a.is_transported
     );
     
-    // Calculate total price in HUF for animals at this location
-    const totalPrice = locationAnimals.reduce((sum, animal) => {
+    // Calculate monthly cooling value - all animals cooled this month at this location
+    const currentMonth = new Date().getMonth();
+    const currentYear = new Date().getFullYear();
+    const monthlyAnimals = animals.filter(a => {
+      if (!a.cooling_date || a.storage_location_id !== locationId) return false;
+      const date = new Date(a.cooling_date);
+      return date.getMonth() === currentMonth && date.getFullYear() === currentYear;
+    });
+    
+    const monthlyCoolingValue = monthlyAnimals.reduce((sum, animal) => {
       return sum + getAnimalPrice(animal);
     }, 0);
     
     const currentCount = locationAnimals.length;
     
     // Havi elszállított
-    const currentMonth = new Date().getMonth();
-    const currentYear = new Date().getFullYear();
     const monthlyShipped = animals.filter(a => {
       if (!a.cooling_date || !a.is_transported) return false;
       const date = new Date(a.cooling_date);
@@ -500,7 +506,7 @@ const Dashboard = () => {
     }).length;
 
     return {
-      totalPrice: Math.round(totalPrice),
+      monthlyCoolingValue: Math.round(monthlyCoolingValue),
       currentCount,
       monthlyShipped,
     };
@@ -596,8 +602,8 @@ const Dashboard = () => {
                         <p className="text-sm text-muted-foreground">{location.address}</p>
                       )}
                       <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Teljes hűtési érték:</span>
-                        <span className="font-semibold">{stats.totalPrice.toLocaleString("hu-HU")} Ft</span>
+                        <span className="text-muted-foreground">Teljes havi hűtési érték:</span>
+                        <span className="font-semibold">{stats.monthlyCoolingValue.toLocaleString("hu-HU")} Ft</span>
                       </div>
                       <div className="flex justify-between text-sm">
                         <span className="text-muted-foreground">Jelenlegi bentlévő:</span>
