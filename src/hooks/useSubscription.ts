@@ -32,7 +32,7 @@ export const useSubscription = () => {
       }
 
       setProductId(data.product_id);
-      setIsPro(PRO_PRODUCT_IDS.includes(data.product_id));
+      setIsPro(data.product_id === "pro" || PRO_PRODUCT_IDS.includes(data.product_id));
     } catch (error) {
       console.error("Error checking subscription:", error);
       setIsPro(false);
