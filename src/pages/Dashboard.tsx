@@ -31,6 +31,7 @@ import { TransporterDialog } from "@/components/TransporterDialog";
 import { EditStorageLocationDialog } from "@/components/EditStorageLocationDialog";
 import { ViewAnimalDialog } from "@/components/ViewAnimalDialog";
 import { EditAnimalDialog } from "@/components/EditAnimalDialog";
+import { CreateTransportDialog } from "@/components/CreateTransportDialog";
 import jsPDF from "jspdf";
 
 interface StorageLocation {
@@ -82,6 +83,7 @@ const Dashboard = () => {
   const [priceSettings, setPriceSettings] = useState<PriceSetting[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedAnimals, setSelectedAnimals] = useState<Set<string>>(new Set());
+  const [showTransportDialog, setShowTransportDialog] = useState(false);
 
   useEffect(() => {
     checkAuth();
@@ -255,7 +257,7 @@ const Dashboard = () => {
     return animal.weight * priceSetting.price_per_kg;
   };
 
-  const generateTransportPDF = async () => {
+  const handleCreateTransport = () => {
     if (selectedAnimals.size === 0) {
       toast({
         title: "Figyelmeztetés",
@@ -264,6 +266,10 @@ const Dashboard = () => {
       });
       return;
     }
+    setShowTransportDialog(true);
+  };
+
+  const generateTransportPDF = async (transporterId: string) => {
 
     const selectedAnimalsList = animals.filter(a => selectedAnimals.has(a.id));
     
@@ -294,6 +300,7 @@ const Dashboard = () => {
           total_weight: totalWeight,
           total_price: totalPrice,
           animal_count: selectedAnimalsList.length,
+          transporter_id: transporterId,
         })
         .select()
         .single();
@@ -652,7 +659,7 @@ const Dashboard = () => {
                 {/* Elszállító gomb */}
                 {selectedAnimals.size > 0 && (
                   <div className="mb-4 flex justify-end">
-                    <Button onClick={generateTransportPDF} variant="default">
+                    <Button onClick={handleCreateTransport} variant="default">
                       <FileDown className="h-4 w-4 mr-2" />
                       Elszállító készítése ({selectedAnimals.size} állat)
                     </Button>
@@ -793,6 +800,12 @@ const Dashboard = () => {
           )}
         </div>
       </div>
+      
+      <CreateTransportDialog
+        open={showTransportDialog}
+        onOpenChange={setShowTransportDialog}
+        onTransporterSelected={generateTransportPDF}
+      />
     </div>
   );
 };
