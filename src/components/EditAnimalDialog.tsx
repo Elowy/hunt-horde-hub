@@ -49,6 +49,12 @@ interface StorageLocation {
   name: string;
 }
 
+interface PriceSetting {
+  species: string;
+  class: string;
+  price_per_kg: number;
+}
+
 interface EditAnimalDialogProps {
   animal: Animal;
   locations: StorageLocation[];
@@ -59,6 +65,9 @@ export const EditAnimalDialog = ({ animal, locations, onAnimalUpdated }: EditAni
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [priceSettings, setPriceSettings] = useState<PriceSetting[]>([]);
+  const [vatRate, setVatRate] = useState<number>(27);
+  const [calculatedPrice, setCalculatedPrice] = useState<{ net: number; gross: number }>({ net: 0, gross: 0 });
   const [formData, setFormData] = useState({
     animal_id: animal.animal_id,
     species: animal.species,
@@ -102,6 +111,84 @@ export const EditAnimalDialog = ({ animal, locations, onAnimalUpdated }: EditAni
       });
     }
   }, [open, animal]);
+
+  useEffect(() => {
+    if (open) {
+      fetchPriceSettings();
+      fetchVatRate();
+    }
+  }, [open]);
+
+  useEffect(() => {
+    calculatePrice();
+  }, [formData.weight, formData.species, formData.class, priceSettings, vatRate]);
+
+  const fetchPriceSettings = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from("price_settings")
+        .select("*")
+        .eq("user_id", user.id);
+
+      if (error) throw error;
+      setPriceSettings(data || []);
+    } catch (error: any) {
+      console.error("Error fetching price settings:", error);
+    }
+  };
+
+  const fetchVatRate = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("vat_rate")
+        .eq("id", user.id)
+        .single();
+
+      if (error) throw error;
+      if (data?.vat_rate) {
+        setVatRate(data.vat_rate);
+      }
+    } catch (error: any) {
+      console.error("Error fetching VAT rate:", error);
+    }
+  };
+
+  const calculatePrice = () => {
+    if (!formData.weight || !formData.species || !formData.class) {
+      setCalculatedPrice({ net: 0, gross: 0 });
+      return;
+    }
+
+    const weight = parseFloat(formData.weight);
+    if (isNaN(weight)) {
+      setCalculatedPrice({ net: 0, gross: 0 });
+      return;
+    }
+
+    const priceSetting = priceSettings.find(
+      (p) => p.species === formData.species && p.class === formData.class
+    );
+
+    if (!priceSetting) {
+      setCalculatedPrice({ net: 0, gross: 0 });
+      return;
+    }
+
+    const netPrice = weight * priceSetting.price_per_kg;
+    const grossPrice = netPrice * (1 + vatRate / 100);
+
+    setCalculatedPrice({
+      net: Math.round(netPrice),
+      gross: Math.round(grossPrice),
+    });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -261,6 +348,19 @@ export const EditAnimalDialog = ({ animal, locations, onAnimalUpdated }: EditAni
                 disabled={loading}
               />
             </div>
+
+            {calculatedPrice.net > 0 && (
+              <div className="col-span-2 bg-muted/50 p-4 rounded-lg space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Nettó ár:</span>
+                  <span className="text-lg font-bold">{calculatedPrice.net.toLocaleString("hu-HU")} Ft</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Bruttó ár (ÁFA {vatRate}%):</span>
+                  <span className="text-lg">{calculatedPrice.gross.toLocaleString("hu-HU")} Ft</span>
+                </div>
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label htmlFor="storage_location_id">Helyszín</Label>
