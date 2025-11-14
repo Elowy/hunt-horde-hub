@@ -592,6 +592,21 @@ const Dashboard = () => {
     }, 0);
   };
 
+  const getCurrentYearRevenue = () => {
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    
+    const yearlyAnimals = animals.filter(a => {
+      if (!a.cooling_date) return false;
+      const date = new Date(a.cooling_date);
+      return date.getFullYear() === currentYear;
+    });
+    
+    return yearlyAnimals.reduce((sum, animal) => {
+      return sum + getAnimalPrice(animal).gross;
+    }, 0);
+  };
+
   const getCapacityData = () => {
     const totalCapacity = locations.reduce((sum, loc) => sum + (loc.capacity || 0), 0);
     const coolingAnimals = animals.filter(a => !a.is_transported).length;
@@ -766,6 +781,19 @@ const Dashboard = () => {
                   return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
                 }).length} állat hűtve ebben a hónapban
               </p>
+              <div className="mt-4 pt-4 border-t">
+                <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                  {getCurrentYearRevenue().toLocaleString('hu-HU')} Ft
+                </div>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {animals.filter(a => {
+                    if (!a.cooling_date) return false;
+                    const date = new Date(a.cooling_date);
+                    const now = new Date();
+                    return date.getFullYear() === now.getFullYear();
+                  }).length} állat hűtve ebben az évben
+                </p>
+              </div>
             </CardContent>
           </Card>
         </div>
