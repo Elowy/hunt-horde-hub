@@ -19,6 +19,7 @@ const Profile = () => {
     contactEmail: "",
     contactPhone: "",
     address: "",
+    taxNumber: "",
   });
   const [passwordData, setPasswordData] = useState({
     newPassword: "",
@@ -54,6 +55,7 @@ const Profile = () => {
           contactEmail: profile.contact_email || "",
           contactPhone: profile.contact_phone || "",
           address: profile.address || "",
+          taxNumber: profile.tax_number || "",
         });
       }
     } catch (error: any) {
@@ -79,6 +81,7 @@ const Profile = () => {
           contact_email: formData.contactEmail || null,
           contact_phone: formData.contactPhone || null,
           address: formData.address || null,
+          tax_number: formData.taxNumber || null,
         })
         .eq("id", user.id);
 
@@ -249,6 +252,17 @@ const Profile = () => {
                     setFormData({ ...formData, address: e.target.value })
                   }
                   placeholder="1234 Budapest, Fő utca 1."
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="taxNumber">Adószám</Label>
+                <Input
+                  id="taxNumber"
+                  value={formData.taxNumber}
+                  onChange={(e) =>
+                    setFormData({ ...formData, taxNumber: e.target.value })
+                  }
+                  placeholder="12345678-1-23"
                 />
               </div>
               <Button onClick={handleUpdateProfile} disabled={loading} className="w-full">
