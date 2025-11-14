@@ -136,18 +136,24 @@ const AddAnimal = () => {
     }
   };
 
-  useEffect(() => {
-    calculatePrice();
-  }, [formData.weight, formData.type, formData.class, priceSettings, vatRate]);
-
   const calculatePrice = () => {
+    console.log('Calculating price...', {
+      weight: formData.weight,
+      type: formData.type,
+      class: formData.class,
+      priceSettings: priceSettings.length,
+      vatRate
+    });
+
     if (!formData.weight || !formData.type || !formData.class) {
+      console.log('Missing required fields for price calculation');
       setCalculatedPrice({ net: 0, gross: 0 });
       return;
     }
 
     const weight = parseFloat(formData.weight);
     if (isNaN(weight)) {
+      console.log('Invalid weight');
       setCalculatedPrice({ net: 0, gross: 0 });
       return;
     }
@@ -156,7 +162,10 @@ const AddAnimal = () => {
       (p) => p.species === formData.type && p.class === formData.class
     );
 
+    console.log('Found price setting:', priceSetting);
+
     if (!priceSetting) {
+      console.log('No matching price setting found');
       setCalculatedPrice({ net: 0, gross: 0 });
       return;
     }
@@ -164,11 +173,17 @@ const AddAnimal = () => {
     const netPrice = weight * priceSetting.price_per_kg;
     const grossPrice = netPrice * (1 + vatRate / 100);
 
+    console.log('Calculated prices:', { netPrice, grossPrice });
+
     setCalculatedPrice({
       net: Math.round(netPrice),
       gross: Math.round(grossPrice),
     });
   };
+
+  useEffect(() => {
+    calculatePrice();
+  }, [formData.weight, formData.type, formData.class, priceSettings, vatRate]);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
