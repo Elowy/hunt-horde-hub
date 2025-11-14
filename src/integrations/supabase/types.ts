@@ -136,6 +136,53 @@ export type Database = {
         }
         Relationships: []
       }
+      hunting_registrations: {
+        Row: {
+          admin_note: string | null
+          created_at: string
+          end_time: string
+          id: string
+          requires_admin_approval: boolean
+          security_zone_id: string
+          start_time: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          admin_note?: string | null
+          created_at?: string
+          end_time: string
+          id?: string
+          requires_admin_approval?: boolean
+          security_zone_id: string
+          start_time: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          admin_note?: string | null
+          created_at?: string
+          end_time?: string
+          id?: string
+          requires_admin_approval?: boolean
+          security_zone_id?: string
+          start_time?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hunting_registrations_security_zone_id_fkey"
+            columns: ["security_zone_id"]
+            isOneToOne: false
+            referencedRelation: "security_zones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invitations: {
         Row: {
           accepted: boolean | null
@@ -293,6 +340,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      security_zones: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       storage_locations: {
         Row: {
