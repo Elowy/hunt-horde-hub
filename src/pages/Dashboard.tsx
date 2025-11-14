@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Search, Filter, Eye, Edit, Trash2, MapPin, LogOut, Star, Truck, FileDown, TrendingUp, User } from "lucide-react";
+import { Plus, Search, Filter, Eye, Edit, Trash2, MapPin, LogOut, Star, Truck, FileDown, TrendingUp, User, Users as UsersIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -98,6 +98,7 @@ const Dashboard = () => {
   const [selectedAnimals, setSelectedAnimals] = useState<Set<string>>(new Set());
   const [showTransportDialog, setShowTransportDialog] = useState(false);
   const [transportDocuments, setTransportDocuments] = useState<Record<string, string>>({});
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     checkAuth();
@@ -108,7 +109,18 @@ const Dashboard = () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       navigate("/login");
+      return;
     }
+
+    // Check if user is admin
+    const { data: roles } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", user.id)
+      .eq("role", "admin")
+      .maybeSingle();
+
+    setIsAdmin(!!roles);
   };
 
   const fetchData = async () => {
@@ -584,6 +596,16 @@ const Dashboard = () => {
               <p className="text-primary-foreground/90">Vadászati nyilvántartás és hűtés kezelése</p>
             </div>
             <div className="flex flex-wrap gap-2">
+              {isAdmin && (
+                <Button 
+                  variant="outline" 
+                  onClick={() => navigate("/users")} 
+                  className="h-10"
+                >
+                  <UsersIcon className="h-4 w-4 mr-2" />
+                  Felhasználók
+                </Button>
+              )}
               <InviteUserDialog />
               <TransportDocumentsDialog />
               <TransporterDialog />
