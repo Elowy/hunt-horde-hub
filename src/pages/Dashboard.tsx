@@ -64,6 +64,15 @@ interface Animal {
   notes: string | null;
   is_transported: boolean;
   transported_at: string | null;
+  transporter_name?: string;
+}
+
+interface TransportDocument {
+  id: string;
+  transporter_id: string | null;
+  transporters?: {
+    company_name: string;
+  };
 }
 
 interface PriceSetting {
@@ -84,6 +93,7 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [selectedAnimals, setSelectedAnimals] = useState<Set<string>>(new Set());
   const [showTransportDialog, setShowTransportDialog] = useState(false);
+  const [transportDocuments, setTransportDocuments] = useState<Record<string, string>>({});
 
   useEffect(() => {
     checkAuth();
@@ -102,7 +112,7 @@ const Dashboard = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const [locationsResult, animalsResult, pricesResult] = await Promise.all([
+      const [locationsResult, animalsResult, pricesResult, transportDocsResult] = await Promise.all([
         supabase
           .from("storage_locations")
           .select("*")
@@ -117,6 +127,16 @@ const Dashboard = () => {
           .from("price_settings")
           .select("*")
           .eq("user_id", user.id),
+        supabase
+          .from("transport_documents")
+          .select(`
+            id,
+            transporter_id,
+            transporters (
+              company_name
+            )
+          `)
+          .eq("user_id", user.id),
       ]);
 
       if (locationsResult.error) throw locationsResult.error;
@@ -126,6 +146,27 @@ const Dashboard = () => {
       setLocations(locationsResult.data || []);
       setAnimals(animalsResult.data || []);
       setPriceSettings(pricesResult.data || []);
+
+      // Build map of animal_id -> transporter_name
+      const transportMap: Record<string, string> = {};
+      
+      if (transportDocsResult.data) {
+        // Get all transport document items to map animals to transporters
+        const { data: itemsData } = await supabase
+          .from("transport_document_items")
+          .select("animal_id, transport_document_id");
+        
+        if (itemsData) {
+          itemsData.forEach((item) => {
+            const doc = transportDocsResult.data?.find((d: any) => d.id === item.transport_document_id);
+            if (doc?.transporters?.company_name) {
+              transportMap[item.animal_id] = doc.transporters.company_name;
+            }
+          });
+        }
+      }
+      
+      setTransportDocuments(transportMap);
     } catch (error: any) {
       toast({
         title: "Hiba",
@@ -410,7 +451,10 @@ const Dashboard = () => {
   };
 
   const getLocationStats = (locationId: string) => {
-    const locationAnimals = animals.filter(a => a.storage_location_id === locationId);
+    // Only count animals that are NOT transported
+    const locationAnimals = animals.filter(a => 
+      a.storage_location_id === locationId && !a.is_transported
+    );
     
     // Calculate total price in HUF for animals at this location
     const totalPrice = locationAnimals.reduce((sum, animal) => {
@@ -422,10 +466,10 @@ const Dashboard = () => {
     // Havi elszállított
     const currentMonth = new Date().getMonth();
     const currentYear = new Date().getFullYear();
-    const monthlyShipped = locationAnimals.filter(a => {
-      if (!a.cooling_date) return false;
+    const monthlyShipped = animals.filter(a => {
+      if (!a.cooling_date || !a.is_transported) return false;
       const date = new Date(a.cooling_date);
-      return date.getMonth() === currentMonth && date.getFullYear() === currentYear;
+      return date.getMonth() === currentMonth && date.getFullYear() === currentYear && a.storage_location_id === locationId;
     }).length;
 
     return {
@@ -771,8 +815,8 @@ const Dashboard = () => {
                             </TableCell>
                             <TableCell>{animal.hunter_name || "-"}</TableCell>
                             <TableCell>
-                              <Badge variant="outline">
-                                {getLocationName(animal.storage_location_id)}
+                              <Badge variant="outline" className="bg-hunt-orange/10 text-hunt-orange border-hunt-orange">
+                                {transportDocuments[animal.id] || "Ismeretlen elszállító"}
                               </Badge>
                             </TableCell>
                             <TableCell>
@@ -784,7 +828,7 @@ const Dashboard = () => {
                               <div className="flex justify-end gap-2">
                                 <ViewAnimalDialog 
                                   animal={animal} 
-                                  locationName={getLocationName(animal.storage_location_id)}
+                                  locationName={transportDocuments[animal.id] || "Ismeretlen elszállító"}
                                   price={price}
                                 />
                               </div>
