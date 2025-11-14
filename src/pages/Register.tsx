@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { Building2, Mail, Phone, MapPin, User, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const Register = () => {
   const navigate = useNavigate();
@@ -21,29 +22,81 @@ const Register = () => {
     confirmPassword: ""
   });
 
+  const [loading, setLoading] = useState(false);
+
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (formData.password !== formData.confirmPassword) {
       toast({
-        title: "Error",
-        description: "Passwords do not match",
+        title: "Hiba",
+        description: "A jelszavak nem egyeznek!",
         variant: "destructive"
       });
       return;
     }
 
-    // TODO: Implement Supabase registration
-    toast({
-      title: "Registration Successful!",
-      description: "Welcome to Hunt Storage Solutions"
-    });
-    
-    navigate("/dashboard");
+    if (formData.password.length < 6) {
+      toast({
+        title: "Hiba",
+        description: "A jelszónak legalább 6 karakter hosszúnak kell lennie!",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email: formData.email,
+        password: formData.password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/`,
+          data: {
+            company_name: formData.companyName,
+            contact_name: formData.contactName,
+            contact_email: formData.email,
+            contact_phone: formData.phone,
+            address: formData.address,
+          },
+        },
+      });
+
+      if (error) {
+        toast({
+          title: "Regisztrációs hiba",
+          description: error.message === "User already registered" 
+            ? "Ez az email cím már regisztrálva van!" 
+            : error.message,
+          variant: "destructive"
+        });
+        return;
+      }
+
+      if (data.user) {
+        toast({
+          title: "Sikeres regisztráció!",
+          description: "Fiókja létrehozva. Átirányítás..."
+        });
+        
+        setTimeout(() => {
+          navigate("/dashboard");
+        }, 1500);
+      }
+    } catch (error: any) {
+      toast({
+        title: "Hiba",
+        description: "Váratlan hiba történt. Kérjük, próbálja újra!",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -171,20 +224,26 @@ const Register = () => {
               </div>
             </div>
 
-            <Button type="submit" variant="hunting" className="w-full" size="lg">
-              Register Company
+            <Button 
+              type="submit" 
+              variant="hunting" 
+              className="w-full" 
+              size="lg"
+              disabled={loading}
+            >
+              {loading ? "Regisztráció folyamatban..." : "Céges regisztráció"}
             </Button>
           </form>
 
           <div className="text-center">
             <p className="text-sm text-muted-foreground">
-              Already have an account?{" "}
+              Már van fiókja?{" "}
               <Button 
                 variant="link" 
                 className="p-0 h-auto text-forest-deep hover:text-forest-light"
                 onClick={() => navigate("/login")}
               >
-                Sign in here
+                Jelentkezzen be itt
               </Button>
             </p>
           </div>
