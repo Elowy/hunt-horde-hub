@@ -14,6 +14,86 @@ export type Database = {
   }
   public: {
     Tables: {
+      animals: {
+        Row: {
+          age: string | null
+          animal_id: string
+          class: string | null
+          condition: string | null
+          cooling_date: string | null
+          created_at: string
+          expiry_date: string | null
+          gender: string | null
+          hunter_name: string | null
+          hunter_type: string | null
+          id: string
+          notes: string | null
+          sample_date: string | null
+          sample_id: string | null
+          species: string
+          storage_location_id: string
+          updated_at: string
+          user_id: string
+          vet_check: boolean | null
+          vet_notes: string | null
+          weight: number | null
+        }
+        Insert: {
+          age?: string | null
+          animal_id: string
+          class?: string | null
+          condition?: string | null
+          cooling_date?: string | null
+          created_at?: string
+          expiry_date?: string | null
+          gender?: string | null
+          hunter_name?: string | null
+          hunter_type?: string | null
+          id?: string
+          notes?: string | null
+          sample_date?: string | null
+          sample_id?: string | null
+          species: string
+          storage_location_id: string
+          updated_at?: string
+          user_id: string
+          vet_check?: boolean | null
+          vet_notes?: string | null
+          weight?: number | null
+        }
+        Update: {
+          age?: string | null
+          animal_id?: string
+          class?: string | null
+          condition?: string | null
+          cooling_date?: string | null
+          created_at?: string
+          expiry_date?: string | null
+          gender?: string | null
+          hunter_name?: string | null
+          hunter_type?: string | null
+          id?: string
+          notes?: string | null
+          sample_date?: string | null
+          sample_id?: string | null
+          species?: string
+          storage_location_id?: string
+          updated_at?: string
+          user_id?: string
+          vet_check?: boolean | null
+          vet_notes?: string | null
+          weight?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "animals_storage_location_id_fkey"
+            columns: ["storage_location_id"]
+            isOneToOne: false
+            referencedRelation: "storage_locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           address: string | null
@@ -44,6 +124,39 @@ export type Database = {
           created_at?: string
           id?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      storage_locations: {
+        Row: {
+          address: string | null
+          capacity: number | null
+          created_at: string
+          id: string
+          name: string
+          notes: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          address?: string | null
+          capacity?: number | null
+          created_at?: string
+          id?: string
+          name: string
+          notes?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          address?: string | null
+          capacity?: number | null
+          created_at?: string
+          id?: string
+          name?: string
+          notes?: string | null
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }

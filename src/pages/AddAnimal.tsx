@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,13 +8,22 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, PlusCircle } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+
+interface StorageLocation {
+  id: string;
+  name: string;
+}
 
 const AddAnimal = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [locations, setLocations] = useState<StorageLocation[]>([]);
+  const [loading, setLoading] = useState(false);
   
   const [formData, setFormData] = useState({
     animalId: "",
+    storageLocationId: "",
     type: "",
     subtype: "",
     gender: "",
@@ -44,6 +53,48 @@ const AddAnimal = () => {
     invoiceNo: ""
   });
 
+  useEffect(() => {
+    checkAuth();
+    fetchLocations();
+  }, []);
+
+  const checkAuth = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      navigate("/login");
+    }
+  };
+
+  const fetchLocations = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from("storage_locations")
+        .select("id, name")
+        .eq("user_id", user.id)
+        .order("name");
+
+      if (error) throw error;
+      setLocations(data || []);
+
+      if (data && data.length === 0) {
+        toast({
+          title: "Figyelmeztetés",
+          description: "Először hozzon létre egy hűtési helyszínt a Dashboard-on!",
+          variant: "destructive",
+        });
+      }
+    } catch (error: any) {
+      toast({
+        title: "Hiba",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
   const animalSubtypes = {
     "vaddiszno": ["Kan", "Koca", "Süldő", "Malac"],
     "gim-szarvas": ["Bika", "Tehén", "Ünő", "Borjú"],
@@ -66,45 +117,67 @@ const AddAnimal = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Here you would integrate with Supabase to save the animal data
-    console.log("Animal data to save:", formData);
-    
-    toast({
-      title: "Állat Sikeresen Hozzáadva",
-      description: `${formData.type} (ID: ${formData.animalId}) hozzáadva a tárolóhoz.`,
-    });
-    
-    // Reset form
-    setFormData({
-      animalId: "",
-      type: "",
-      subtype: "",
-      gender: "",
-      age: "",
-      class: "",
-      weight: "",
-      location: "",
-      village: "",
-      gpsLatitude: "",
-      gpsLongitude: "",
-      huntDate: "",
-      hunter: "",
-      hunterType: "",
-      status: "processing",
-      notes: "",
-      comment: "",
-      sampleId: "",
-      sampleReturnId: "",
-      animalDoctor: "",
-      refoundFeeWildBoar: "",
-      shootFeeWildBoar: "",
-      sampleCollectionFeeWildBoar: "",
-      shoppingId: "",
-      usage: "",
-      priceWithVat: "",
-      priceWithoutVat: "",
-      invoiceNo: ""
-    });
+    if (!formData.storageLocationId) {
+      toast({
+        title: "Hiba",
+        description: "Kérjük, válasszon hűtési helyszínt!",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast({
+          title: "Hiba",
+          description: "Nincs bejelentkezve!",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const { error } = await supabase.from("animals").insert({
+        user_id: user.id,
+        storage_location_id: formData.storageLocationId,
+        animal_id: formData.animalId,
+        species: formData.type,
+        gender: formData.gender,
+        weight: formData.weight ? parseFloat(formData.weight) : null,
+        age: formData.age,
+        condition: formData.status,
+        class: formData.class,
+        hunter_type: formData.hunterType,
+        hunter_name: formData.hunter,
+        cooling_date: formData.huntDate || null,
+        expiry_date: null,
+        sample_id: formData.sampleId,
+        sample_date: null,
+        vet_check: !!formData.animalDoctor,
+        vet_notes: formData.animalDoctor,
+        notes: `${formData.notes}\n${formData.comment}`.trim(),
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Állat Sikeresen Hozzáadva",
+        description: `${formData.type} (ID: ${formData.animalId}) hozzáadva a tárolóhoz.`,
+      });
+      
+      // Navigate back to dashboard
+      setTimeout(() => navigate("/dashboard"), 1500);
+    } catch (error: any) {
+      toast({
+        title: "Hiba",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -144,6 +217,25 @@ const AddAnimal = () => {
                     placeholder="Adja meg az egyedi állatazonosítót"
                     required
                   />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="storageLocationId">Hűtési Helyszín *</Label>
+                  <Select 
+                    value={formData.storageLocationId} 
+                    onValueChange={(value) => handleInputChange("storageLocationId", value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Válasszon helyszínt" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {locations.map((location) => (
+                        <SelectItem key={location.id} value={location.id}>
+                          {location.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 
                 <div className="space-y-2">
@@ -496,15 +588,16 @@ const AddAnimal = () => {
               </div>
 
               <div className="flex gap-4 pt-4">
-                <Button type="submit" className="flex-1" variant="hunting">
+                <Button type="submit" className="flex-1" variant="hunting" disabled={loading || locations.length === 0}>
                   <PlusCircle className="w-4 h-4 mr-2" />
-                  Állat Hozzáadása
+                  {loading ? "Mentés..." : "Állat Hozzáadása"}
                 </Button>
                 <Button 
                   type="button" 
                   variant="outline" 
                   onClick={() => navigate("/dashboard")}
                   className="flex-1"
+                  disabled={loading}
                 >
                   Mégse
                 </Button>
