@@ -90,6 +90,7 @@ const Dashboard = () => {
   const [animals, setAnimals] = useState<Animal[]>([]);
   const [locations, setLocations] = useState<StorageLocation[]>([]);
   const [priceSettings, setPriceSettings] = useState<PriceSetting[]>([]);
+  const [vatRate, setVatRate] = useState<number>(27);
   const [loading, setLoading] = useState(true);
   const [selectedAnimals, setSelectedAnimals] = useState<Set<string>>(new Set());
   const [showTransportDialog, setShowTransportDialog] = useState(false);
@@ -112,7 +113,7 @@ const Dashboard = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const [locationsResult, animalsResult, pricesResult, transportDocsResult] = await Promise.all([
+      const [locationsResult, animalsResult, pricesResult, transportDocsResult, profileResult] = await Promise.all([
         supabase
           .from("storage_locations")
           .select("*")
@@ -137,11 +138,19 @@ const Dashboard = () => {
             )
           `)
           .eq("user_id", user.id),
+        supabase
+          .from("profiles")
+          .select("vat_rate")
+          .eq("id", user.id)
+          .single(),
       ]);
 
       if (locationsResult.error) throw locationsResult.error;
       if (animalsResult.error) throw animalsResult.error;
       if (pricesResult.error) throw pricesResult.error;
+      if (profileResult.data?.vat_rate) {
+        setVatRate(profileResult.data.vat_rate);
+      }
 
       setLocations(locationsResult.data || []);
       setAnimals(animalsResult.data || []);
@@ -286,16 +295,22 @@ const Dashboard = () => {
     setSelectedAnimals(newSelected);
   };
 
-  const getAnimalPrice = (animal: Animal) => {
-    if (!animal.weight || !animal.species || !animal.class) return 0;
+  const getAnimalPrice = (animal: Animal): { net: number; gross: number } => {
+    if (!animal.weight || !animal.species || !animal.class) return { net: 0, gross: 0 };
     
     const priceSetting = priceSettings.find(
       (p) => p.species === animal.species && p.class === animal.class
     );
     
-    if (!priceSetting) return 0;
+    if (!priceSetting) return { net: 0, gross: 0 };
     
-    return animal.weight * priceSetting.price_per_kg;
+    const netPrice = animal.weight * priceSetting.price_per_kg;
+    const grossPrice = netPrice * (1 + vatRate / 100);
+    
+    return { 
+      net: Math.round(netPrice), 
+      gross: Math.round(grossPrice) 
+    };
   };
 
   const handleCreateTransport = () => {
@@ -321,7 +336,7 @@ const Dashboard = () => {
     selectedAnimalsList.forEach((animal) => {
       const price = getAnimalPrice(animal);
       totalWeight += animal.weight || 0;
-      totalPrice += price;
+      totalPrice += price.gross;
     });
 
     try {
@@ -425,7 +440,7 @@ const Dashboard = () => {
         doc.text(animal.species, 60, yPos);
         doc.text(animal.class || "-", 90, yPos);
         doc.text((animal.weight || 0).toString(), 120, yPos);
-        doc.text(Math.round(price).toLocaleString("hu-HU"), 160, yPos);
+        doc.text(price.gross.toLocaleString("hu-HU"), 160, yPos);
         
         yPos += 8;
         
@@ -493,7 +508,7 @@ const Dashboard = () => {
     });
     
     const monthlyCoolingValue = monthlyAnimals.reduce((sum, animal) => {
-      return sum + getAnimalPrice(animal);
+      return sum + getAnimalPrice(animal).gross;
     }, 0);
     
     const currentCount = locationAnimals.length;
@@ -753,7 +768,8 @@ const Dashboard = () => {
                         <TableHead>Faj</TableHead>
                         <TableHead>Súly (kg)</TableHead>
                         <TableHead>Osztály</TableHead>
-                        <TableHead>Ár (Ft)</TableHead>
+                        <TableHead>Nettó ár (Ft)</TableHead>
+                        <TableHead>Bruttó ár (Ft)</TableHead>
                         <TableHead>Vadász</TableHead>
                         <TableHead>Helyszín</TableHead>
                         <TableHead>Dátum</TableHead>
@@ -775,8 +791,11 @@ const Dashboard = () => {
                             <TableCell>{animal.species}</TableCell>
                             <TableCell>{animal.weight || "-"}</TableCell>
                             <TableCell>{animal.class || "-"}</TableCell>
+                            <TableCell className="font-bold">
+                              {price.net > 0 ? price.net.toLocaleString("hu-HU") : "-"}
+                            </TableCell>
                             <TableCell className="font-semibold">
-                              {price > 0 ? Math.round(price).toLocaleString("hu-HU") : "-"}
+                              {price.gross > 0 ? price.gross.toLocaleString("hu-HU") : "-"}
                             </TableCell>
                             <TableCell>{animal.hunter_name || "-"}</TableCell>
                             <TableCell>
@@ -794,7 +813,7 @@ const Dashboard = () => {
                                 <ViewAnimalDialog 
                                   animal={animal} 
                                   locationName={getLocationName(animal.storage_location_id)}
-                                  price={price}
+                                  price={price.gross}
                                 />
                                 <EditAnimalDialog 
                                   animal={animal} 
@@ -827,7 +846,8 @@ const Dashboard = () => {
                         <TableHead>Faj</TableHead>
                         <TableHead>Súly (kg)</TableHead>
                         <TableHead>Osztály</TableHead>
-                        <TableHead>Ár (Ft)</TableHead>
+                        <TableHead>Nettó ár (Ft)</TableHead>
+                        <TableHead>Bruttó ár (Ft)</TableHead>
                         <TableHead>Vadász</TableHead>
                         <TableHead>Helyszín</TableHead>
                         <TableHead>Elszállítva</TableHead>
@@ -843,8 +863,11 @@ const Dashboard = () => {
                             <TableCell>{animal.species}</TableCell>
                             <TableCell>{animal.weight || "-"}</TableCell>
                             <TableCell>{animal.class || "-"}</TableCell>
+                            <TableCell className="font-bold">
+                              {price.net > 0 ? price.net.toLocaleString("hu-HU") : "-"}
+                            </TableCell>
                             <TableCell className="font-semibold">
-                              {price > 0 ? Math.round(price).toLocaleString("hu-HU") : "-"}
+                              {price.gross > 0 ? price.gross.toLocaleString("hu-HU") : "-"}
                             </TableCell>
                             <TableCell>{animal.hunter_name || "-"}</TableCell>
                             <TableCell>
@@ -862,7 +885,7 @@ const Dashboard = () => {
                                 <ViewAnimalDialog 
                                   animal={animal} 
                                   locationName={transportDocuments[animal.id] || "Ismeretlen elszállító"}
-                                  price={price}
+                                  price={price.gross}
                                 />
                               </div>
                             </TableCell>
