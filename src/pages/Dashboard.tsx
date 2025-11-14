@@ -310,7 +310,7 @@ const Dashboard = () => {
     setShowTransportDialog(true);
   };
 
-  const generateTransportPDF = async (transporterId: string) => {
+  const generateTransportPDF = async (transporterId: string, vehiclePlate: string) => {
 
     const selectedAnimalsList = animals.filter(a => selectedAnimals.has(a.id));
     
@@ -328,6 +328,15 @@ const Dashboard = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
+      // Elszállító adatainak lekérése
+      const { data: transporterData, error: transporterError } = await supabase
+        .from("transporters")
+        .select("*")
+        .eq("id", transporterId)
+        .single();
+
+      if (transporterError) throw transporterError;
+
       // Elszállító mentése az adatbázisba
       const documentNumber = `ESZ-${Date.now()}`;
       const transportDate = new Date().toISOString();
@@ -342,6 +351,7 @@ const Dashboard = () => {
           total_price: totalPrice,
           animal_count: selectedAnimalsList.length,
           transporter_id: transporterId,
+          vehicle_plate: vehiclePlate,
         })
         .select()
         .single();
@@ -379,15 +389,32 @@ const Dashboard = () => {
       
       doc.setFontSize(12);
       doc.text(`Bizonylat szam: ${documentNumber}`, 20, 35);
-      doc.text(`Datum: ${new Date().toLocaleDateString("hu-HU")}`, 20, 45);
+      doc.text(`Datum: ${new Date().toLocaleDateString("hu-HU")}`, 20, 42);
       
-      let yPos = 60;
+      // Elszállító adatok
       doc.setFontSize(10);
+      doc.text("ELSZALLITO ADATAI:", 20, 52);
+      doc.text(`Ceg neve: ${transporterData.company_name}`, 20, 59);
+      if (transporterData.contact_name) {
+        doc.text(`Kapcsolattarto: ${transporterData.contact_name}`, 20, 66);
+      }
+      if (transporterData.address) {
+        doc.text(`Cim: ${transporterData.address}`, 20, 73);
+      }
+      if (transporterData.tax_number) {
+        doc.text(`Adoszam: ${transporterData.tax_number}`, 20, 80);
+      }
+      doc.text(`Gepjarmu rendszama: ${vehiclePlate}`, 20, 87);
+      
+      let yPos = 100;
+      doc.setFontSize(10);
+      doc.setFont(undefined, 'bold');
       doc.text("Azonosito", 20, yPos);
       doc.text("Faj", 60, yPos);
       doc.text("Osztaly", 90, yPos);
       doc.text("Suly (kg)", 120, yPos);
       doc.text("Ar (Ft)", 160, yPos);
+      doc.setFont(undefined, 'normal');
       
       yPos += 10;
       

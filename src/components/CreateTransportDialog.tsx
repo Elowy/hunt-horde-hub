@@ -26,7 +26,7 @@ interface Transporter {
 interface CreateTransportDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onTransporterSelected: (transporterId: string) => void;
+  onTransporterSelected: (transporterId: string, vehiclePlate: string) => void;
 }
 
 export const CreateTransportDialog = ({ 
@@ -37,6 +37,7 @@ export const CreateTransportDialog = ({
   const { toast } = useToast();
   const [transporters, setTransporters] = useState<Transporter[]>([]);
   const [selectedTransporter, setSelectedTransporter] = useState<string>("");
+  const [vehiclePlate, setVehiclePlate] = useState<string>("");
   const [showNewForm, setShowNewForm] = useState(false);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -51,6 +52,7 @@ export const CreateTransportDialog = ({
       fetchTransporters();
       setShowNewForm(false);
       setSelectedTransporter("");
+      setVehiclePlate("");
       setFormData({
         companyName: "",
         contactName: "",
@@ -117,8 +119,19 @@ export const CreateTransportDialog = ({
         description: "Elszállító hozzáadva!",
       });
 
-      // Automatically select the newly created transporter
-      onTransporterSelected(data.id);
+      // Automatically select the newly created transporter with empty vehicle plate
+      // User will need to provide vehicle plate in the main form
+      if (!vehiclePlate.trim()) {
+        toast({
+          title: "Figyelmeztetés",
+          description: "Adja meg a gépjármű rendszámát!",
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
+      
+      onTransporterSelected(data.id, vehiclePlate);
       onOpenChange(false);
     } catch (error: any) {
       toast({
@@ -141,7 +154,16 @@ export const CreateTransportDialog = ({
       return;
     }
 
-    onTransporterSelected(selectedTransporter);
+    if (!vehiclePlate.trim()) {
+      toast({
+        title: "Figyelmeztetés",
+        description: "Adja meg a gépjármű rendszámát!",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    onTransporterSelected(selectedTransporter, vehiclePlate);
     onOpenChange(false);
   };
 
@@ -177,6 +199,17 @@ export const CreateTransportDialog = ({
                       </div>
                     ))}
                   </RadioGroup>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="vehiclePlate">Gépjármű rendszáma *</Label>
+                  <Input
+                    id="vehiclePlate"
+                    value={vehiclePlate}
+                    onChange={(e) => setVehiclePlate(e.target.value)}
+                    placeholder="ABC-123"
+                    required
+                  />
                 </div>
 
                 <div className="flex gap-2">
@@ -242,6 +275,18 @@ export const CreateTransportDialog = ({
                 value={formData.taxNumber}
                 onChange={(e) => setFormData({ ...formData, taxNumber: e.target.value })}
                 placeholder="12345678-1-23"
+                disabled={loading}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="newVehiclePlate">Gépjármű rendszáma *</Label>
+              <Input
+                id="newVehiclePlate"
+                value={vehiclePlate}
+                onChange={(e) => setVehiclePlate(e.target.value)}
+                placeholder="ABC-123"
+                required
                 disabled={loading}
               />
             </div>
