@@ -1,0 +1,229 @@
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/hooks/use-toast";
+import { Crown, Check, Loader2 } from "lucide-react";
+
+const SUBSCRIPTION_TIERS = {
+  free: {
+    name: "Ingyenes",
+    features: ["1 hűtési hely", "Maximum 5 állat"],
+    price: "0 Ft",
+    product_id: null,
+  },
+  normal_monthly: {
+    name: "Normal - Havi",
+    features: ["1 hűtési hely", "20 állat havonta"],
+    price: "1 950 Ft/hó",
+    price_id: "price_1STVU8G2Zidvt9jUBO5yBhEx",
+    product_id: "prod_TQMCKFFwVc6lXT",
+  },
+  normal_yearly: {
+    name: "Normal - Éves",
+    features: ["1 hűtési hely", "20 állat havonta", "20% megtakarítás"],
+    price: "18 720 Ft/év",
+    savings: "(1 560 Ft/hó)",
+    price_id: "price_1STVUFG2Zidvt9jUlxDihADG",
+    product_id: "prod_TQMCwp0XrDYkOB",
+  },
+  pro_monthly: {
+    name: "Pro - Havi",
+    features: ["Korlátlan hűtési helyek", "Korlátlan állatok"],
+    price: "4 950 Ft/hó",
+    price_id: "price_1STVUGG2Zidvt9jUbzxwXRRf",
+    product_id: "prod_TQMCsYuGXl2cqX",
+  },
+  pro_yearly: {
+    name: "Pro - Éves",
+    features: ["Korlátlan hűtési helyek", "Korlátlan állatok", "20% megtakarítás"],
+    price: "47 520 Ft/év",
+    savings: "(3 960 Ft/hó)",
+    price_id: "price_1STVUHG2Zidvt9jU5eKdE2B6",
+    product_id: "prod_TQMCzW95I3TlPz",
+  },
+};
+
+const Subscriptions = () => {
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const [loading, setLoading] = useState(false);
+  const [currentProductId, setCurrentProductId] = useState<string | null>(null);
+  const [checkingSubscription, setCheckingSubscription] = useState(true);
+
+  useEffect(() => {
+    checkSubscription();
+  }, []);
+
+  const checkSubscription = async () => {
+    try {
+      setCheckingSubscription(true);
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        navigate("/login");
+        return;
+      }
+
+      const { data, error } = await supabase.functions.invoke("check-subscription", {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+
+      if (error) throw error;
+      setCurrentProductId(data.product_id);
+    } catch (error: any) {
+      console.error("Error checking subscription:", error);
+    } finally {
+      setCheckingSubscription(false);
+    }
+  };
+
+  const handleSubscribe = async (priceId: string) => {
+    try {
+      setLoading(true);
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        navigate("/login");
+        return;
+      }
+
+      const { data, error } = await supabase.functions.invoke("create-checkout", {
+        body: { priceId },
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+
+      if (error) throw error;
+      if (data.url) {
+        window.open(data.url, "_blank");
+      }
+    } catch (error: any) {
+      toast({
+        title: "Hiba",
+        description: error.message || "Nem sikerült létrehozni az előfizetést",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleManageSubscription = async () => {
+    try {
+      setLoading(true);
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        navigate("/login");
+        return;
+      }
+
+      const { data, error } = await supabase.functions.invoke("customer-portal", {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+
+      if (error) throw error;
+      if (data.url) {
+        window.open(data.url, "_blank");
+      }
+    } catch (error: any) {
+      toast({
+        title: "Hiba",
+        description: error.message || "Nem sikerült megnyitni a kezelő portált",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (checkingSubscription) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-background to-muted">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-background to-muted py-12 px-4">
+      <div className="container mx-auto max-w-6xl">
+        <div className="text-center mb-12">
+          <h1 className="text-4xl font-bold mb-4 flex items-center justify-center gap-2">
+            <Crown className="h-8 w-8 text-yellow-500" />
+            Előfizetési Csomagok
+          </h1>
+          <p className="text-muted-foreground">Válassza ki az Önnek megfelelő csomagot</p>
+        </div>
+
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+          {Object.entries(SUBSCRIPTION_TIERS).map(([key, tier]) => {
+            const isCurrentPlan = tier.product_id === currentProductId;
+            const isFree = key === "free";
+            const isCurrentlyFree = currentProductId === null;
+
+            return (
+              <Card key={key} className={`relative ${isCurrentPlan ? "border-primary border-2" : ""}`}>
+                {isCurrentPlan && (
+                  <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary">
+                    Jelenlegi csomag
+                  </Badge>
+                )}
+                <CardHeader>
+                  <CardTitle className="flex items-center justify-between">
+                    {tier.name}
+                    {!isFree && <Crown className="h-5 w-5 text-yellow-500" />}
+                  </CardTitle>
+                  <CardDescription>
+                    <span className="text-2xl font-bold text-foreground">{tier.price}</span>
+                    {'savings' in tier && tier.savings && (
+                      <span className="block text-sm text-green-600 dark:text-green-400">{tier.savings}</span>
+                    )}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ul className="space-y-2">
+                    {tier.features.map((feature, index) => (
+                      <li key={index} className="flex items-center gap-2">
+                        <Check className="h-4 w-4 text-primary" />
+                        <span className="text-sm">{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </CardContent>
+                <CardFooter>
+                  {isFree && isCurrentlyFree ? (
+                    <Button disabled className="w-full">Jelenlegi csomag</Button>
+                  ) : isFree ? (
+                    <Button variant="outline" disabled className="w-full">Ingyenes</Button>
+                  ) : isCurrentPlan ? (
+                    <Button onClick={handleManageSubscription} disabled={loading} className="w-full">
+                      {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Előfizetés kezelése"}
+                    </Button>
+                  ) : (
+                    <Button
+                      onClick={() => 'price_id' in tier && handleSubscribe(tier.price_id)}
+                      disabled={loading}
+                      className="w-full"
+                    >
+                      {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Előfizetés"}
+                    </Button>
+                  )}
+                </CardFooter>
+              </Card>
+            );
+          })}
+        </div>
+
+        {currentProductId && (
+          <div className="text-center">
+            <Button variant="outline" onClick={() => navigate("/dashboard")}>
+              Vissza a Dashboard-hoz
+            </Button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default Subscriptions;
