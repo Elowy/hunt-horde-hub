@@ -1,0 +1,411 @@
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { ArrowLeft, Plus, Calendar, Clock, MapPin, CheckCircle, XCircle, AlertCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { format } from "date-fns";
+import { hu } from "date-fns/locale";
+
+interface SecurityZone {
+  id: string;
+  name: string;
+  description: string | null;
+}
+
+interface HuntingRegistration {
+  id: string;
+  start_time: string;
+  end_time: string;
+  status: string;
+  requires_admin_approval: boolean;
+  admin_note: string | null;
+  security_zones: {
+    name: string;
+  };
+}
+
+const HuntingRegistrations = () => {
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const [registrations, setRegistrations] = useState<HuntingRegistration[]>([]);
+  const [zones, setZones] = useState<SecurityZone[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [isHunter, setIsHunter] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [formData, setFormData] = useState({
+    security_zone_id: "",
+    start_date: "",
+    start_time: "",
+    end_date: "",
+    end_time: "",
+  });
+
+  useEffect(() => {
+    checkUserRole();
+    fetchZones();
+    fetchRegistrations();
+  }, []);
+
+  const checkUserRole = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        navigate("/login");
+        return;
+      }
+
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id);
+
+      const roleList = roles?.map(r => r.role) || [];
+      setIsHunter(roleList.includes("hunter") || roleList.includes("admin"));
+      setIsAdmin(roleList.includes("admin"));
+    } catch (error) {
+      console.error("Error checking role:", error);
+    }
+  };
+
+  const fetchZones = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("security_zones")
+        .select("*")
+        .order("name");
+
+      if (error) throw error;
+      setZones(data || []);
+    } catch (error: any) {
+      toast({
+        title: "Hiba",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const fetchRegistrations = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from("hunting_registrations")
+        .select(`
+          *,
+          security_zones (name)
+        `)
+        .order("start_time", { ascending: false });
+
+      if (error) throw error;
+      setRegistrations(data || []);
+    } catch (error: any) {
+      toast({
+        title: "Hiba",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (!formData.security_zone_id || !formData.start_date || !formData.start_time || !formData.end_date || !formData.end_time) {
+      toast({
+        title: "Hiba",
+        description: "Minden mező kitöltése kötelező!",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const startTime = new Date(`${formData.start_date}T${formData.start_time}`);
+    const endTime = new Date(`${formData.end_date}T${formData.end_time}`);
+
+    const duration = (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60);
+    if (duration < 3) {
+      toast({
+        title: "Hiba",
+        description: "Minimum 3 óra vadászati időt kell megadni!",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { error } = await supabase
+        .from("hunting_registrations")
+        .insert({
+          user_id: user.id,
+          security_zone_id: formData.security_zone_id,
+          start_time: startTime.toISOString(),
+          end_time: endTime.toISOString(),
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: "Siker!",
+        description: "Beiratkozás rögzítve! Ellenőrzés alatt áll.",
+      });
+
+      setFormData({
+        security_zone_id: "",
+        start_date: "",
+        start_time: "",
+        end_date: "",
+        end_time: "",
+      });
+      setDialogOpen(false);
+      fetchRegistrations();
+    } catch (error: any) {
+      toast({
+        title: "Hiba",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleApprove = async (regId: string) => {
+    try {
+      const { error } = await supabase
+        .from("hunting_registrations")
+        .update({ status: "approved" })
+        .eq("id", regId);
+
+      if (error) throw error;
+      toast({ title: "Siker!", description: "Beiratkozás jóváhagyva!" });
+      fetchRegistrations();
+    } catch (error: any) {
+      toast({
+        title: "Hiba",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleReject = async (regId: string) => {
+    try {
+      const { error } = await supabase
+        .from("hunting_registrations")
+        .update({ status: "rejected" })
+        .eq("id", regId);
+
+      if (error) throw error;
+      toast({ title: "Siker!", description: "Beiratkozás elutasítva!" });
+      fetchRegistrations();
+    } catch (error: any) {
+      toast({
+        title: "Hiba",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const getStatusBadge = (status: string, requiresApproval: boolean) => {
+    if (status === "approved") {
+      return <Badge className="bg-green-500"><CheckCircle className="h-3 w-3 mr-1" />Jóváhagyva</Badge>;
+    }
+    if (status === "rejected") {
+      return <Badge variant="destructive"><XCircle className="h-3 w-3 mr-1" />Elutasítva</Badge>;
+    }
+    if (requiresApproval) {
+      return <Badge variant="secondary"><AlertCircle className="h-3 w-3 mr-1" />Admin jóváhagyás szükséges</Badge>;
+    }
+    return <Badge variant="outline"><Clock className="h-3 w-3 mr-1" />Függőben</Badge>;
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted">
+      <div className="bg-gradient-to-r from-forest-deep to-forest-light text-primary-foreground">
+        <div className="container mx-auto px-6 py-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Button
+                variant="ghost"
+                onClick={() => navigate("/dashboard")}
+                className="text-primary-foreground hover:bg-primary-foreground/10"
+              >
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Vissza
+              </Button>
+              <div>
+                <h1 className="text-3xl font-bold mb-2">Vadászati beiratkozások</h1>
+                <p className="text-primary-foreground/90">Biztonsági körzetek kezelése</p>
+              </div>
+            </div>
+            {isHunter && (
+              <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Új beiratkozás
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Új vadászati beiratkozás</DialogTitle>
+                    <DialogDescription>
+                      Minimum 3 óra vadászati idő szükséges. Átfedés esetén admin jóváhagyás kell.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label>Biztonsági körzet *</Label>
+                      <Select value={formData.security_zone_id} onValueChange={(value) => setFormData({ ...formData, security_zone_id: value })}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Válasszon körzetet" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {zones.map((zone) => (
+                            <SelectItem key={zone.id} value={zone.id}>
+                              {zone.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Kezdés dátuma *</Label>
+                        <Input
+                          type="date"
+                          value={formData.start_date}
+                          onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Kezdés ideje *</Label>
+                        <Input
+                          type="time"
+                          value={formData.start_time}
+                          onChange={(e) => setFormData({ ...formData, start_time: e.target.value })}
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Befejezés dátuma *</Label>
+                        <Input
+                          type="date"
+                          value={formData.end_date}
+                          onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Befejezés ideje *</Label>
+                        <Input
+                          type="time"
+                          value={formData.end_time}
+                          onChange={(e) => setFormData({ ...formData, end_time: e.target.value })}
+                        />
+                      </div>
+                    </div>
+                    <Button onClick={handleSubmit} className="w-full">
+                      Beiratkozás rögzítése
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="container mx-auto px-6 py-8">
+        <div className="space-y-4">
+          {loading ? (
+            <p>Betöltés...</p>
+          ) : registrations.length === 0 ? (
+            <Card>
+              <CardContent className="p-6 text-center text-muted-foreground">
+                Még nincs beiratkozás rögzítve.
+              </CardContent>
+            </Card>
+          ) : (
+            registrations.map((reg) => (
+              <Card key={reg.id}>
+                <CardHeader>
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <CardTitle className="flex items-center gap-2">
+                        <MapPin className="h-5 w-5" />
+                        {reg.security_zones.name}
+                      </CardTitle>
+                      <CardDescription className="mt-2">
+                        <div className="flex items-center gap-4 text-sm">
+                          <span>
+                            <Calendar className="h-4 w-4 inline mr-1" />
+                            {format(new Date(reg.start_time), "yyyy. MM. dd. HH:mm", { locale: hu })}
+                          </span>
+                          <span>-</span>
+                          <span>
+                            {format(new Date(reg.end_time), "yyyy. MM. dd. HH:mm", { locale: hu })}
+                          </span>
+                        </div>
+                      </CardDescription>
+                    </div>
+                    <div className="flex flex-col gap-2 items-end">
+                      {getStatusBadge(reg.status, reg.requires_admin_approval)}
+                      {isAdmin && reg.status === "pending" && (
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleApprove(reg.id)}
+                          >
+                            <CheckCircle className="h-4 w-4 mr-1" />
+                            Jóváhagy
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleReject(reg.id)}
+                          >
+                            <XCircle className="h-4 w-4 mr-1" />
+                            Elutasít
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </CardHeader>
+                {reg.admin_note && (
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground">
+                      <strong>Admin megjegyzés:</strong> {reg.admin_note}
+                    </p>
+                  </CardContent>
+                )}
+              </Card>
+            ))
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default HuntingRegistrations;
