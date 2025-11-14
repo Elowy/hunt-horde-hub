@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Crown, Check, Loader2 } from "lucide-react";
+import { Crown, Check, Loader2, ArrowLeft } from "lucide-react";
 
 const SUBSCRIPTION_TIERS = {
   free: {
@@ -147,6 +147,17 @@ const Subscriptions = () => {
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted py-12 px-4">
       <div className="container mx-auto max-w-6xl">
+        <div className="flex items-center justify-between mb-8">
+          <Button
+            variant="outline"
+            onClick={() => navigate("/dashboard")}
+            className="gap-2"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Vissza a Dashboard-hoz
+          </Button>
+        </div>
+
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold mb-4 flex items-center justify-center gap-2">
             <Crown className="h-8 w-8 text-yellow-500" />
@@ -155,8 +166,10 @@ const Subscriptions = () => {
           <p className="text-muted-foreground">Válassza ki az Önnek megfelelő csomagot</p>
         </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-          {Object.entries(SUBSCRIPTION_TIERS).map(([key, tier]) => {
+        {/* Ingyenes csomag - teljes szélesség */}
+        <div className="mb-6">
+          {(() => {
+            const [key, tier] = Object.entries(SUBSCRIPTION_TIERS)[0];
             const isCurrentPlan = tier.product_id === currentProductId;
             const isFree = key === "free";
             const isCurrentlyFree = currentProductId === null;
@@ -172,6 +185,49 @@ const Subscriptions = () => {
                   <CardTitle className="flex items-center justify-between">
                     {tier.name}
                     {!isFree && <Crown className="h-5 w-5 text-yellow-500" />}
+                  </CardTitle>
+                  <CardDescription>
+                    <span className="text-2xl font-bold text-foreground">{tier.price}</span>
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ul className="space-y-2">
+                    {tier.features.map((feature, index) => (
+                      <li key={index} className="flex items-center gap-2">
+                        <Check className="h-4 w-4 text-primary" />
+                        <span className="text-sm">{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </CardContent>
+                <CardFooter>
+                  {isFree && isCurrentlyFree ? (
+                    <Button disabled className="w-full">Jelenlegi csomag</Button>
+                  ) : (
+                    <Button variant="outline" disabled className="w-full">Ingyenes</Button>
+                  )}
+                </CardFooter>
+              </Card>
+            );
+          })()}
+        </div>
+
+        {/* Normal csomagok - 2 oszlop */}
+        <div className="grid md:grid-cols-2 gap-6 mb-6">
+          {Object.entries(SUBSCRIPTION_TIERS).slice(1, 3).map(([key, tier]) => {
+            const isCurrentPlan = tier.product_id === currentProductId;
+
+            return (
+              <Card key={key} className={`relative ${isCurrentPlan ? "border-primary border-2" : ""}`}>
+                {isCurrentPlan && (
+                  <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary">
+                    Jelenlegi csomag
+                  </Badge>
+                )}
+                <CardHeader>
+                  <CardTitle className="flex items-center justify-between">
+                    {tier.name}
+                    <Crown className="h-5 w-5 text-yellow-500" />
                   </CardTitle>
                   <CardDescription>
                     <span className="text-2xl font-bold text-foreground">{tier.price}</span>
@@ -191,11 +247,7 @@ const Subscriptions = () => {
                   </ul>
                 </CardContent>
                 <CardFooter>
-                  {isFree && isCurrentlyFree ? (
-                    <Button disabled className="w-full">Jelenlegi csomag</Button>
-                  ) : isFree ? (
-                    <Button variant="outline" disabled className="w-full">Ingyenes</Button>
-                  ) : isCurrentPlan ? (
+                  {isCurrentPlan ? (
                     <Button onClick={handleManageSubscription} disabled={loading} className="w-full">
                       {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Előfizetés kezelése"}
                     </Button>
@@ -214,13 +266,59 @@ const Subscriptions = () => {
           })}
         </div>
 
-        {currentProductId && (
-          <div className="text-center">
-            <Button variant="outline" onClick={() => navigate("/dashboard")}>
-              Vissza a Dashboard-hoz
-            </Button>
-          </div>
-        )}
+        {/* Pro csomagok - 2 oszlop */}
+        <div className="grid md:grid-cols-2 gap-6">
+          {Object.entries(SUBSCRIPTION_TIERS).slice(3).map(([key, tier]) => {
+            const isCurrentPlan = tier.product_id === currentProductId;
+
+            return (
+              <Card key={key} className={`relative ${isCurrentPlan ? "border-primary border-2" : ""}`}>
+                {isCurrentPlan && (
+                  <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary">
+                    Jelenlegi csomag
+                  </Badge>
+                )}
+                <CardHeader>
+                  <CardTitle className="flex items-center justify-between">
+                    {tier.name}
+                    <Crown className="h-5 w-5 text-yellow-500" />
+                  </CardTitle>
+                  <CardDescription>
+                    <span className="text-2xl font-bold text-foreground">{tier.price}</span>
+                    {'savings' in tier && tier.savings && (
+                      <span className="block text-sm text-green-600 dark:text-green-400">{tier.savings}</span>
+                    )}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ul className="space-y-2">
+                    {tier.features.map((feature, index) => (
+                      <li key={index} className="flex items-center gap-2">
+                        <Check className="h-4 w-4 text-primary" />
+                        <span className="text-sm">{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </CardContent>
+                <CardFooter>
+                  {isCurrentPlan ? (
+                    <Button onClick={handleManageSubscription} disabled={loading} className="w-full">
+                      {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Előfizetés kezelése"}
+                    </Button>
+                  ) : (
+                    <Button
+                      onClick={() => 'price_id' in tier && handleSubscribe(tier.price_id)}
+                      disabled={loading}
+                      className="w-full"
+                    >
+                      {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Előfizetés"}
+                    </Button>
+                  )}
+                </CardFooter>
+              </Card>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
