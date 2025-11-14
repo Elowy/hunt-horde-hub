@@ -3,26 +3,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { MapPin, Plus, GripVertical, Pencil, Trash2, ChevronDown, ChevronRight } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { MapPin, Plus, Pencil, Trash2, ChevronDown, ChevronRight, ArrowUp, ArrowDown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-import {
-  DndContext,
-  closestCenter,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  DragEndEvent,
-} from '@dnd-kit/core';
-import {
-  arrayMove,
-  SortableContext,
-  sortableKeyboardCoordinates,
-  useSortable,
-  verticalListSortingStrategy,
-} from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 interface Settlement {
@@ -39,217 +23,26 @@ interface SecurityZone {
   display_order: number;
 }
 
-interface SortableSettlementItemProps {
-  settlement: Settlement;
-  zones: SecurityZone[];
-  onEdit: (settlement: Settlement) => void;
-  onDelete: (id: string) => void;
-  onEditZone: (zone: SecurityZone) => void;
-  onDeleteZone: (id: string) => void;
-  onAddZone: (settlementId: string) => void;
-  onReorderZones: (settlementId: string, zones: SecurityZone[]) => void;
-}
-
-function SortableSettlementItem({
-  settlement,
-  zones,
-  onEdit,
-  onDelete,
-  onEditZone,
-  onDeleteZone,
-  onAddZone,
-  onReorderZones,
-}: SortableSettlementItemProps) {
-  const [isOpen, setIsOpen] = useState(true);
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: settlement.id });
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
-  };
-
-  const sensors = useSensors(
-    useSensor(PointerSensor),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
-  );
-
-  const handleZoneDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-    
-    if (over && active.id !== over.id) {
-      const oldIndex = zones.findIndex((z) => z.id === active.id);
-      const newIndex = zones.findIndex((z) => z.id === over.id);
-      
-      const reorderedZones = arrayMove(zones, oldIndex, newIndex).map((zone, index) => ({
-        ...zone,
-        display_order: index,
-      }));
-      
-      onReorderZones(settlement.id, reorderedZones);
-    }
-  };
-
-  return (
-    <div ref={setNodeRef} style={style} className="bg-card border rounded-lg mb-2">
-      <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-        <div className="flex items-center gap-2 p-3">
-          <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing">
-            <GripVertical className="h-4 w-4 text-muted-foreground" />
-          </div>
-          
-          <CollapsibleTrigger asChild>
-            <Button variant="ghost" size="sm" className="p-0 h-6 w-6">
-              {isOpen ? (
-                <ChevronDown className="h-4 w-4" />
-              ) : (
-                <ChevronRight className="h-4 w-4" />
-              )}
-            </Button>
-          </CollapsibleTrigger>
-          
-          <MapPin className="h-4 w-4 text-primary" />
-          <span className="font-medium flex-1">{settlement.name}</span>
-          
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => onAddZone(settlement.id)}
-          >
-            <Plus className="h-4 w-4 mr-1" />
-            Beírókörzet
-          </Button>
-          
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => onEdit(settlement)}
-          >
-            <Pencil className="h-4 w-4" />
-          </Button>
-          
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => onDelete(settlement.id)}
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        </div>
-        
-        <CollapsibleContent>
-          {zones.length > 0 ? (
-            <div className="pl-12 pr-3 pb-3">
-              <DndContext
-                sensors={sensors}
-                collisionDetection={closestCenter}
-                onDragEnd={handleZoneDragEnd}
-              >
-                <SortableContext
-                  items={zones.map((z) => z.id)}
-                  strategy={verticalListSortingStrategy}
-                >
-                  {zones.map((zone) => (
-                    <SortableZoneItem
-                      key={zone.id}
-                      zone={zone}
-                      onEdit={onEditZone}
-                      onDelete={onDeleteZone}
-                    />
-                  ))}
-                </SortableContext>
-              </DndContext>
-            </div>
-          ) : (
-            <div className="pl-12 pr-3 pb-3 text-sm text-muted-foreground">
-              Még nincs beírókörzet
-            </div>
-          )}
-        </CollapsibleContent>
-      </Collapsible>
-    </div>
-  );
-}
-
-interface SortableZoneItemProps {
-  zone: SecurityZone;
-  onEdit: (zone: SecurityZone) => void;
-  onDelete: (id: string) => void;
-}
-
-function SortableZoneItem({ zone, onEdit, onDelete }: SortableZoneItemProps) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: zone.id });
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
-  };
-
-  return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      className="flex items-center gap-2 p-2 bg-muted/30 rounded mb-1"
-    >
-      <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing">
-        <GripVertical className="h-4 w-4 text-muted-foreground" />
-      </div>
-      
-      <span className="flex-1 text-sm">{zone.name}</span>
-      
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={() => onEdit(zone)}
-      >
-        <Pencil className="h-3 w-3" />
-      </Button>
-      
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={() => onDelete(zone.id)}
-      >
-        <Trash2 className="h-3 w-3" />
-      </Button>
-    </div>
-  );
-}
-
 export function SettlementsAndZonesDialog() {
   const [open, setOpen] = useState(false);
   const [settlements, setSettlements] = useState<Settlement[]>([]);
   const [zones, setZones] = useState<SecurityZone[]>([]);
-  const [editingSettlement, setEditingSettlement] = useState<Settlement | null>(null);
-  const [editingZone, setEditingZone] = useState<SecurityZone | null>(null);
+  const [openSettlements, setOpenSettlements] = useState<Set<string>>(new Set());
+  
+  // Új település
   const [newSettlementName, setNewSettlementName] = useState("");
+  
+  // Település szerkesztése
+  const [editingSettlement, setEditingSettlement] = useState<Settlement | null>(null);
+  
+  // Új beírókörzet
+  const [addingZoneForSettlement, setAddingZoneForSettlement] = useState<string | null>(null);
   const [newZoneName, setNewZoneName] = useState("");
   const [newZoneDescription, setNewZoneDescription] = useState("");
-  const [addingZoneForSettlement, setAddingZoneForSettlement] = useState<string | null>(null);
-
-  const sensors = useSensors(
-    useSensor(PointerSensor),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
-  );
+  
+  // Beírókörzet szerkesztése
+  const [editingZone, setEditingZone] = useState<SecurityZone | null>(null);
+  const [editingZoneSettlement, setEditingZoneSettlement] = useState<string>("");
 
   useEffect(() => {
     if (open) {
@@ -278,43 +71,17 @@ export function SettlementsAndZonesDialog() {
     if (zonesResult.data) setZones(zonesResult.data);
   };
 
-  const handleSettlementDragEnd = async (event: DragEndEvent) => {
-    const { active, over } = event;
-    
-    if (over && active.id !== over.id) {
-      const oldIndex = settlements.findIndex((s) => s.id === active.id);
-      const newIndex = settlements.findIndex((s) => s.id === over.id);
-      
-      const reordered = arrayMove(settlements, oldIndex, newIndex).map((settlement, index) => ({
-        ...settlement,
-        display_order: index,
-      }));
-      
-      setSettlements(reordered);
-      
-      for (const settlement of reordered) {
-        await supabase
-          .from("settlements")
-          .update({ display_order: settlement.display_order })
-          .eq("id", settlement.id);
-      }
+  const toggleSettlement = (id: string) => {
+    const newOpen = new Set(openSettlements);
+    if (newOpen.has(id)) {
+      newOpen.delete(id);
+    } else {
+      newOpen.add(id);
     }
+    setOpenSettlements(newOpen);
   };
 
-  const handleZoneReorder = async (settlementId: string, reorderedZones: SecurityZone[]) => {
-    setZones((prev) => {
-      const otherZones = prev.filter((z) => z.settlement_id !== settlementId);
-      return [...otherZones, ...reorderedZones];
-    });
-    
-    for (const zone of reorderedZones) {
-      await supabase
-        .from("security_zones")
-        .update({ display_order: zone.display_order })
-        .eq("id", zone.id);
-    }
-  };
-
+  // Település műveletek
   const addSettlement = async () => {
     if (!newSettlementName.trim()) return;
     
@@ -328,9 +95,9 @@ export function SettlementsAndZonesDialog() {
     });
 
     if (error) {
-      toast({ title: "Hiba", description: "Nem sikerült hozzáadni a települést", variant: "destructive" });
+      toast({ title: "Hiba", description: "Nem sikerült hozzáadni", variant: "destructive" });
     } else {
-      toast({ title: "Siker", description: "Település hozzáadva" });
+      toast({ title: "Település hozzáadva" });
       setNewSettlementName("");
       fetchData();
     }
@@ -347,7 +114,7 @@ export function SettlementsAndZonesDialog() {
     if (error) {
       toast({ title: "Hiba", description: "Nem sikerült módosítani", variant: "destructive" });
     } else {
-      toast({ title: "Siker", description: "Település módosítva" });
+      toast({ title: "Település módosítva" });
       setEditingSettlement(null);
       fetchData();
     }
@@ -359,11 +126,33 @@ export function SettlementsAndZonesDialog() {
     if (error) {
       toast({ title: "Hiba", description: "Nem sikerült törölni", variant: "destructive" });
     } else {
-      toast({ title: "Siker", description: "Település törölve" });
+      toast({ title: "Település törölve" });
       fetchData();
     }
   };
 
+  const moveSettlement = async (id: string, direction: "up" | "down") => {
+    const index = settlements.findIndex((s) => s.id === id);
+    if (index === -1) return;
+    if (direction === "up" && index === 0) return;
+    if (direction === "down" && index === settlements.length - 1) return;
+
+    const newIndex = direction === "up" ? index - 1 : index + 1;
+    const reordered = [...settlements];
+    [reordered[index], reordered[newIndex]] = [reordered[newIndex], reordered[index]];
+    
+    const updated = reordered.map((s, i) => ({ ...s, display_order: i }));
+    setSettlements(updated);
+
+    for (const settlement of updated) {
+      await supabase
+        .from("settlements")
+        .update({ display_order: settlement.display_order })
+        .eq("id", settlement.id);
+    }
+  };
+
+  // Beírókörzet műveletek
   const addZone = async () => {
     if (!newZoneName.trim() || !addingZoneForSettlement) return;
     
@@ -381,9 +170,9 @@ export function SettlementsAndZonesDialog() {
     });
 
     if (error) {
-      toast({ title: "Hiba", description: "Nem sikerült hozzáadni a beírókört", variant: "destructive" });
+      toast({ title: "Hiba", description: "Nem sikerült hozzáadni", variant: "destructive" });
     } else {
-      toast({ title: "Siker", description: "Beírókörzet hozzáadva" });
+      toast({ title: "Beírókörzet hozzáadva" });
       setNewZoneName("");
       setNewZoneDescription("");
       setAddingZoneForSettlement(null);
@@ -399,14 +188,16 @@ export function SettlementsAndZonesDialog() {
       .update({
         name: editingZone.name,
         description: editingZone.description,
+        settlement_id: editingZoneSettlement || null,
       })
       .eq("id", editingZone.id);
 
     if (error) {
       toast({ title: "Hiba", description: "Nem sikerült módosítani", variant: "destructive" });
     } else {
-      toast({ title: "Siker", description: "Beírókörzet módosítva" });
+      toast({ title: "Beírókörzet módosítva" });
       setEditingZone(null);
+      setEditingZoneSettlement("");
       fetchData();
     }
   };
@@ -417,9 +208,40 @@ export function SettlementsAndZonesDialog() {
     if (error) {
       toast({ title: "Hiba", description: "Nem sikerült törölni", variant: "destructive" });
     } else {
-      toast({ title: "Siker", description: "Beírókörzet törölve" });
+      toast({ title: "Beírókörzet törölve" });
       fetchData();
     }
+  };
+
+  const moveZone = async (id: string, direction: "up" | "down") => {
+    const zone = zones.find((z) => z.id === id);
+    if (!zone) return;
+
+    const settlementZones = zones.filter((z) => z.settlement_id === zone.settlement_id);
+    const index = settlementZones.findIndex((z) => z.id === id);
+    if (index === -1) return;
+    if (direction === "up" && index === 0) return;
+    if (direction === "down" && index === settlementZones.length - 1) return;
+
+    const newIndex = direction === "up" ? index - 1 : index + 1;
+    const reordered = [...settlementZones];
+    [reordered[index], reordered[newIndex]] = [reordered[newIndex], reordered[index]];
+    
+    const updated = reordered.map((z, i) => ({ ...z, display_order: i }));
+    
+    const otherZones = zones.filter((z) => z.settlement_id !== zone.settlement_id);
+    setZones([...otherZones, ...updated]);
+
+    for (const updatedZone of updated) {
+      await supabase
+        .from("security_zones")
+        .update({ display_order: updatedZone.display_order })
+        .eq("id", updatedZone.id);
+    }
+  };
+
+  const getZonesForSettlement = (settlementId: string) => {
+    return zones.filter((z) => z.settlement_id === settlementId);
   };
 
   return (
@@ -436,7 +258,7 @@ export function SettlementsAndZonesDialog() {
         </DialogHeader>
 
         <div className="space-y-6">
-          {/* Új település hozzáadása */}
+          {/* Új település */}
           <div className="space-y-2">
             <Label>Új település</Label>
             <div className="flex gap-2">
@@ -456,30 +278,131 @@ export function SettlementsAndZonesDialog() {
           {/* Települések listája */}
           <div className="space-y-2">
             <Label>Települések</Label>
-            <DndContext
-              sensors={sensors}
-              collisionDetection={closestCenter}
-              onDragEnd={handleSettlementDragEnd}
-            >
-              <SortableContext
-                items={settlements.map((s) => s.id)}
-                strategy={verticalListSortingStrategy}
-              >
-                {settlements.map((settlement) => (
-                  <SortableSettlementItem
-                    key={settlement.id}
-                    settlement={settlement}
-                    zones={zones.filter((z) => z.settlement_id === settlement.id)}
-                    onEdit={setEditingSettlement}
-                    onDelete={deleteSettlement}
-                    onEditZone={setEditingZone}
-                    onDeleteZone={deleteZone}
-                    onAddZone={setAddingZoneForSettlement}
-                    onReorderZones={handleZoneReorder}
-                  />
-                ))}
-              </SortableContext>
-            </DndContext>
+            {settlements.map((settlement, index) => {
+              const settlementZones = getZonesForSettlement(settlement.id);
+              const isOpen = openSettlements.has(settlement.id);
+              
+              return (
+                <div key={settlement.id} className="bg-card border rounded-lg">
+                  <div className="flex items-center gap-2 p-3">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => toggleSettlement(settlement.id)}
+                      className="p-0 h-6 w-6"
+                    >
+                      {isOpen ? (
+                        <ChevronDown className="h-4 w-4" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4" />
+                      )}
+                    </Button>
+                    
+                    <MapPin className="h-4 w-4 text-primary" />
+                    <span className="font-medium flex-1">{settlement.name}</span>
+                    
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => moveSettlement(settlement.id, "up")}
+                      disabled={index === 0}
+                    >
+                      <ArrowUp className="h-4 w-4" />
+                    </Button>
+                    
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => moveSettlement(settlement.id, "down")}
+                      disabled={index === settlements.length - 1}
+                    >
+                      <ArrowDown className="h-4 w-4" />
+                    </Button>
+                    
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setAddingZoneForSettlement(settlement.id)}
+                    >
+                      <Plus className="h-4 w-4 mr-1" />
+                      Beírókörzet
+                    </Button>
+                    
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setEditingSettlement(settlement)}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => deleteSettlement(settlement.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  
+                  {isOpen && (
+                    <div className="pl-12 pr-3 pb-3">
+                      {settlementZones.length > 0 ? (
+                        settlementZones.map((zone, zoneIndex) => (
+                          <div
+                            key={zone.id}
+                            className="flex items-center gap-2 p-2 bg-muted/30 rounded mb-1"
+                          >
+                            <span className="flex-1 text-sm">{zone.name}</span>
+                            
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => moveZone(zone.id, "up")}
+                              disabled={zoneIndex === 0}
+                            >
+                              <ArrowUp className="h-3 w-3" />
+                            </Button>
+                            
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => moveZone(zone.id, "down")}
+                              disabled={zoneIndex === settlementZones.length - 1}
+                            >
+                              <ArrowDown className="h-3 w-3" />
+                            </Button>
+                            
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setEditingZone(zone);
+                                setEditingZoneSettlement(zone.settlement_id || "");
+                              }}
+                            >
+                              <Pencil className="h-3 w-3" />
+                            </Button>
+                            
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => deleteZone(zone.id)}
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="text-sm text-muted-foreground">
+                          Még nincs beírókörzet
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
 
           {/* Település szerkesztése */}
@@ -517,7 +440,11 @@ export function SettlementsAndZonesDialog() {
               />
               <div className="flex gap-2">
                 <Button onClick={addZone}>Hozzáad</Button>
-                <Button variant="outline" onClick={() => setAddingZoneForSettlement(null)}>
+                <Button variant="outline" onClick={() => {
+                  setAddingZoneForSettlement(null);
+                  setNewZoneName("");
+                  setNewZoneDescription("");
+                }}>
                   Mégse
                 </Button>
               </div>
@@ -541,9 +468,30 @@ export function SettlementsAndZonesDialog() {
                   setEditingZone({ ...editingZone, description: e.target.value })
                 }
               />
+              <div className="space-y-2">
+                <Label>Település</Label>
+                <Select
+                  value={editingZoneSettlement}
+                  onValueChange={setEditingZoneSettlement}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Válassz települést" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {settlements.map((s) => (
+                      <SelectItem key={s.id} value={s.id}>
+                        {s.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
               <div className="flex gap-2">
                 <Button onClick={updateZone}>Mentés</Button>
-                <Button variant="outline" onClick={() => setEditingZone(null)}>
+                <Button variant="outline" onClick={() => {
+                  setEditingZone(null);
+                  setEditingZoneSettlement("");
+                }}>
                   Mégse
                 </Button>
               </div>
