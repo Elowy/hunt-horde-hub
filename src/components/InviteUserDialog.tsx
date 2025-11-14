@@ -10,6 +10,13 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { UserPlus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -18,6 +25,7 @@ export const InviteUserDialog = () => {
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const [email, setEmail] = useState("");
+  const [role, setRole] = useState<"editor" | "hunter">("hunter");
   const [loading, setLoading] = useState(false);
 
   const handleInvite = async () => {
@@ -59,7 +67,7 @@ export const InviteUserDialog = () => {
         .from("invitations")
         .insert({
           email: email.toLowerCase().trim(),
-          role: "editor",
+          role: role,
           invited_by: user.id,
         });
 
@@ -84,6 +92,7 @@ export const InviteUserDialog = () => {
       }
 
       setEmail("");
+      setRole("hunter");
       setOpen(false);
     } catch (error: any) {
       console.error("Invitation error:", error);
@@ -107,12 +116,28 @@ export const InviteUserDialog = () => {
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Felhasználó meghívása</DialogTitle>
+          <DialogTitle>Vadász tag meghívása</DialogTitle>
           <DialogDescription>
-            Küldjön meghívót egy új szerkesztőnek. A meghívott felhasználó állatokat tud hozzáadni, de törölni vagy módosítani nem.
+            Küldjön meghívót egy új vadász tagnak. Választhatja ki a szerepkört:
+            <ul className="mt-2 ml-4 list-disc text-sm">
+              <li><strong>Vadász:</strong> Csak a hűtőben lévő vadakat tekintheti meg</li>
+              <li><strong>Kezelő:</strong> Vadakat tud hozzáadni, de törölni vagy módosítani nem</li>
+            </ul>
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-4">
+          <div className="space-y-2">
+            <Label htmlFor="role">Szerepkör</Label>
+            <Select value={role} onValueChange={(value: "editor" | "hunter") => setRole(value)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Válasszon szerepkört" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="hunter">🏹 Vadász (csak megtekintés)</SelectItem>
+                <SelectItem value="editor">📝 Kezelő (hozzáadás engedélyezve)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
           <div className="space-y-2">
             <Label htmlFor="email">Email cím</Label>
             <Input
