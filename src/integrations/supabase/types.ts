@@ -94,6 +94,36 @@ export type Database = {
           },
         ]
       }
+      price_settings: {
+        Row: {
+          class: string
+          created_at: string
+          id: string
+          price_per_kg: number
+          species: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          class: string
+          created_at?: string
+          id?: string
+          price_per_kg?: number
+          species: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          class?: string
+          created_at?: string
+          id?: string
+          price_per_kg?: number
+          species?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           address: string | null
