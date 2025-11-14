@@ -345,6 +345,47 @@ export type Database = {
         Row: {
           created_at: string
           description: string | null
+          display_order: number
+          id: string
+          name: string
+          settlement_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          id?: string
+          name: string
+          settlement_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          id?: string
+          name?: string
+          settlement_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "security_zones_settlement_id_fkey"
+            columns: ["settlement_id"]
+            isOneToOne: false
+            referencedRelation: "settlements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      settlements: {
+        Row: {
+          created_at: string
+          display_order: number
           id: string
           name: string
           updated_at: string
@@ -352,7 +393,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
-          description?: string | null
+          display_order?: number
           id?: string
           name: string
           updated_at?: string
@@ -360,7 +401,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
-          description?: string | null
+          display_order?: number
           id?: string
           name?: string
           updated_at?: string
