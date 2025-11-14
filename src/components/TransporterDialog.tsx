@@ -155,7 +155,7 @@ export const TransporterDialog = () => {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm" className="text-black border-black hover:bg-black/10">
+        <Button variant="outline" className="h-10">
           <Truck className="h-4 w-4 mr-2" />
           Elszállítók
         </Button>

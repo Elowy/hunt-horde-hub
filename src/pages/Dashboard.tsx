@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Search, Filter, Eye, Edit, Trash2, MapPin, LogOut, Star, Truck, FileDown, TrendingUp } from "lucide-react";
+import { Plus, Search, Filter, Eye, Edit, Trash2, MapPin, LogOut, Star, Truck, FileDown, TrendingUp, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -32,6 +32,7 @@ import { EditStorageLocationDialog } from "@/components/EditStorageLocationDialo
 import { ViewAnimalDialog } from "@/components/ViewAnimalDialog";
 import { EditAnimalDialog } from "@/components/EditAnimalDialog";
 import { CreateTransportDialog } from "@/components/CreateTransportDialog";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import jsPDF from "jspdf";
 
@@ -585,7 +586,20 @@ const Dashboard = () => {
               <TransportDocumentsDialog />
               <TransporterDialog />
               <PriceSettingsDialog onPriceUpdated={fetchData} />
-              <Button variant="outline" onClick={handleLogout} className="text-black border-black hover:bg-black/10">
+              <ThemeToggle />
+              <Button 
+                variant="outline" 
+                onClick={() => navigate("/profile")} 
+                className="h-10"
+              >
+                <User className="h-4 w-4 mr-2" />
+                Profilom
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={handleLogout} 
+                className="h-10"
+              >
                 <LogOut className="h-4 w-4 mr-2" />
                 Kijelentkezés
               </Button>
