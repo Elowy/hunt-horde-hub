@@ -43,6 +43,26 @@ serve(async (req) => {
     if (!user?.email) throw new Error("User not authenticated or email not available");
     logStep("User authenticated", { userId: user.id, email: user.email });
 
+    // Ellenőrizzük az örökös előfizetéseket először
+    const { data: lifetimeData, error: lifetimeError } = await supabaseClient
+      .from("lifetime_subscriptions")
+      .select("tier")
+      .eq("user_id", user.id)
+      .single();
+
+    if (lifetimeData && !lifetimeError) {
+      logStep("Lifetime subscription found", { tier: lifetimeData.tier });
+      return new Response(JSON.stringify({
+        subscribed: true,
+        product_id: lifetimeData.tier,
+        subscription_end: null,
+        lifetime: true
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
+
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
     const customers = await stripe.customers.list({ email: user.email, limit: 1 });
     
