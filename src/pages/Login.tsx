@@ -78,6 +78,11 @@ const Login = () => {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-hunt-orange/10 to-hunt-dark/5 p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
+          <div className="text-center mb-2">
+            <Link to="/" className="text-sm text-hunt-orange hover:underline">
+              ← Vissza a főoldalra
+            </Link>
+          </div>
           <CardTitle className="text-2xl font-bold text-center text-hunt-dark">
             Bejelentkezés
           </CardTitle>

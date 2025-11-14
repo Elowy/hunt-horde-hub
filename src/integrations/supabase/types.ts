@@ -94,6 +94,42 @@ export type Database = {
           },
         ]
       }
+      buyers: {
+        Row: {
+          address: string | null
+          company_name: string
+          contact_email: string | null
+          contact_name: string | null
+          contact_phone: string | null
+          created_at: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          address?: string | null
+          company_name: string
+          contact_email?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          address?: string | null
+          company_name?: string
+          contact_email?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       price_settings: {
         Row: {
           class: string
@@ -134,6 +170,7 @@ export type Database = {
           created_at: string
           id: string
           updated_at: string
+          user_type: string | null
         }
         Insert: {
           address?: string | null
@@ -144,6 +181,7 @@ export type Database = {
           created_at?: string
           id: string
           updated_at?: string
+          user_type?: string | null
         }
         Update: {
           address?: string | null
@@ -154,8 +192,65 @@ export type Database = {
           created_at?: string
           id?: string
           updated_at?: string
+          user_type?: string | null
         }
         Relationships: []
+      }
+      purchase_offers: {
+        Row: {
+          buyer_id: string
+          class: string
+          created_at: string
+          hunter_society_id: string
+          id: string
+          max_quantity: number | null
+          min_quantity: number | null
+          notes: string | null
+          price_per_kg: number
+          species: string
+          status: string | null
+          updated_at: string
+          valid_until: string | null
+        }
+        Insert: {
+          buyer_id: string
+          class: string
+          created_at?: string
+          hunter_society_id: string
+          id?: string
+          max_quantity?: number | null
+          min_quantity?: number | null
+          notes?: string | null
+          price_per_kg: number
+          species: string
+          status?: string | null
+          updated_at?: string
+          valid_until?: string | null
+        }
+        Update: {
+          buyer_id?: string
+          class?: string
+          created_at?: string
+          hunter_society_id?: string
+          id?: string
+          max_quantity?: number | null
+          min_quantity?: number | null
+          notes?: string | null
+          price_per_kg?: number
+          species?: string
+          status?: string | null
+          updated_at?: string
+          valid_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_offers_buyer_id_fkey"
+            columns: ["buyer_id"]
+            isOneToOne: false
+            referencedRelation: "buyers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       storage_locations: {
         Row: {
@@ -188,6 +283,78 @@ export type Database = {
           is_default?: boolean | null
           name?: string
           notes?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      transport_document_items: {
+        Row: {
+          animal_id: string
+          created_at: string
+          id: string
+          transport_document_id: string
+        }
+        Insert: {
+          animal_id: string
+          created_at?: string
+          id?: string
+          transport_document_id: string
+        }
+        Update: {
+          animal_id?: string
+          created_at?: string
+          id?: string
+          transport_document_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transport_document_items_animal_id_fkey"
+            columns: ["animal_id"]
+            isOneToOne: false
+            referencedRelation: "animals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transport_document_items_transport_document_id_fkey"
+            columns: ["transport_document_id"]
+            isOneToOne: false
+            referencedRelation: "transport_documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      transport_documents: {
+        Row: {
+          animal_count: number
+          created_at: string
+          document_number: string
+          id: string
+          total_price: number
+          total_weight: number
+          transport_date: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          animal_count?: number
+          created_at?: string
+          document_number: string
+          id?: string
+          total_price?: number
+          total_weight?: number
+          transport_date?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          animal_count?: number
+          created_at?: string
+          document_number?: string
+          id?: string
+          total_price?: number
+          total_weight?: number
+          transport_date?: string
           updated_at?: string
           user_id?: string
         }
