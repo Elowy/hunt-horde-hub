@@ -25,6 +25,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { StorageLocationDialog } from "@/components/StorageLocationDialog";
 import { PriceSettingsDialog } from "@/components/PriceSettingsDialog";
+import { TransportDocumentsDialog } from "@/components/TransportDocumentsDialog";
 import jsPDF from "jspdf";
 
 interface StorageLocation {
@@ -118,7 +119,7 @@ const Dashboard = () => {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    navigate("/login");
+    navigate("/");
   };
 
   const handleSetDefaultLocation = async (locationId: string) => {
@@ -167,7 +168,7 @@ const Dashboard = () => {
     return animal.weight * priceSetting.price_per_kg;
   };
 
-  const generateTransportPDF = () => {
+  const generateTransportPDF = async () => {
     if (selectedAnimals.size === 0) {
       toast({
         title: "Figyelmeztetés",
@@ -178,27 +179,8 @@ const Dashboard = () => {
     }
 
     const selectedAnimalsList = animals.filter(a => selectedAnimals.has(a.id));
-    const doc = new jsPDF();
     
-    // Címsor
-    doc.setFontSize(20);
-    doc.text("Elszallito", 105, 20, { align: "center" });
-    
-    doc.setFontSize(12);
-    doc.text(`Datum: ${new Date().toLocaleDateString("hu-HU")}`, 20, 35);
-    
-    // Táblázat fejléc
-    let yPos = 50;
-    doc.setFontSize(10);
-    doc.text("Azonosito", 20, yPos);
-    doc.text("Faj", 60, yPos);
-    doc.text("Osztaly", 90, yPos);
-    doc.text("Suly (kg)", 120, yPos);
-    doc.text("Ar (Ft)", 160, yPos);
-    
-    yPos += 10;
-    
-    // Adatok
+    // Számítások
     let totalWeight = 0;
     let totalPrice = 0;
     
@@ -206,33 +188,99 @@ const Dashboard = () => {
       const price = getAnimalPrice(animal);
       totalWeight += animal.weight || 0;
       totalPrice += price;
-      
-      doc.text(animal.animal_id, 20, yPos);
-      doc.text(animal.species, 60, yPos);
-      doc.text(animal.class || "-", 90, yPos);
-      doc.text((animal.weight || 0).toString(), 120, yPos);
-      doc.text(Math.round(price).toLocaleString("hu-HU"), 160, yPos);
-      
-      yPos += 8;
-      
-      if (yPos > 270) {
-        doc.addPage();
-        yPos = 20;
-      }
     });
-    
-    // Összegzés
-    yPos += 10;
-    doc.setFontSize(12);
-    doc.text(`Osszes suly: ${totalWeight.toFixed(2)} kg`, 20, yPos);
-    doc.text(`Osszes ar: ${Math.round(totalPrice).toLocaleString("hu-HU")} Ft`, 120, yPos);
-    
-    doc.save(`elszallito_${new Date().toISOString().split('T')[0]}.pdf`);
-    
-    toast({
-      title: "Siker!",
-      description: "Elszállító PDF létrehozva!",
-    });
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Elszállító mentése az adatbázisba
+      const documentNumber = `ESZ-${Date.now()}`;
+      
+      const { data: transportDoc, error: docError } = await supabase
+        .from("transport_documents")
+        .insert({
+          user_id: user.id,
+          document_number: documentNumber,
+          transport_date: new Date().toISOString(),
+          total_weight: totalWeight,
+          total_price: totalPrice,
+          animal_count: selectedAnimalsList.length,
+        })
+        .select()
+        .single();
+
+      if (docError) throw docError;
+
+      // Tételek mentése
+      const items = selectedAnimalsList.map(animal => ({
+        transport_document_id: transportDoc.id,
+        animal_id: animal.id,
+      }));
+
+      const { error: itemsError } = await supabase
+        .from("transport_document_items")
+        .insert(items);
+
+      if (itemsError) throw itemsError;
+
+      // PDF generálás
+      const doc = new jsPDF();
+      
+      doc.setFontSize(20);
+      doc.text("Elszallito", 105, 20, { align: "center" });
+      
+      doc.setFontSize(12);
+      doc.text(`Bizonylat szam: ${documentNumber}`, 20, 35);
+      doc.text(`Datum: ${new Date().toLocaleDateString("hu-HU")}`, 20, 45);
+      
+      let yPos = 60;
+      doc.setFontSize(10);
+      doc.text("Azonosito", 20, yPos);
+      doc.text("Faj", 60, yPos);
+      doc.text("Osztaly", 90, yPos);
+      doc.text("Suly (kg)", 120, yPos);
+      doc.text("Ar (Ft)", 160, yPos);
+      
+      yPos += 10;
+      
+      selectedAnimalsList.forEach((animal) => {
+        const price = getAnimalPrice(animal);
+        
+        doc.text(animal.animal_id, 20, yPos);
+        doc.text(animal.species, 60, yPos);
+        doc.text(animal.class || "-", 90, yPos);
+        doc.text((animal.weight || 0).toString(), 120, yPos);
+        doc.text(Math.round(price).toLocaleString("hu-HU"), 160, yPos);
+        
+        yPos += 8;
+        
+        if (yPos > 270) {
+          doc.addPage();
+          yPos = 20;
+        }
+      });
+      
+      yPos += 10;
+      doc.setFontSize(12);
+      doc.text(`Osszes suly: ${totalWeight.toFixed(2)} kg`, 20, yPos);
+      doc.text(`Osszes ar: ${Math.round(totalPrice).toLocaleString("hu-HU")} Ft`, 20, yPos + 10);
+      
+      doc.save(`elszallito_${documentNumber}.pdf`);
+      
+      toast({
+        title: "Siker!",
+        description: "Elszállító létrehozva és mentve!",
+      });
+      
+      setSelectedAnimals(new Set());
+    } catch (error: any) {
+      toast({
+        title: "Hiba",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
   };
 
   const filteredAnimals = animals.filter(animal => {
@@ -252,10 +300,15 @@ const Dashboard = () => {
 
   const getLocationStats = (locationId: string) => {
     const locationAnimals = animals.filter(a => a.storage_location_id === locationId);
-    const totalWeight = locationAnimals.reduce((sum, a) => sum + (a.weight || 0), 0);
+    
+    // Calculate total price in HUF
+    const totalPrice = locationAnimals.reduce((sum, animal) => {
+      return sum + getAnimalPrice(animal);
+    }, 0);
+    
     const currentCount = locationAnimals.length;
     
-    // Havi elszállított - az aktuális hónapban hozzáadott állatok (ez egy egyszerűsített példa)
+    // Havi elszállított - az aktuális hónapban hozzáadott állatok
     const currentMonth = new Date().getMonth();
     const currentYear = new Date().getFullYear();
     const monthlyShipped = locationAnimals.filter(a => {
@@ -265,7 +318,7 @@ const Dashboard = () => {
     }).length;
 
     return {
-      totalWeight: totalWeight.toFixed(2),
+      totalPrice: Math.round(totalPrice),
       currentCount,
       monthlyShipped,
     };
@@ -290,6 +343,7 @@ const Dashboard = () => {
               <p className="text-primary-foreground/90">Vadászati nyilvántartás és hűtés kezelése</p>
             </div>
             <div className="flex gap-2">
+              <TransportDocumentsDialog />
               <PriceSettingsDialog onPriceUpdated={fetchData} />
               <Button variant="outline" onClick={handleLogout} className="text-white border-white hover:bg-white/10">
                 <LogOut className="h-4 w-4 mr-2" />
@@ -349,7 +403,7 @@ const Dashboard = () => {
                       )}
                       <div className="flex justify-between text-sm">
                         <span className="text-muted-foreground">Teljes hűtési érték:</span>
-                        <span className="font-semibold">{stats.totalWeight} kg</span>
+                        <span className="font-semibold">{stats.totalPrice.toLocaleString("hu-HU")} Ft</span>
                       </div>
                       <div className="flex justify-between text-sm">
                         <span className="text-muted-foreground">Jelenlegi bentlévő:</span>

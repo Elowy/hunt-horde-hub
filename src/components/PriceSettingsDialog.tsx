@@ -71,20 +71,42 @@ export const PriceSettingsDialog = ({ onPriceUpdated }: { onPriceUpdated: () => 
     }
   };
 
-  const handlePriceChange = async (species: string, animalClass: string, price: number) => {
+  const [tempPrices, setTempPrices] = useState<Record<string, number>>({});
+
+  useEffect(() => {
+    // Initialize temp prices from settings
+    const prices: Record<string, number> = {};
+    priceSettings.forEach(setting => {
+      const key = `${setting.species}_${setting.class}`;
+      prices[key] = setting.price_per_kg;
+    });
+    setTempPrices(prices);
+  }, [priceSettings]);
+
+  const handlePriceChange = (species: string, animalClass: string, price: number) => {
+    const key = `${species}_${animalClass}`;
+    setTempPrices(prev => ({ ...prev, [key]: price }));
+  };
+
+  const handleSaveAll = async () => {
     try {
       setLoading(true);
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { error } = await supabase
-        .from("price_settings")
-        .upsert({
+      const updates = Object.entries(tempPrices).map(([key, price]) => {
+        const [species, animalClass] = key.split('_');
+        return {
           user_id: user.id,
           species,
           class: animalClass,
           price_per_kg: price,
-        }, {
+        };
+      });
+
+      const { error } = await supabase
+        .from("price_settings")
+        .upsert(updates, {
           onConflict: "user_id,species,class"
         });
 
@@ -92,7 +114,7 @@ export const PriceSettingsDialog = ({ onPriceUpdated }: { onPriceUpdated: () => 
 
       toast({
         title: "Siker!",
-        description: "Ár beállítás mentve!",
+        description: "Árak mentve!",
       });
 
       await fetchPriceSettings();
@@ -109,10 +131,8 @@ export const PriceSettingsDialog = ({ onPriceUpdated }: { onPriceUpdated: () => 
   };
 
   const getPriceForCell = (species: string, animalClass: string) => {
-    const setting = priceSettings.find(
-      (s) => s.species === species && s.class === animalClass
-    );
-    return setting?.price_per_kg || 0;
+    const key = `${species}_${animalClass}`;
+    return tempPrices[key] || 0;
   };
 
   return (

@@ -19,7 +19,8 @@ const Register = () => {
     phone: "",
     address: "",
     password: "",
-    confirmPassword: ""
+    confirmPassword: "",
+    userType: "hunter_society"
   });
 
   const [loading, setLoading] = useState(false);
@@ -63,6 +64,7 @@ const Register = () => {
             contact_email: formData.email,
             contact_phone: formData.phone,
             address: formData.address,
+            user_type: formData.userType,
           },
         },
       });
@@ -114,9 +116,26 @@ const Register = () => {
             {/* Company Information */}
             <div className="space-y-4">
               <div className="space-y-2">
+                <Label htmlFor="userType" className="flex items-center gap-2">
+                  <User className="h-4 w-4 text-forest-deep" />
+                  Felhasználó típus
+                </Label>
+                <select
+                  id="userType"
+                  value={formData.userType}
+                  onChange={(e) => handleInputChange("userType", e.target.value)}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  required
+                >
+                  <option value="hunter_society">Vadásztársaság</option>
+                  <option value="buyer">Felvásárló</option>
+                </select>
+              </div>
+
+              <div className="space-y-2">
                 <Label htmlFor="companyName" className="flex items-center gap-2">
                   <Building2 className="h-4 w-4 text-forest-deep" />
-                  Company Name
+                  Cég név
                 </Label>
                 <Input
                   id="companyName"
