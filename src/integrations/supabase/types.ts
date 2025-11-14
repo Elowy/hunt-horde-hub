@@ -171,6 +171,7 @@ export type Database = {
           id: string
           updated_at: string
           user_type: string | null
+          vat_rate: number | null
         }
         Insert: {
           address?: string | null
@@ -182,6 +183,7 @@ export type Database = {
           id: string
           updated_at?: string
           user_type?: string | null
+          vat_rate?: number | null
         }
         Update: {
           address?: string | null
@@ -193,6 +195,7 @@ export type Database = {
           id?: string
           updated_at?: string
           user_type?: string | null
+          vat_rate?: number | null
         }
         Relationships: []
       }
@@ -330,31 +333,122 @@ export type Database = {
           created_at: string
           document_number: string
           id: string
+          ticket_number: string | null
           total_price: number
           total_weight: number
           transport_date: string
+          transporter_id: string | null
+          transporter_name: string | null
           updated_at: string
           user_id: string
+          vehicle_plate: string | null
         }
         Insert: {
           animal_count?: number
           created_at?: string
           document_number: string
           id?: string
+          ticket_number?: string | null
           total_price?: number
           total_weight?: number
           transport_date?: string
+          transporter_id?: string | null
+          transporter_name?: string | null
           updated_at?: string
           user_id: string
+          vehicle_plate?: string | null
         }
         Update: {
           animal_count?: number
           created_at?: string
           document_number?: string
           id?: string
+          ticket_number?: string | null
           total_price?: number
           total_weight?: number
           transport_date?: string
+          transporter_id?: string | null
+          transporter_name?: string | null
+          updated_at?: string
+          user_id?: string
+          vehicle_plate?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transport_documents_transporter_id_fkey"
+            columns: ["transporter_id"]
+            isOneToOne: false
+            referencedRelation: "transporters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      transporter_prices: {
+        Row: {
+          class: string
+          created_at: string
+          id: string
+          price_per_kg: number
+          species: string
+          transporter_id: string
+          updated_at: string
+        }
+        Insert: {
+          class: string
+          created_at?: string
+          id?: string
+          price_per_kg: number
+          species: string
+          transporter_id: string
+          updated_at?: string
+        }
+        Update: {
+          class?: string
+          created_at?: string
+          id?: string
+          price_per_kg?: number
+          species?: string
+          transporter_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transporter_prices_transporter_id_fkey"
+            columns: ["transporter_id"]
+            isOneToOne: false
+            referencedRelation: "transporters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      transporters: {
+        Row: {
+          address: string | null
+          company_name: string
+          contact_name: string | null
+          created_at: string
+          id: string
+          tax_number: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          address?: string | null
+          company_name: string
+          contact_name?: string | null
+          created_at?: string
+          id?: string
+          tax_number?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          address?: string | null
+          company_name?: string
+          contact_name?: string | null
+          created_at?: string
+          id?: string
+          tax_number?: string | null
           updated_at?: string
           user_id?: string
         }

@@ -175,11 +175,19 @@ const Index = () => {
           <p className="text-white/80 mb-6">
             Professzionális állat nyilvántartás kezelés a modern vadászati iparág számára
           </p>
-          <div className="flex justify-center gap-4">
-            <Button variant="outline" className="text-white border-white/20 hover:bg-white/10">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Button 
+              variant="secondary"
+              size="lg"
+              className="text-lg px-8 py-6 text-foreground"
+            >
               Kapcsolat
             </Button>
-            <Button variant="link" className="text-white hover:text-hunt-orange">
+            <Button 
+              variant="default"
+              size="lg"
+              className="text-lg px-8 py-6 bg-foreground text-background hover:bg-foreground/90"
+            >
               Adatvédelem
             </Button>
           </div>
