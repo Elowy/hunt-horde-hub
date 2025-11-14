@@ -32,8 +32,7 @@ import { EditStorageLocationDialog } from "@/components/EditStorageLocationDialo
 import { ViewAnimalDialog } from "@/components/ViewAnimalDialog";
 import { EditAnimalDialog } from "@/components/EditAnimalDialog";
 import { CreateTransportDialog } from "@/components/CreateTransportDialog";
-import { InviteUserDialog } from "@/components/InviteUserDialog";
-import { ThemeToggle } from "@/components/ThemeToggle";
+import { DashboardMenu } from "@/components/DashboardMenu";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import jsPDF from "jspdf";
 
@@ -591,43 +590,17 @@ const Dashboard = () => {
       <div className="bg-gradient-to-r from-forest-deep to-forest-light text-white py-8">
         <div className="container mx-auto px-6">
           <div className="flex justify-between items-center">
+          <div className="flex items-center gap-2">
             <div>
               <h1 className="text-3xl font-bold mb-2">Állat Nyilvántartó</h1>
               <p className="text-primary-foreground/90">Vadászati nyilvántartás és hűtés kezelése</p>
             </div>
-            <div className="flex flex-wrap gap-2">
-              {isAdmin && (
-                <Button 
-                  variant="outline" 
-                  onClick={() => navigate("/users")} 
-                  className="h-10"
-                >
-                  <UsersIcon className="h-4 w-4 mr-2" />
-                  Felhasználók
-                </Button>
-              )}
-              <InviteUserDialog />
-              <TransportDocumentsDialog />
-              <TransporterDialog />
-              <PriceSettingsDialog onPriceUpdated={fetchData} />
-              <ThemeToggle />
-              <Button 
-                variant="outline" 
-                onClick={() => navigate("/profile")} 
-                className="h-10"
-              >
-                <User className="h-4 w-4 mr-2" />
-                Profilom
-              </Button>
-              <Button 
-                variant="outline" 
-                onClick={handleLogout} 
-                className="h-10"
-              >
-                <LogOut className="h-4 w-4 mr-2" />
-                Kijelentkezés
-              </Button>
-            </div>
+          </div>
+          <DashboardMenu 
+            isAdmin={isAdmin}
+            onLogout={handleLogout}
+            onPriceUpdated={fetchData}
+          />
           </div>
         </div>
       </div>
