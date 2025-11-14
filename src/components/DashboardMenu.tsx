@@ -8,7 +8,7 @@ import { TransportDocumentsDialog } from "@/components/TransportDocumentsDialog"
 import { TransporterDialog } from "@/components/TransporterDialog";
 import { PriceSettingsDialog } from "@/components/PriceSettingsDialog";
 import { InviteUserDialog } from "@/components/InviteUserDialog";
-import { SettlementsAndZonesDialog } from "@/components/SettlementsAndZonesDialog";
+import { SecurityZonesDialog } from "@/components/SecurityZonesDialog";
 import { Separator } from "@/components/ui/separator";
 import { useSubscription } from "@/hooks/useSubscription";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -106,7 +106,7 @@ export const DashboardMenu = ({ isAdmin, onLogout, onPriceUpdated }: DashboardMe
               <TransportDocumentsDialog />
               <TransporterDialog />
               <PriceSettingsDialog onPriceUpdated={onPriceUpdated} />
-              {isAdmin && <SettlementsAndZonesDialog />}
+              <SecurityZonesDialog />
             </div>
           </div>
 
