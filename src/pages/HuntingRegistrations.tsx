@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Calendar, Clock, MapPin, CheckCircle, XCircle, AlertCircle, Crown, Package, ChevronDown, Trash2 } from "lucide-react";
+import { Plus, Calendar, Clock, MapPin, CheckCircle, XCircle, AlertCircle, Crown, Package, ChevronDown, Trash2, Ban } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -40,6 +40,20 @@ interface HuntingLocation {
   id: string;
   name: string;
   type: string;
+}
+
+interface ZoneClosure {
+  id: string;
+  security_zone_id: string;
+  start_date: string;
+  end_date: string;
+  reason: string;
+  security_zones: {
+    name: string;
+    settlements: {
+      name: string;
+    } | null;
+  };
 }
 
 interface HunterUser {
@@ -96,6 +110,7 @@ const HuntingRegistrations = () => {
   const [registrations, setRegistrations] = useState<HuntingRegistration[]>([]);
   const [zones, setZones] = useState<SecurityZone[]>([]);
   const [locations, setLocations] = useState<HuntingLocation[]>([]);
+  const [closures, setClosures] = useState<ZoneClosure[]>([]);
   const [hunters, setHunters] = useState<HunterUser[]>([]);
   const [hiredHunters, setHiredHunters] = useState<HiredHunter[]>([]);
   const [loading, setLoading] = useState(true);
@@ -131,6 +146,7 @@ const HuntingRegistrations = () => {
   useEffect(() => {
     checkUserRole();
     fetchZones();
+    fetchClosures();
     fetchHunters();
     fetchHiredHunters();
     fetchRegistrations();
@@ -189,6 +205,32 @@ const HuntingRegistrations = () => {
 
       if (error) throw error;
       setLocations(data || []);
+    } catch (error: any) {
+      toast({
+        title: "Hiba",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const fetchClosures = async () => {
+    try {
+      const now = new Date();
+      const { data, error } = await supabase
+        .from("security_zone_closures")
+        .select(`
+          *,
+          security_zones (
+            name,
+            settlements (name)
+          )
+        `)
+        .gte("end_date", now.toISOString())
+        .lte("start_date", now.toISOString());
+
+      if (error) throw error;
+      setClosures(data || []);
     } catch (error: any) {
       toast({
         title: "Hiba",
@@ -592,6 +634,36 @@ const HuntingRegistrations = () => {
                   Új beiratkozás
                 </Button>
               </DialogTrigger>
+        
+        {/* Active Zone Closures Alert */}
+        {closures.length > 0 && (
+          <Alert className="mb-6 border-orange-500/50 bg-orange-500/10">
+            <Ban className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+            <AlertTitle className="text-orange-700 dark:text-orange-300">
+              Lezárt körzetek
+            </AlertTitle>
+            <AlertDescription className="text-orange-600 dark:text-orange-400">
+              <div className="mt-2 space-y-2">
+                {closures.map((closure) => (
+                  <div key={closure.id} className="text-sm">
+                    <span className="font-medium">
+                      {closure.security_zones.settlements?.name
+                        ? `${closure.security_zones.settlements.name} - ${closure.security_zones.name}`
+                        : closure.security_zones.name}
+                    </span>
+                    <span className="mx-2">•</span>
+                    <span>
+                      {format(new Date(closure.start_date), "yyyy. MM. dd.", { locale: hu })}
+                      {" - "}
+                      {format(new Date(closure.end_date), "yyyy. MM. dd.", { locale: hu })}
+                    </span>
+                    <div className="mt-1 italic">{closure.reason}</div>
+                  </div>
+                ))}
+              </div>
+            </AlertDescription>
+          </Alert>
+        )}
                 <DialogContent>
                   <DialogHeader>
                     <DialogTitle>Új vadászati beiratkozás</DialogTitle>
@@ -637,11 +709,19 @@ const HuntingRegistrations = () => {
                           <SelectValue placeholder="Válasszon körzetet" />
                         </SelectTrigger>
                         <SelectContent>
-                          {zones.map((zone) => (
-                            <SelectItem key={zone.id} value={zone.id}>
-                              {zone.settlements?.name ? `${zone.settlements.name} - ${zone.name}` : zone.name}
-                            </SelectItem>
-                          ))}
+                          {zones.map((zone) => {
+                            const isClosed = closures.some(c => c.security_zone_id === zone.id);
+                            return (
+                              <SelectItem 
+                                key={zone.id} 
+                                value={zone.id}
+                                disabled={isClosed}
+                              >
+                                {zone.settlements?.name ? `${zone.settlements.name} - ${zone.name}` : zone.name}
+                                {isClosed && " (Lezárva)"}
+                              </SelectItem>
+                            );
+                          })}
                         </SelectContent>
                       </Select>
                     </div>
