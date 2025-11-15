@@ -12,6 +12,7 @@ import { InviteUserDialog } from "@/components/InviteUserDialog";
 import { SettlementsAndZonesDialog } from "@/components/SettlementsAndZonesDialog";
 import { SecurityZoneClosuresDialog } from "@/components/SecurityZoneClosuresDialog";
 import { AddAnimalDialog } from "@/components/AddAnimalDialog";
+import { GuestRegistrationQRDialog } from "@/components/GuestRegistrationQRDialog";
 import { Separator } from "@/components/ui/separator";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useIsSuperAdmin } from "@/hooks/useIsSuperAdmin";
@@ -176,6 +177,7 @@ export const DashboardMenu = ({ isAdmin, isEditor, isHunter, onLogout, onPriceUp
                 <>
                   <SettlementsAndZonesDialog />
                   <SecurityZoneClosuresDialog />
+                  <GuestRegistrationQRDialog />
                 </>
               )}
             </div>

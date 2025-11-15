@@ -13,6 +13,7 @@ import Profile from "./pages/Profile";
 import Users from "./pages/Users";
 import Subscriptions from "./pages/Subscriptions";
 import HuntingRegistrations from "./pages/HuntingRegistrations";
+import GuestRegistration from "./pages/GuestRegistration";
 import HiredHunters from "./pages/HiredHunters";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard";
 import Settings from "./pages/Settings";
@@ -40,6 +41,7 @@ const App = () => (
             <Route path="/users" element={<Users />} />
             <Route path="/subscriptions" element={<Subscriptions />} />
             <Route path="/hunting-registrations" element={<HuntingRegistrations />} />
+            <Route path="/guest-registration" element={<GuestRegistration />} />
             <Route path="/hired-hunters" element={<HiredHunters />} />
             <Route path="/super-admin" element={<SuperAdminDashboard />} />
             <Route path="/settings" element={<Settings />} />

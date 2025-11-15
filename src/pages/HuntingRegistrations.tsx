@@ -82,15 +82,29 @@ interface HuntingRegistration {
   user_id: string;
   hired_hunter_id: string | null;
   security_zone_id: string;
+  hunting_location_id: string | null;
   start_time: string;
   end_time: string;
   status: string;
   requires_admin_approval: boolean;
   admin_note: string | null;
   created_at: string;
+  is_guest: boolean | null;
+  guest_name: string | null;
+  guest_address: string | null;
+  guest_license_number: string | null;
+  guest_phone: string | null;
+  guest_email: string | null;
   security_zones: {
     name: string;
+    settlements: {
+      name: string;
+    } | null;
   };
+  hunting_locations: {
+    name: string;
+    type: string;
+  } | null;
   profiles: {
     contact_name: string | null;
     contact_phone: string | null;
@@ -306,7 +320,11 @@ const HuntingRegistrations = () => {
         .from("hunting_registrations")
         .select(`
           *,
-          security_zones (name),
+          security_zones (
+            name,
+            settlements (name)
+          ),
+          hunting_locations (name, type),
           hired_hunters (name, license_number)
         `)
         .order("created_at", { ascending: false });
