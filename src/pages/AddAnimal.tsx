@@ -10,6 +10,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, PlusCircle, ChevronDown, ChevronUp } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useSubscription } from "@/hooks/useSubscription";
 
 interface StorageLocation {
   id: string;
@@ -40,6 +41,7 @@ interface PriceSetting {
 const AddAnimal = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { isPro, loading: subscriptionLoading, productId } = useSubscription();
   const [locations, setLocations] = useState<StorageLocation[]>([]);
   const [securityZones, setSecurityZones] = useState<SecurityZone[]>([]);
   const [hunters, setHunters] = useState<Hunter[]>([]);
@@ -279,6 +281,30 @@ const AddAnimal = () => {
           variant: "destructive",
         });
         return;
+      }
+
+      // Ellenőrizzük az ingyenes felhasználók állat limitjét
+      const PRO_PRODUCT_IDS = ["prod_TQMCsYuGXl2cqX", "prod_TQMCzW95I3TlPz"];
+      const NORMAL_PRODUCT_IDS = ["prod_TQMCKFFwVc6lXT", "prod_TQMCwp0XrDYkOB"];
+      const isFreeUser = !productId || (!PRO_PRODUCT_IDS.includes(productId) && !NORMAL_PRODUCT_IDS.includes(productId) && productId !== "trial_pro");
+
+      if (isFreeUser) {
+        const { count, error: countError } = await supabase
+          .from("animals")
+          .select("*", { count: "exact", head: true })
+          .eq("user_id", user.id);
+
+        if (countError) throw countError;
+
+        if (count && count >= 100) {
+          toast({
+            title: "Limit elérve",
+            description: "Az ingyenes verzióban maximum 100 állat regisztrálható. Váltson Normal vagy Pro előfizetésre a korlátlan regisztrációhoz!",
+            variant: "destructive",
+          });
+          setLoading(false);
+          return;
+        }
       }
 
       const { error } = await supabase.from("animals").insert({
