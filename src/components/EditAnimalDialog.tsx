@@ -42,11 +42,24 @@ interface Animal {
   vet_check: boolean | null;
   vet_notes: string | null;
   notes: string | null;
+  security_zone_id: string | null;
+  vet_sample_id: string | null;
+  vet_doctor_name: string | null;
+  vet_result: string | null;
 }
 
 interface StorageLocation {
   id: string;
   name: string;
+}
+
+interface SecurityZone {
+  id: string;
+  name: string;
+  settlement_id: string | null;
+  settlements: {
+    name: string;
+  } | null;
 }
 
 interface PriceSetting {
@@ -66,6 +79,7 @@ export const EditAnimalDialog = ({ animal, locations, onAnimalUpdated }: EditAni
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [priceSettings, setPriceSettings] = useState<PriceSetting[]>([]);
+  const [securityZones, setSecurityZones] = useState<SecurityZone[]>([]);
   const [vatRate, setVatRate] = useState<number>(27);
   const [calculatedPrice, setCalculatedPrice] = useState<{ net: number; gross: number }>({ net: 0, gross: 0 });
   const [formData, setFormData] = useState({
@@ -86,6 +100,10 @@ export const EditAnimalDialog = ({ animal, locations, onAnimalUpdated }: EditAni
     vet_check: animal.vet_check || false,
     vet_notes: animal.vet_notes || "",
     notes: animal.notes || "",
+    security_zone_id: animal.security_zone_id || "",
+    vet_sample_id: animal.vet_sample_id || "",
+    vet_doctor_name: animal.vet_doctor_name || "",
+    vet_result: animal.vet_result || "",
   });
 
   useEffect(() => {
@@ -108,7 +126,12 @@ export const EditAnimalDialog = ({ animal, locations, onAnimalUpdated }: EditAni
         vet_check: animal.vet_check || false,
         vet_notes: animal.vet_notes || "",
         notes: animal.notes || "",
+        security_zone_id: animal.security_zone_id || "",
+        vet_sample_id: animal.vet_sample_id || "",
+        vet_doctor_name: animal.vet_doctor_name || "",
+        vet_result: animal.vet_result || "",
       });
+      fetchSecurityZones();
     }
   }, [open, animal]);
 
@@ -152,6 +175,31 @@ export const EditAnimalDialog = ({ animal, locations, onAnimalUpdated }: EditAni
   useEffect(() => {
     calculatePrice();
   }, [formData.weight, formData.species, formData.class, priceSettings, vatRate]);
+
+  const fetchSecurityZones = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from("security_zones")
+        .select(`
+          id,
+          name,
+          settlement_id,
+          settlements (
+            name
+          )
+        `)
+        .eq("user_id", user.id)
+        .order("display_order");
+
+      if (error) throw error;
+      setSecurityZones(data || []);
+    } catch (error: any) {
+      console.error("Error fetching security zones:", error);
+    }
+  };
 
   const fetchPriceSettings = async () => {
     try {
@@ -232,6 +280,10 @@ export const EditAnimalDialog = ({ animal, locations, onAnimalUpdated }: EditAni
           vet_check: formData.vet_check,
           vet_notes: formData.vet_notes || null,
           notes: formData.notes || null,
+          security_zone_id: formData.security_zone_id || null,
+          vet_sample_id: formData.vet_sample_id || null,
+          vet_doctor_name: formData.vet_doctor_name || null,
+          vet_result: formData.vet_result || null,
         })
         .eq("id", animal.id);
 
@@ -363,7 +415,7 @@ export const EditAnimalDialog = ({ animal, locations, onAnimalUpdated }: EditAni
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="storage_location_id">Helyszín</Label>
+              <Label htmlFor="storage_location_id">Hűtési helyszín</Label>
               <Select
                 value={formData.storage_location_id}
                 onValueChange={(value) => setFormData({ ...formData, storage_location_id: value })}
@@ -372,10 +424,30 @@ export const EditAnimalDialog = ({ animal, locations, onAnimalUpdated }: EditAni
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-popover z-50">
                   {locations.map((location) => (
                     <SelectItem key={location.id} value={location.id}>
                       {location.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="security_zone_id">Település - Beírókörzet</Label>
+              <Select
+                value={formData.security_zone_id}
+                onValueChange={(value) => setFormData({ ...formData, security_zone_id: value })}
+                disabled={loading}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Válasszon..." />
+                </SelectTrigger>
+                <SelectContent className="bg-popover z-50">
+                  {securityZones.map((zone) => (
+                    <SelectItem key={zone.id} value={zone.id}>
+                      {zone.settlements?.name ? `${zone.settlements.name} - ${zone.name}` : zone.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -466,24 +538,48 @@ export const EditAnimalDialog = ({ animal, locations, onAnimalUpdated }: EditAni
             </div>
           </div>
 
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              id="vet_check"
-              checked={formData.vet_check}
-              onCheckedChange={(checked) => setFormData({ ...formData, vet_check: checked as boolean })}
-              disabled={loading}
-            />
-            <Label htmlFor="vet_check">Állatorvosi vizsgálat elvégezve</Label>
-          </div>
+          <div className="space-y-4">
+            <h3 className="font-semibold text-lg">Állatorvosi vizsgálat</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="vet_sample_id">Mintaközlő sorszáma</Label>
+                <Input
+                  id="vet_sample_id"
+                  value={formData.vet_sample_id}
+                  onChange={(e) => setFormData({ ...formData, vet_sample_id: e.target.value })}
+                  disabled={loading}
+                  placeholder="pl. MK-2024-001"
+                />
+              </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="vet_notes">Állatorvosi jegyzet</Label>
-            <Textarea
-              id="vet_notes"
-              value={formData.vet_notes}
-              onChange={(e) => setFormData({ ...formData, vet_notes: e.target.value })}
-              disabled={loading}
-            />
+              <div className="space-y-2">
+                <Label htmlFor="vet_doctor_name">Eljáró állatorvos neve</Label>
+                <Input
+                  id="vet_doctor_name"
+                  value={formData.vet_doctor_name}
+                  onChange={(e) => setFormData({ ...formData, vet_doctor_name: e.target.value })}
+                  disabled={loading}
+                  placeholder="Dr. Kovács János"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="vet_result">Vizsgálati eredmény</Label>
+                <Select
+                  value={formData.vet_result}
+                  onValueChange={(value) => setFormData({ ...formData, vet_result: value })}
+                  disabled={loading}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Válasszon..." />
+                  </SelectTrigger>
+                  <SelectContent className="bg-popover z-50">
+                    <SelectItem value="negatív">Negatív</SelectItem>
+                    <SelectItem value="pozitív">Pozitív</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
           </div>
 
           <div className="space-y-2">

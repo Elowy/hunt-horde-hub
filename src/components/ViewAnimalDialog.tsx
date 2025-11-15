@@ -30,15 +30,20 @@ interface Animal {
   vet_check: boolean | null;
   vet_notes: string | null;
   notes: string | null;
+  security_zone_id: string | null;
+  vet_sample_id: string | null;
+  vet_doctor_name: string | null;
+  vet_result: string | null;
 }
 
 interface ViewAnimalDialogProps {
   animal: Animal;
   locationName: string;
   price: number;
+  securityZoneName?: string;
 }
 
-export const ViewAnimalDialog = ({ animal, locationName, price }: ViewAnimalDialogProps) => {
+export const ViewAnimalDialog = ({ animal, locationName, price, securityZoneName }: ViewAnimalDialogProps) => {
   const [open, setOpen] = useState(false);
 
   return (
@@ -106,6 +111,12 @@ export const ViewAnimalDialog = ({ animal, locationName, price }: ViewAnimalDial
                 <p className="text-sm text-muted-foreground">Hűtési helyszín</p>
                 <Badge variant="outline">{locationName}</Badge>
               </div>
+              {securityZoneName && (
+                <div>
+                  <p className="text-sm text-muted-foreground">Település - Beírókörzet</p>
+                  <Badge variant="outline">{securityZoneName}</Badge>
+                </div>
+              )}
               <div>
                 <p className="text-sm text-muted-foreground">Vadász neve</p>
                 <p className="font-medium">{animal.hunter_name || "-"}</p>
@@ -151,23 +162,31 @@ export const ViewAnimalDialog = ({ animal, locationName, price }: ViewAnimalDial
           {/* Állatorvosi vizsgálat */}
           <div>
             <h3 className="font-semibold mb-3 text-lg">Állatorvosi vizsgálat</h3>
-            <div className="space-y-3">
-              <div>
-                <p className="text-sm text-muted-foreground">Vizsgálat elvégezve</p>
-                <Badge variant={animal.vet_check ? "default" : "secondary"}>
-                  {animal.vet_check ? "Igen" : "Nem"}
-                </Badge>
-              </div>
+            <div className="grid grid-cols-2 gap-4">
+              {animal.vet_sample_id && (
+                <div>
+                  <p className="text-sm text-muted-foreground">Mintaközlő sorszáma</p>
+                  <p className="font-medium">{animal.vet_sample_id}</p>
+                </div>
+              )}
+              {animal.vet_doctor_name && (
+                <div>
+                  <p className="text-sm text-muted-foreground">Eljáró állatorvos</p>
+                  <p className="font-medium">{animal.vet_doctor_name}</p>
+                </div>
+              )}
+              {animal.vet_result && (
+                <div>
+                  <p className="text-sm text-muted-foreground">Vizsgálati eredmény</p>
+                  <Badge variant={animal.vet_result === "negatív" ? "default" : "destructive"}>
+                    {animal.vet_result.charAt(0).toUpperCase() + animal.vet_result.slice(1)}
+                  </Badge>
+                </div>
+              )}
               {animal.sample_id && (
                 <div>
                   <p className="text-sm text-muted-foreground">Minta azonosító</p>
                   <p className="font-medium">{animal.sample_id}</p>
-                </div>
-              )}
-              {animal.vet_notes && (
-                <div>
-                  <p className="text-sm text-muted-foreground">Állatorvosi jegyzet</p>
-                  <p className="font-medium">{animal.vet_notes}</p>
                 </div>
               )}
             </div>

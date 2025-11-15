@@ -70,6 +70,10 @@ interface Animal {
   is_transported: boolean;
   transported_at: string | null;
   transporter_name?: string;
+  security_zone_id: string | null;
+  vet_sample_id: string | null;
+  vet_doctor_name: string | null;
+  vet_result: string | null;
 }
 
 interface TransportDocument {
