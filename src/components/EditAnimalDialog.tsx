@@ -22,6 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { AnimalHistoryDialog } from "./AnimalHistoryDialog";
 
 interface Animal {
   id: string;
@@ -381,10 +382,15 @@ export const EditAnimalDialog = ({ animal, locations, onAnimalUpdated }: EditAni
       </DialogTrigger>
       <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Állat szerkesztése</DialogTitle>
-          <DialogDescription>
-            Módosítsa az állat adatait
-          </DialogDescription>
+          <div className="flex items-start justify-between">
+            <div>
+              <DialogTitle>Állat szerkesztése</DialogTitle>
+              <DialogDescription>
+                Módosítsa az állat adatait
+              </DialogDescription>
+            </div>
+            <AnimalHistoryDialog animalId={animal.id} animalIdentifier={animal.animal_id} />
+          </div>
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-4">

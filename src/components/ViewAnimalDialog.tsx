@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { Eye } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { AnimalHistoryDialog } from "./AnimalHistoryDialog";
 
 interface Animal {
   id: string;
@@ -55,10 +56,15 @@ export const ViewAnimalDialog = ({ animal, locationName, price, securityZoneName
       </DialogTrigger>
       <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Állat részletei</DialogTitle>
-          <DialogDescription>
-            {animal.species} - {animal.animal_id}
-          </DialogDescription>
+          <div className="flex items-start justify-between">
+            <div>
+              <DialogTitle>Állat részletei</DialogTitle>
+              <DialogDescription>
+                {animal.species} - {animal.animal_id}
+              </DialogDescription>
+            </div>
+            <AnimalHistoryDialog animalId={animal.id} animalIdentifier={animal.animal_id} />
+          </div>
         </DialogHeader>
         
         <div className="space-y-6">
