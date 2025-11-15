@@ -634,36 +634,6 @@ const HuntingRegistrations = () => {
                   Új beiratkozás
                 </Button>
               </DialogTrigger>
-        
-        {/* Active Zone Closures Alert */}
-        {closures.length > 0 && (
-          <Alert className="mb-6 border-orange-500/50 bg-orange-500/10">
-            <Ban className="h-4 w-4 text-orange-600 dark:text-orange-400" />
-            <AlertTitle className="text-orange-700 dark:text-orange-300">
-              Lezárt körzetek
-            </AlertTitle>
-            <AlertDescription className="text-orange-600 dark:text-orange-400">
-              <div className="mt-2 space-y-2">
-                {closures.map((closure) => (
-                  <div key={closure.id} className="text-sm">
-                    <span className="font-medium">
-                      {closure.security_zones.settlements?.name
-                        ? `${closure.security_zones.settlements.name} - ${closure.security_zones.name}`
-                        : closure.security_zones.name}
-                    </span>
-                    <span className="mx-2">•</span>
-                    <span>
-                      {format(new Date(closure.start_date), "yyyy. MM. dd.", { locale: hu })}
-                      {" - "}
-                      {format(new Date(closure.end_date), "yyyy. MM. dd.", { locale: hu })}
-                    </span>
-                    <div className="mt-1 italic">{closure.reason}</div>
-                  </div>
-                ))}
-              </div>
-            </AlertDescription>
-          </Alert>
-        )}
                 <DialogContent>
                   <DialogHeader>
                     <DialogTitle>Új vadászati beiratkozás</DialogTitle>
@@ -791,6 +761,36 @@ const HuntingRegistrations = () => {
             </Dialog>
           )}
         </div>
+
+        {/* Active Zone Closures Alert */}
+        {closures.length > 0 && (
+          <Alert className="border-orange-500/50 bg-orange-500/10">
+            <Ban className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+            <AlertTitle className="text-orange-700 dark:text-orange-300">
+              Lezárt körzetek
+            </AlertTitle>
+            <AlertDescription className="text-orange-600 dark:text-orange-400">
+              <div className="mt-2 space-y-2">
+                {closures.map((closure) => (
+                  <div key={closure.id} className="text-sm">
+                    <span className="font-medium">
+                      {closure.security_zones.settlements?.name
+                        ? `${closure.security_zones.settlements.name} - ${closure.security_zones.name}`
+                        : closure.security_zones.name}
+                    </span>
+                    <span className="mx-2">•</span>
+                    <span>
+                      {format(new Date(closure.start_date), "yyyy. MM. dd.", { locale: hu })}
+                      {" - "}
+                      {format(new Date(closure.end_date), "yyyy. MM. dd.", { locale: hu })}
+                    </span>
+                    <div className="mt-1 italic">{closure.reason}</div>
+                  </div>
+                ))}
+              </div>
+            </AlertDescription>
+          </Alert>
+        )}
       </div>
 
       <div className="container mx-auto px-6 py-8">
