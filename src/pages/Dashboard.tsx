@@ -49,6 +49,7 @@ import jsPDF from "jspdf";
 import * as XLSX from "xlsx";
 import { getActiveRole } from "@/components/RoleSwitcher";
 import { useSubscription } from "@/hooks/useSubscription";
+import { generateTransportTicket } from "@/lib/generateTransportTicket";
 
 interface StorageLocation {
   id: string;
@@ -601,7 +602,64 @@ const Dashboard = () => {
 
       if (updateError) throw updateError;
 
-      // PDF generálás
+      // Generate and upload transport tickets (vadkísérő jegyek) for each animal
+      // Only for admin and editor roles
+      if (isAdmin || isEditor) {
+        try {
+          // Fetch security zones data for location information
+          const securityZoneIds = [...new Set(selectedAnimalsList.map(a => a.security_zone_id).filter(Boolean))];
+          const { data: securityZones } = await supabase
+            .from("security_zones")
+            .select(`
+              id,
+              name,
+              settlement_id,
+              settlements (
+                name
+              )
+            `)
+            .in("id", securityZoneIds);
+
+          const securityZoneMap = new Map(
+            securityZones?.map(zone => [zone.id, zone]) || []
+          );
+
+          // Generate and upload a transport ticket for each animal
+          for (const animal of selectedAnimalsList) {
+            const securityZone = securityZoneMap.get(animal.security_zone_id || "") || null;
+            
+            const ticketBlob = await generateTransportTicket(
+              animal,
+              {
+                document_number: documentNumber,
+                transport_date: transportDate,
+                transporter_name: transporterData.company_name,
+                vehicle_plate: vehiclePlate,
+              },
+              securityZone
+            );
+
+            // Upload to storage
+            const fileName = `${user.id}/${transportDoc.id}/${animal.animal_id}_vadkisero.pdf`;
+            const { error: uploadError } = await supabase.storage
+              .from("transport-tickets")
+              .upload(fileName, ticketBlob, {
+                contentType: "application/pdf",
+                upsert: true,
+              });
+
+            if (uploadError) {
+              console.error("Error uploading transport ticket:", uploadError);
+              // Don't throw, continue with other tickets
+            }
+          }
+        } catch (ticketError) {
+          console.error("Error generating transport tickets:", ticketError);
+          // Don't stop the whole process if ticket generation fails
+        }
+      }
+
+      // PDF generálás (main transport document)
       const doc = new jsPDF();
       
       doc.setFontSize(20);

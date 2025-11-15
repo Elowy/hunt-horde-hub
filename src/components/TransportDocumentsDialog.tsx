@@ -9,7 +9,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { FileText, Search, Eye, Trash2 } from "lucide-react";
+import { FileText, Search, Eye, Trash2, Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -178,6 +178,62 @@ export const TransportDocumentsDialog = () => {
     }
   };
 
+  const handleDownloadTickets = async (doc: TransportDocument) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // List all transport tickets for this document
+      const { data: files, error } = await supabase.storage
+        .from("transport-tickets")
+        .list(`${user.id}/${doc.id}`);
+
+      if (error) throw error;
+
+      if (!files || files.length === 0) {
+        toast({
+          title: "Nincs vadkísérő jegy",
+          description: "Ehhez az elszállítóhoz nem tartoznak vadkísérő jegyek.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Download each ticket
+      for (const file of files) {
+        const { data, error: downloadError } = await supabase.storage
+          .from("transport-tickets")
+          .download(`${user.id}/${doc.id}/${file.name}`);
+
+        if (downloadError) {
+          console.error("Download error:", downloadError);
+          continue;
+        }
+
+        // Create download link
+        const url = URL.createObjectURL(data);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = file.name;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }
+
+      toast({
+        title: "Siker!",
+        description: `${files.length} vadkísérő jegy letöltve!`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Hiba",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
   const filteredDocuments = documents.filter(doc =>
     doc.document_number.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -244,13 +300,23 @@ export const TransportDocumentsDialog = () => {
                         variant="ghost"
                         size="sm"
                         onClick={() => handleViewDocument(doc)}
+                        title="Elszállító megtekintése"
                       >
                         <Eye className="h-4 w-4" />
                       </Button>
                       <Button
                         variant="ghost"
                         size="sm"
+                        onClick={() => handleDownloadTickets(doc)}
+                        title="Vadkísérő jegyek letöltése"
+                      >
+                        <Download className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         onClick={() => handleDeleteDocument(doc.id)}
+                        title="Törlés"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
