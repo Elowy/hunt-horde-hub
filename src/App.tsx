@@ -18,6 +18,7 @@ import SuperAdminDashboard from "./pages/SuperAdminDashboard";
 import Settings from "./pages/Settings";
 import Reports from "./pages/Reports";
 import HunterStatistics from "./pages/HunterStatistics";
+import TimeBasedStatistics from "./pages/TimeBasedStatistics";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -44,6 +45,7 @@ const App = () => (
             <Route path="/settings" element={<Settings />} />
             <Route path="/reports" element={<Reports />} />
             <Route path="/hunter-statistics" element={<HunterStatistics />} />
+            <Route path="/time-based-statistics" element={<TimeBasedStatistics />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
