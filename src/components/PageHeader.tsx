@@ -34,9 +34,7 @@ export const PageHeader = ({
             onClick={() => navigate("/dashboard")}
             className="text-white hover:bg-white/10 flex items-center gap-2"
           >
-            <span className="text-2xl">🦌😎</span>
             <Home className="h-4 w-4" />
-            <span className="hidden sm:inline">Dashboard</span>
           </Button>
 
           {/* Menu */}
