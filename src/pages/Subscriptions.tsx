@@ -52,6 +52,11 @@ const Subscriptions = () => {
   const [loading, setLoading] = useState(false);
   const [currentProductId, setCurrentProductId] = useState<string | null>(null);
   const [checkingSubscription, setCheckingSubscription] = useState(true);
+  const [subscriptionStatus, setSubscriptionStatus] = useState<{
+    type: string;
+    expiresAt?: string;
+    tier?: string;
+  } | null>(null);
 
   useEffect(() => {
     checkSubscription();
@@ -66,12 +71,69 @@ const Subscriptions = () => {
         return;
       }
 
+      // Ellenőrizzük a próbaidőszakot
+      const { data: trialData } = await supabase
+        .from("trial_subscriptions")
+        .select("*")
+        .eq("user_id", session.user.id)
+        .single();
+
+      if (trialData) {
+        const expiresAt = new Date(trialData.expires_at);
+        const now = new Date();
+        
+        if (expiresAt > now) {
+          setCurrentProductId("trial_pro");
+          setSubscriptionStatus({
+            type: "Próbaidőszak",
+            expiresAt: trialData.expires_at,
+            tier: "Pro"
+          });
+          setCheckingSubscription(false);
+          return;
+        }
+      }
+
+      // Ellenőrizzük az örökös előfizetéseket
+      const { data: lifetimeData } = await supabase
+        .from("lifetime_subscriptions")
+        .select("*")
+        .eq("user_id", session.user.id)
+        .single();
+
+      if (lifetimeData) {
+        setCurrentProductId(lifetimeData.tier);
+        setSubscriptionStatus({
+          type: "Örökös előfizetés",
+          tier: lifetimeData.tier
+        });
+        setCheckingSubscription(false);
+        return;
+      }
+
       const { data, error } = await supabase.functions.invoke("check-subscription", {
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
 
       if (error) throw error;
       setCurrentProductId(data.product_id);
+      
+      if (data.subscribed && data.product_id) {
+        const tier = Object.entries(SUBSCRIPTION_TIERS).find(
+          ([_, value]) => value.product_id === data.product_id
+        )?.[1];
+        
+        setSubscriptionStatus({
+          type: "Aktív előfizetés",
+          expiresAt: data.subscription_end,
+          tier: tier?.name || "Ismeretlen"
+        });
+      } else {
+        setSubscriptionStatus({
+          type: "Ingyenes",
+          tier: "Free"
+        });
+      }
     } catch (error: any) {
       console.error("Error checking subscription:", error);
     } finally {
@@ -157,6 +219,42 @@ const Subscriptions = () => {
             Vissza a Dashboard-hoz
           </Button>
         </div>
+
+        {/* Jelenlegi előfizetési státusz */}
+        {subscriptionStatus && (
+          <Card className="mb-8 border-primary/20 bg-gradient-to-br from-primary/5 to-accent/5">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Crown className="h-5 w-5 text-primary" />
+                Jelenlegi előfizetési státusz
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Típus:</span>
+                <Badge variant="secondary" className="text-base">
+                  {subscriptionStatus.type}
+                </Badge>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Csomag:</span>
+                <span className="font-semibold">{subscriptionStatus.tier}</span>
+              </div>
+              {subscriptionStatus.expiresAt && (
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Lejárat:</span>
+                  <span className="font-semibold">
+                    {new Date(subscriptionStatus.expiresAt).toLocaleDateString('hu-HU', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric'
+                    })}
+                  </span>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold mb-4 flex items-center justify-center gap-2">
