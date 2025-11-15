@@ -6,7 +6,7 @@ import { hu } from "date-fns/locale";
 import { EditAnnouncementDialog } from "./EditAnnouncementDialog";
 import { CreateAnnouncementDialog } from "./CreateAnnouncementDialog";
 import { Button } from "@/components/ui/button";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import {
   Collapsible,
   CollapsibleContent,
@@ -95,51 +95,58 @@ export const AnnouncementBanner = ({ isAdmin = false, isEditor = false }: Announ
     <Collapsible
       open={showAnnouncements}
       onOpenChange={setShowAnnouncements}
-      className="space-y-4 mb-6"
+      className="mb-8"
     >
-      <div className="flex items-center justify-between">
-        <CollapsibleTrigger asChild>
-          <Button variant="ghost" size="sm" className="flex items-center gap-2">
-            {showAnnouncements ? (
-              <ChevronUp className="h-4 w-4" />
-            ) : (
-              <ChevronDown className="h-4 w-4" />
-            )}
-            <h2 className="text-2xl font-bold">Hírek</h2>
-          </Button>
-        </CollapsibleTrigger>
+      <div className="flex justify-between items-center mb-4">
+        <div className="flex items-center gap-2">
+          <CollapsibleTrigger asChild>
+            <Button variant="ghost" size="sm" className="p-0 h-auto hover:bg-transparent">
+              <ChevronDown className={`h-5 w-5 transition-transform ${showAnnouncements ? '' : '-rotate-90'}`} />
+            </Button>
+          </CollapsibleTrigger>
+          <h2 className="text-2xl font-bold text-forest-deep">Hírek</h2>
+        </div>
         {canCreateAnnouncement && (
           <CreateAnnouncementDialog onSuccess={fetchAnnouncements} />
         )}
       </div>
       
-      <CollapsibleContent className="space-y-4">
-        {announcements.map((announcement) => (
-          <Card key={announcement.id} className="p-4 bg-accent/20">
-            <div className="flex justify-between items-start">
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-2">
-                  <h3 className="font-semibold text-lg">{announcement.title}</h3>
-                  <span className="text-xs text-muted-foreground">
-                    {format(new Date(announcement.created_at), "yyyy. MM. dd. HH:mm", { locale: hu })}
-                  </span>
-                  {announcement.expires_at && (
-                    <span className="text-xs text-muted-foreground">
-                      • Lejár: {format(new Date(announcement.expires_at), "yyyy. MM. dd. HH:mm", { locale: hu })}
-                    </span>
-                  )}
-                </div>
-                <p className="text-sm whitespace-pre-wrap">{announcement.content}</p>
-              </div>
-              {currentUserId === announcement.user_id && (
-                <EditAnnouncementDialog 
-                  announcement={announcement} 
-                  onSuccess={fetchAnnouncements} 
-                />
-              )}
+      <CollapsibleContent>
+        {announcements.length === 0 ? (
+          <Card>
+            <div className="p-8 text-center text-muted-foreground">
+              {canCreateAnnouncement ? "Még nincs hír. Adjon hozzá egyet a kezdéshez!" : "Jelenleg nincsenek hírek."}
             </div>
           </Card>
-        ))}
+        ) : (
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {announcements.map((announcement) => (
+              <Card key={announcement.id} className="p-6 hover:shadow-lg transition-shadow">
+                <div className="space-y-4">
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-lg mb-2">{announcement.title}</h3>
+                      <p className="text-sm text-muted-foreground mb-4 line-clamp-3">
+                        {announcement.content}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between pt-4 border-t">
+                    <span className="text-xs text-muted-foreground">
+                      {format(new Date(announcement.created_at), "yyyy. MM. dd.", { locale: hu })}
+                    </span>
+                    {currentUserId === announcement.user_id && (
+                      <EditAnnouncementDialog
+                        announcement={announcement}
+                        onSuccess={fetchAnnouncements}
+                      />
+                    )}
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        )}
       </CollapsibleContent>
     </Collapsible>
   );
