@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { FileDown } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -44,27 +44,94 @@ interface TransportDocumentItem {
   transport_document_id: string;
 }
 
+interface AvailablePeriod {
+  year: number;
+  month: number;
+  label: string;
+}
+
 export const CoolingRevenueReport = () => {
   const { toast } = useToast();
-  const [selectedMonth, setSelectedMonth] = useState<string>("current");
+  const [selectedPeriod, setSelectedPeriod] = useState<string>("");
+  const [availablePeriods, setAvailablePeriods] = useState<AvailablePeriod[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const getMonthRange = (monthOffset: number = 0) => {
-    const now = new Date();
-    const targetDate = new Date(now.getFullYear(), now.getMonth() + monthOffset, 1);
-    const start = new Date(targetDate.getFullYear(), targetDate.getMonth(), 1);
-    const end = new Date(targetDate.getFullYear(), targetDate.getMonth() + 1, 0, 23, 59, 59);
-    return { start, end };
+  useEffect(() => {
+    fetchAvailablePeriods();
+  }, []);
+
+  const fetchAvailablePeriods = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Fetch all transported animals to get available periods
+      const { data: animals, error } = await supabase
+        .from("animals")
+        .select("transported_at")
+        .eq("user_id", user.id)
+        .eq("is_transported", true)
+        .not("transported_at", "is", null)
+        .order("transported_at", { ascending: false });
+
+      if (error) throw error;
+
+      // Extract unique year-month combinations
+      const periodsMap = new Map<string, AvailablePeriod>();
+      animals?.forEach(animal => {
+        if (animal.transported_at) {
+          const date = new Date(animal.transported_at);
+          const year = date.getFullYear();
+          const month = date.getMonth();
+          const key = `${year}-${month}`;
+          
+          if (!periodsMap.has(key)) {
+            const monthNames = ["Január", "Február", "Március", "Április", "Május", "Június", 
+                               "Július", "Augusztus", "Szeptember", "Október", "November", "December"];
+            periodsMap.set(key, {
+              year,
+              month,
+              label: `${year} ${monthNames[month]}`
+            });
+          }
+        }
+      });
+
+      const periods = Array.from(periodsMap.values()).sort((a, b) => {
+        if (a.year !== b.year) return b.year - a.year;
+        return b.month - a.month;
+      });
+
+      setAvailablePeriods(periods);
+      if (periods.length > 0 && !selectedPeriod) {
+        setSelectedPeriod(`${periods[0].year}-${periods[0].month}`);
+      }
+    } catch (error: any) {
+      console.error("Error fetching periods:", error);
+    }
   };
 
   const generatePDF = async () => {
+    if (!selectedPeriod) {
+      toast({
+        title: "Hiba",
+        description: "Kérjük, válasszon egy időszakot!",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Nincs bejelentkezve");
 
-      const monthOffset = selectedMonth === "current" ? 0 : -1;
-      const { start, end } = getMonthRange(monthOffset);
+      const [yearStr, monthStr] = selectedPeriod.split("-");
+      const year = parseInt(yearStr);
+      const month = parseInt(monthStr);
+      
+      const start = new Date(year, month, 1);
+      const end = new Date(year, month + 1, 0, 23, 59, 59);
 
       // Elszállított állatok lekérdezése
       const { data: transportedAnimals, error: animalsError } = await supabase
@@ -157,14 +224,16 @@ export const CoolingRevenueReport = () => {
 
       // PDF generálás
       const doc = new jsPDF();
-      const monthName = selectedMonth === "current" ? "Jelenlegi hónap" : "Előző hónap";
-      const dateStr = `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, '0')}`;
+      const monthNames = ["Január", "Február", "Március", "Április", "Május", "Június", 
+                         "Július", "Augusztus", "Szeptember", "Október", "November", "December"];
+      const monthName = monthNames[month];
+      const dateStr = `${year} ${monthName}`;
 
       doc.setFontSize(18);
       doc.text("Hutesi Dij Bevetek Osszesitoje", 105, 20, { align: "center" });
       
       doc.setFontSize(12);
-      doc.text(`Idoszak: ${monthName} (${dateStr})`, 105, 30, { align: "center" });
+      doc.text(`Idoszak: ${dateStr}`, 105, 30, { align: "center" });
       doc.text(`Keszites datuma: ${new Date().toLocaleDateString("hu-HU")}`, 105, 37, { align: "center" });
 
       let yPos = 50;
@@ -274,7 +343,7 @@ export const CoolingRevenueReport = () => {
         yPos += 5;
       });
 
-      doc.save(`hutesi_dij_${dateStr}.pdf`);
+      doc.save(`hutesi_dij_${year}_${String(month + 1).padStart(2, '0')}.pdf`);
 
       toast({
         title: "Sikeres exportálás",
@@ -293,23 +362,30 @@ export const CoolingRevenueReport = () => {
 
   return (
     <div className="flex gap-2 items-center">
-      <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-        <SelectTrigger className="w-[180px]">
-          <SelectValue />
+      <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
+        <SelectTrigger className="w-[200px]">
+          <SelectValue placeholder="Válasszon időszakot" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="current">Jelenlegi hónap</SelectItem>
-          <SelectItem value="previous">Előző hónap</SelectItem>
+          {availablePeriods.length === 0 ? (
+            <SelectItem value="none" disabled>Nincs elérhető adat</SelectItem>
+          ) : (
+            availablePeriods.map((period) => (
+              <SelectItem key={`${period.year}-${period.month}`} value={`${period.year}-${period.month}`}>
+                {period.label}
+              </SelectItem>
+            ))
+          )}
         </SelectContent>
       </Select>
       <Button 
         onClick={generatePDF} 
-        disabled={loading}
+        disabled={loading || availablePeriods.length === 0}
         variant="outline"
         size="sm"
       >
         <FileDown className="h-4 w-4 mr-2" />
-        {loading ? "Készítés..." : "Hűtési díj riport"}
+        {loading ? "Készítés..." : "PDF letöltés"}
       </Button>
     </div>
   );
