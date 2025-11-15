@@ -69,6 +69,8 @@ const AddAnimal = () => {
     vetSampleId: "",
     vetDoctorName: "",
     vetResult: "",
+    averageTuskLength: "",
+    judgementNumber: "",
   });
 
   useEffect(() => {
@@ -325,6 +327,8 @@ const AddAnimal = () => {
         vet_sample_id: formData.vetSampleId || null,
         vet_doctor_name: formData.vetDoctorName || null,
         vet_result: formData.vetResult || null,
+        average_tusk_length: formData.averageTuskLength ? parseFloat(formData.averageTuskLength) : null,
+        judgement_number: formData.judgementNumber || null,
         cooling_date: new Date().toISOString(),
       });
 
@@ -599,40 +603,68 @@ const AddAnimal = () => {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="vetSampleId">Állatorvosi mintaközlő</Label>
+                      <Label htmlFor="judgementNumber">Bírálati eredményközlő szám</Label>
                       <Input
-                        id="vetSampleId"
-                        value={formData.vetSampleId}
-                        onChange={(e) => handleInputChange("vetSampleId", e.target.value)}
-                        placeholder="pl. MK-2024-001"
+                        id="judgementNumber"
+                        value={formData.judgementNumber}
+                        onChange={(e) => handleInputChange("judgementNumber", e.target.value)}
+                        placeholder="pl. BK-2024-001"
                       />
                     </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="vetDoctorName">Eljáró állatorvos</Label>
-                      <Input
-                        id="vetDoctorName"
-                        value={formData.vetDoctorName}
-                        onChange={(e) => handleInputChange("vetDoctorName", e.target.value)}
-                        placeholder="Dr. Kovács János"
-                      />
-                    </div>
+                    {formData.type === "🐗 Vaddisznó" && (
+                      <>
+                        <div className="space-y-2">
+                          <Label htmlFor="vetSampleId">Állatorvosi mintaközlő</Label>
+                          <Input
+                            id="vetSampleId"
+                            value={formData.vetSampleId}
+                            onChange={(e) => handleInputChange("vetSampleId", e.target.value)}
+                            placeholder="pl. MK-2024-001"
+                          />
+                        </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="vetResult">Vizsgálati eredmény</Label>
-                      <Select 
-                        value={formData.vetResult} 
-                        onValueChange={(value) => handleInputChange("vetResult", value)}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Válasszon..." />
-                        </SelectTrigger>
-                        <SelectContent className="bg-popover z-50">
-                          <SelectItem value="negatív">Negatív</SelectItem>
-                          <SelectItem value="pozitív">Pozitív</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="vetDoctorName">Eljáró állatorvos</Label>
+                          <Input
+                            id="vetDoctorName"
+                            value={formData.vetDoctorName}
+                            onChange={(e) => handleInputChange("vetDoctorName", e.target.value)}
+                            placeholder="Dr. Kovács János"
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="vetResult">Vizsgálati eredmény</Label>
+                          <Select 
+                            value={formData.vetResult} 
+                            onValueChange={(value) => handleInputChange("vetResult", value)}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Válasszon..." />
+                            </SelectTrigger>
+                            <SelectContent className="bg-popover z-50">
+                              <SelectItem value="negatív">Negatív</SelectItem>
+                              <SelectItem value="pozitív">Pozitív</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </>
+                    )}
+
+                    {formData.type === "🐗 Vaddisznó" && formData.gender === "Hím" && (
+                      <div className="space-y-2">
+                        <Label htmlFor="averageTuskLength">Átlag agyarhossz (cm)</Label>
+                        <Input
+                          id="averageTuskLength"
+                          type="number"
+                          step="0.1"
+                          value={formData.averageTuskLength}
+                          onChange={(e) => handleInputChange("averageTuskLength", e.target.value)}
+                          placeholder="pl. 12.5"
+                        />
+                      </div>
+                    )}
                   </div>
 
                   <div className="space-y-2">
