@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { format } from "date-fns";
 import {
   Dialog,
   DialogContent,
@@ -14,6 +13,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -25,8 +25,20 @@ export const CreateAnnouncementDialog = ({ onSuccess }: CreateAnnouncementDialog
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
-  const [expiresAt, setExpiresAt] = useState("");
+  const [expiryType, setExpiryType] = useState("none");
   const [loading, setLoading] = useState(false);
+
+  const calculateExpiryDate = (type: string): string | null => {
+    if (type === "none") return null;
+    
+    const now = new Date();
+    if (type === "week") {
+      now.setDate(now.getDate() + 7);
+    } else if (type === "month") {
+      now.setMonth(now.getMonth() + 1);
+    }
+    return now.toISOString();
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,7 +57,7 @@ export const CreateAnnouncementDialog = ({ onSuccess }: CreateAnnouncementDialog
           user_id: user.id,
           title,
           content,
-          expires_at: expiresAt || null,
+          expires_at: calculateExpiryDate(expiryType),
         });
 
       if (error) throw error;
@@ -53,7 +65,7 @@ export const CreateAnnouncementDialog = ({ onSuccess }: CreateAnnouncementDialog
       toast.success("Hír sikeresen létrehozva");
       setTitle("");
       setContent("");
-      setExpiresAt("");
+      setExpiryType("none");
       setOpen(false);
       onSuccess?.();
     } catch (error) {
@@ -103,16 +115,19 @@ export const CreateAnnouncementDialog = ({ onSuccess }: CreateAnnouncementDialog
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="expiresAt">Lejárati időpont (opcionális)</Label>
-              <Input
-                id="expiresAt"
-                type="datetime-local"
-                value={expiresAt}
-                onChange={(e) => setExpiresAt(e.target.value)}
-                min={format(new Date(), "yyyy-MM-dd'T'HH:mm")}
-              />
+              <Label htmlFor="expiryType">Lejárati időtartam</Label>
+              <Select value={expiryType} onValueChange={setExpiryType}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Válassz időtartamot" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Nincs lejárat</SelectItem>
+                  <SelectItem value="week">1 hét</SelectItem>
+                  <SelectItem value="month">1 hónap</SelectItem>
+                </SelectContent>
+              </Select>
               <p className="text-xs text-muted-foreground">
-                Ha nincs megadva, a hír határozatlan ideig aktív marad
+                Ha nincs lejárat van kiválasztva, a hír határozatlan ideig aktív marad
               </p>
             </div>
           </div>
