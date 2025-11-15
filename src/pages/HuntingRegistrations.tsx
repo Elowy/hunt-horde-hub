@@ -79,6 +79,7 @@ const HuntingRegistrations = () => {
   const [loading, setLoading] = useState(true);
   const [isHunter, setIsHunter] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isEditor, setIsEditor] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   
@@ -123,6 +124,7 @@ const HuntingRegistrations = () => {
       const roleList = roles?.map(r => r.role) || [];
       setIsHunter(roleList.includes("hunter") || roleList.includes("admin"));
       setIsAdmin(roleList.includes("admin"));
+      setIsEditor(roleList.includes("editor"));
     } catch (error) {
       console.error("Error checking role:", error);
     }
@@ -668,7 +670,7 @@ const HuntingRegistrations = () => {
                           Kiiratkozás
                         </Button>
                       )}
-                      {(isAdmin || isOwnRegistration) && (
+                      {(isAdmin || isEditor) && (
                         <AssignAnimalToRegistrationDialog
                           registrationId={reg.id}
                           onAnimalAssigned={fetchRegistrations}
@@ -763,6 +765,12 @@ const HuntingRegistrations = () => {
                       </div>
                       <div className="flex flex-col gap-2 items-end">
                         {getStatusBadge(reg)}
+                        {(isAdmin || isEditor) && (
+                          <AssignAnimalToRegistrationDialog
+                            registrationId={reg.id}
+                            onAnimalAssigned={fetchRegistrations}
+                          />
+                        )}
                       </div>
                     </div>
                   </CardHeader>
