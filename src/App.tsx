@@ -22,6 +22,7 @@ import HunterStatistics from "./pages/HunterStatistics";
 import TimeBasedStatistics from "./pages/TimeBasedStatistics";
 import TransportArchive from "./pages/TransportArchive";
 import Tickets from "./pages/Tickets";
+import ActivityLog from "./pages/ActivityLog";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -52,6 +53,7 @@ const App = () => (
             <Route path="/time-based-statistics" element={<TimeBasedStatistics />} />
             <Route path="/transport-archive" element={<TransportArchive />} />
             <Route path="/tickets" element={<Tickets />} />
+            <Route path="/activity-log" element={<ActivityLog />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
