@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Search, Filter, Eye, Edit, Trash2, MapPin, LogOut, Star, Truck, FileDown, TrendingUp, User, Users as UsersIcon, ChevronDown, Settings } from "lucide-react";
+import { Plus, Search, Filter, Eye, Edit, Trash2, MapPin, LogOut, Star, Truck, FileDown, Download, TrendingUp, User, Users as UsersIcon, ChevronDown, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -50,6 +50,7 @@ import * as XLSX from "xlsx";
 import { getActiveRole } from "@/components/RoleSwitcher";
 import { useSubscription } from "@/hooks/useSubscription";
 import { generateTransportTicket } from "@/lib/generateTransportTicket";
+import { addTransportTicketToPage } from "@/lib/addTransportTicketToPage";
 
 interface StorageLocation {
   id: string;
@@ -376,6 +377,65 @@ const Dashboard = () => {
       });
 
       fetchData();
+    } catch (error: any) {
+      toast({
+        title: "Hiba",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDownloadTransportTicket = async (animal: Animal) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Fetch security zone data
+      let securityZone = null;
+      if (animal.security_zone_id) {
+        const { data } = await supabase
+          .from("security_zones")
+          .select(`
+            id,
+            name,
+            settlement_id,
+            settlements (
+              name
+            )
+          `)
+          .eq("id", animal.security_zone_id)
+          .single();
+        
+        securityZone = data;
+      }
+
+      // Generate ticket with temporary transport info
+      const ticketBlob = await generateTransportTicket(
+        animal,
+        {
+          document_number: "Előzetes",
+          transport_date: new Date().toISOString(),
+          transporter_name: null,
+          vehicle_plate: null,
+        },
+        securityZone
+      );
+
+      // Download the ticket
+      const url = URL.createObjectURL(ticketBlob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${animal.animal_id}_vadkisero.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      toast({
+        title: "Siker!",
+        description: "Vadkísérő jegy letöltve!",
+      });
     } catch (error: any) {
       toast({
         title: "Hiba",
@@ -718,6 +778,51 @@ const Dashboard = () => {
       doc.setFontSize(12);
       doc.text(`Osszes suly: ${totalWeight.toFixed(2)} kg`, 20, yPos);
       doc.text(`Osszes ar: ${Math.round(totalPrice).toLocaleString("hu-HU")} Ft`, 20, yPos + 10);
+      
+      // Add transport tickets (vadkísérő jegyek) for each animal as separate pages
+      if (isAdmin || isEditor) {
+        try {
+          // Fetch security zones data
+          const securityZoneIds = [...new Set(selectedAnimalsList.map(a => a.security_zone_id).filter(Boolean))];
+          const { data: securityZones } = await supabase
+            .from("security_zones")
+            .select(`
+              id,
+              name,
+              settlement_id,
+              settlements (
+                name
+              )
+            `)
+            .in("id", securityZoneIds);
+
+          const securityZoneMap = new Map(
+            securityZones?.map((zone: any) => [zone.id, zone]) || []
+          );
+
+          // Generate a transport ticket page for each animal
+          for (const animal of selectedAnimalsList) {
+            doc.addPage();
+            const securityZone = securityZoneMap.get(animal.security_zone_id || "") || null;
+            
+            // Add transport ticket to the PDF
+            await addTransportTicketToPage(
+              doc,
+              animal,
+              {
+                document_number: documentNumber,
+                transport_date: transportDate,
+                transporter_name: transporterData.company_name,
+                vehicle_plate: vehiclePlate,
+              },
+              securityZone
+            );
+          }
+        } catch (ticketError) {
+          console.error("Error adding transport tickets to PDF:", ticketError);
+          // Continue even if ticket generation fails
+        }
+      }
       
       doc.save(`elszallito_${documentNumber}.pdf`);
       
@@ -1599,6 +1704,14 @@ const Dashboard = () => {
                                       locations={locations}
                                       onAnimalUpdated={fetchData}
                                     />
+                                    <Button 
+                                      variant="ghost" 
+                                      size="sm"
+                                      onClick={() => handleDownloadTransportTicket(animal)}
+                                      title="Vadkísérő jegy letöltése"
+                                    >
+                                      <Download className="h-4 w-4" />
+                                    </Button>
                                     <Button 
                                       variant="ghost" 
                                       size="sm"
