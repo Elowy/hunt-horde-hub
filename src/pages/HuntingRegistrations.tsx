@@ -315,8 +315,23 @@ const HuntingRegistrations = () => {
     try {
       setLoading(true);
       
-      // Fetch registrations with security zones, ordered by creation date (newest first)
-      const { data: registrationsData, error: registrationsError } = await supabase
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Check user roles to determine what registrations to show
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id);
+
+      const roleList = roles?.map(r => r.role) || [];
+      const userIsAdmin = roleList.includes("admin");
+      const userIsEditor = roleList.includes("editor");
+      const userIsSuperAdmin = roleList.includes("super_admin");
+      const userIsHunter = roleList.includes("hunter");
+
+      // Build query based on user role
+      let query = supabase
         .from("hunting_registrations")
         .select(`
           *,
@@ -326,7 +341,14 @@ const HuntingRegistrations = () => {
           ),
           hunting_locations (name, type),
           hired_hunters (name, license_number)
-        `)
+        `);
+
+      // If user is only hunter (not admin/editor/super_admin), only show their own registrations
+      if (userIsHunter && !userIsAdmin && !userIsEditor && !userIsSuperAdmin) {
+        query = query.eq("user_id", user.id);
+      }
+
+      const { data: registrationsData, error: registrationsError } = await query
         .order("created_at", { ascending: false });
 
       if (registrationsError) throw registrationsError;

@@ -40,6 +40,7 @@ interface User {
   profiles?: {
     company_name: string | null;
     contact_name: string | null;
+    hunter_category: string | null;
   };
 }
 
@@ -140,7 +141,7 @@ const Users = () => {
         const userIds = rolesData.map(r => r.user_id);
         const { data: profilesData } = await supabase
           .from("profiles")
-          .select("id, company_name, contact_name")
+          .select("id, company_name, contact_name, hunter_category")
           .in("id", userIds);
 
         // Create a pseudo-user list from profiles
@@ -236,6 +237,31 @@ const Users = () => {
     }
   };
 
+  const handleHunterCategoryChange = async (userId: string, newCategory: string) => {
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ hunter_category: newCategory as any })
+        .eq("id", userId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Siker!",
+        description: "Vadász kategória módosítva!",
+      });
+
+      await fetchData();
+    } catch (error: any) {
+      console.error("Error changing hunter category:", error);
+      toast({
+        title: "Hiba",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleDeleteInvitation = async (invitationId: string) => {
     try {
       const { error } = await supabase
@@ -306,6 +332,26 @@ const Users = () => {
     }
   };
 
+  const getHunterCategoryLabel = (category: string | null) => {
+    if (!category) return "Nincs megadva";
+    switch (category) {
+      case "tag":
+        return "Tag";
+      case "vendeg":
+        return "Vendég";
+      case "bervadasz":
+        return "Bérvadász";
+      case "ib_vendeg":
+        return "IB Vendég";
+      case "trofeas_vadasz":
+        return "Trófeás vadász";
+      case "egyeb":
+        return "Egyéb";
+      default:
+        return "Nincs megadva";
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -348,6 +394,7 @@ const Users = () => {
                   <TableRow>
                     <TableHead>Cégnév / Kapcsolattartó</TableHead>
                     <TableHead>Szerepkör</TableHead>
+                    <TableHead>Vadász kategória</TableHead>
                     <TableHead>Hozzáadva</TableHead>
                     <TableHead>Művelet</TableHead>
                   </TableRow>
@@ -366,6 +413,24 @@ const Users = () => {
                           <Badge variant={getRoleBadgeVariant(role)}>
                             {getRoleLabel(role)}
                           </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Select
+                            value={user.profiles?.hunter_category || "tag"}
+                            onValueChange={(value) => handleHunterCategoryChange(user.id, value)}
+                          >
+                            <SelectTrigger className="w-[180px]">
+                              <SelectValue placeholder="Vadász kategória" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="tag">Tag</SelectItem>
+                              <SelectItem value="vendeg">Vendég</SelectItem>
+                              <SelectItem value="bervadasz">Bérvadász</SelectItem>
+                              <SelectItem value="ib_vendeg">IB Vendég</SelectItem>
+                              <SelectItem value="trofeas_vadasz">Trófeás vadász</SelectItem>
+                              <SelectItem value="egyeb">Egyéb</SelectItem>
+                            </SelectContent>
+                          </Select>
                         </TableCell>
                         <TableCell>
                           {new Date(user.created_at).toLocaleDateString("hu-HU")}
