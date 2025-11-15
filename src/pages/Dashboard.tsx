@@ -145,9 +145,10 @@ const Dashboard = () => {
   const [selectedCoolingMonth, setSelectedCoolingMonth] = useState("");
 
   // Ellenőrizzük, hogy a felhasználó ingyenes-e
+  // Admin, editor és super admin felhasználók mindig láthatják a statisztikákat
   const PRO_PRODUCT_IDS = ["prod_TQMCsYuGXl2cqX", "prod_TQMCzW95I3TlPz"];
   const NORMAL_PRODUCT_IDS = ["prod_TQMCKFFwVc6lXT", "prod_TQMCwp0XrDYkOB"];
-  const isFreeUser = !productId || (!PRO_PRODUCT_IDS.includes(productId) && !NORMAL_PRODUCT_IDS.includes(productId) && productId !== "trial_pro");
+  const isFreeUser = !isAdmin && !isEditor && (!productId || (!PRO_PRODUCT_IDS.includes(productId) && !NORMAL_PRODUCT_IDS.includes(productId) && productId !== "trial_pro"));
 
   useEffect(() => {
     checkAuth();
