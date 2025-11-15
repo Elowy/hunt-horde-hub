@@ -157,9 +157,9 @@ export const DashboardMenu = ({ isAdmin, isEditor, isHunter, onLogout, onPriceUp
             </>
           )}
 
-          {/* Vadászati */}
+          {/* Vadászat */}
           <div className="space-y-2">
-            <p className="text-sm font-medium text-muted-foreground px-2">Vadászati</p>
+            <p className="text-sm font-medium text-muted-foreground px-2">Vadászat</p>
             <div className="space-y-2">
               {subscriptionLoading ? (
                 <p className="text-xs text-muted-foreground px-2">Betöltés...</p>
