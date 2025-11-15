@@ -17,6 +17,15 @@ interface StorageLocation {
   is_default: boolean;
 }
 
+interface SecurityZone {
+  id: string;
+  name: string;
+  settlement_id: string | null;
+  settlements: {
+    name: string;
+  } | null;
+}
+
 interface PriceSetting {
   species: string;
   class: string;
@@ -27,6 +36,7 @@ const AddAnimal = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [locations, setLocations] = useState<StorageLocation[]>([]);
+  const [securityZones, setSecurityZones] = useState<SecurityZone[]>([]);
   const [priceSettings, setPriceSettings] = useState<PriceSetting[]>([]);
   const [vatRate, setVatRate] = useState<number>(27);
   const [calculatedPrice, setCalculatedPrice] = useState<{ net: number; gross: number }>({ net: 0, gross: 0 });
@@ -46,6 +56,10 @@ const AddAnimal = () => {
     sampleId: "",
     vetCheck: "",
     notes: "",
+    securityZoneId: "",
+    vetSampleId: "",
+    vetDoctorName: "",
+    vetResult: "",
   });
 
   useEffect(() => {
@@ -53,6 +67,7 @@ const AddAnimal = () => {
     fetchLocations();
     fetchPriceSettings();
     fetchVatRate();
+    fetchSecurityZones();
   }, []);
 
   const checkAuth = async () => {
@@ -136,6 +151,31 @@ const AddAnimal = () => {
     }
   };
 
+  const fetchSecurityZones = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from("security_zones")
+        .select(`
+          id,
+          name,
+          settlement_id,
+          settlements (
+            name
+          )
+        `)
+        .eq("user_id", user.id)
+        .order("display_order");
+
+      if (error) throw error;
+      setSecurityZones(data || []);
+    } catch (error: any) {
+      console.error("Error fetching security zones:", error);
+    }
+  };
+
   const calculatePrice = () => {
     if (!formData.weight || !formData.type || !formData.class) {
       setCalculatedPrice({ net: 0, gross: 0 });
@@ -213,6 +253,10 @@ const AddAnimal = () => {
         sample_id: formData.sampleId || null,
         vet_check: formData.vetCheck === "yes",
         notes: formData.notes || null,
+        security_zone_id: formData.securityZoneId || null,
+        vet_sample_id: formData.vetSampleId || null,
+        vet_doctor_name: formData.vetDoctorName || null,
+        vet_result: formData.vetResult || null,
         cooling_date: new Date().toISOString(),
       });
 
@@ -438,17 +482,56 @@ const AddAnimal = () => {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="vetCheck">Állatorvosi Vizsgálat</Label>
+                      <Label htmlFor="securityZoneId">Település - Beírókörzet</Label>
                       <Select 
-                        value={formData.vetCheck} 
-                        onValueChange={(value) => handleInputChange("vetCheck", value)}
+                        value={formData.securityZoneId} 
+                        onValueChange={(value) => handleInputChange("securityZoneId", value)}
                       >
                         <SelectTrigger>
-                          <SelectValue placeholder="Válasszon" />
+                          <SelectValue placeholder="Válasszon..." />
                         </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="yes">Igen</SelectItem>
-                          <SelectItem value="no">Nem</SelectItem>
+                        <SelectContent className="bg-popover z-50">
+                          {securityZones.map((zone) => (
+                            <SelectItem key={zone.id} value={zone.id}>
+                              {zone.settlements?.name ? `${zone.settlements.name} - ${zone.name}` : zone.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="vetSampleId">Állatorvosi mintaközlő</Label>
+                      <Input
+                        id="vetSampleId"
+                        value={formData.vetSampleId}
+                        onChange={(e) => handleInputChange("vetSampleId", e.target.value)}
+                        placeholder="pl. MK-2024-001"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="vetDoctorName">Eljáró állatorvos</Label>
+                      <Input
+                        id="vetDoctorName"
+                        value={formData.vetDoctorName}
+                        onChange={(e) => handleInputChange("vetDoctorName", e.target.value)}
+                        placeholder="Dr. Kovács János"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="vetResult">Vizsgálati eredmény</Label>
+                      <Select 
+                        value={formData.vetResult} 
+                        onValueChange={(value) => handleInputChange("vetResult", value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Válasszon..." />
+                        </SelectTrigger>
+                        <SelectContent className="bg-popover z-50">
+                          <SelectItem value="negatív">Negatív</SelectItem>
+                          <SelectItem value="pozitív">Pozitív</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>

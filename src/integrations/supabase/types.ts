@@ -31,13 +31,17 @@ export type Database = {
           notes: string | null
           sample_date: string | null
           sample_id: string | null
+          security_zone_id: string | null
           species: string
           storage_location_id: string
           transported_at: string | null
           updated_at: string
           user_id: string
           vet_check: boolean | null
+          vet_doctor_name: string | null
           vet_notes: string | null
+          vet_result: string | null
+          vet_sample_id: string | null
           weight: number | null
         }
         Insert: {
@@ -56,13 +60,17 @@ export type Database = {
           notes?: string | null
           sample_date?: string | null
           sample_id?: string | null
+          security_zone_id?: string | null
           species: string
           storage_location_id: string
           transported_at?: string | null
           updated_at?: string
           user_id: string
           vet_check?: boolean | null
+          vet_doctor_name?: string | null
           vet_notes?: string | null
+          vet_result?: string | null
+          vet_sample_id?: string | null
           weight?: number | null
         }
         Update: {
@@ -81,16 +89,27 @@ export type Database = {
           notes?: string | null
           sample_date?: string | null
           sample_id?: string | null
+          security_zone_id?: string | null
           species?: string
           storage_location_id?: string
           transported_at?: string | null
           updated_at?: string
           user_id?: string
           vet_check?: boolean | null
+          vet_doctor_name?: string | null
           vet_notes?: string | null
+          vet_result?: string | null
+          vet_sample_id?: string | null
           weight?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "animals_security_zone_id_fkey"
+            columns: ["security_zone_id"]
+            isOneToOne: false
+            referencedRelation: "security_zones"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "animals_storage_location_id_fkey"
             columns: ["storage_location_id"]
