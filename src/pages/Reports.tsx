@@ -4,6 +4,7 @@ import { ArrowLeft, FileDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { CoolingRevenueReport } from "@/components/CoolingRevenueReport";
+import { HuntingSeasonReport } from "@/components/HuntingSeasonReport";
 import { supabase } from "@/integrations/supabase/client";
 
 const Reports = () => {
@@ -51,8 +52,9 @@ const Reports = () => {
           </div>
         </div>
 
-        {/* Hűtési díj statisztikák */}
+        {/* Riportok */}
         <div className="space-y-6">
+          {/* Hűtési díj statisztikák */}
           <Card>
             <CardHeader>
               <div className="flex items-center gap-2">
@@ -60,7 +62,7 @@ const Reports = () => {
                 <CardTitle>Hűtési díj statisztikák</CardTitle>
               </div>
               <CardDescription>
-                Töltse le a hűtési díj bevételek részletes összesítőjét PDF formátumban
+                Töltse le a hűtési díj bevételek részletes összesítőjét PDF formátumban (csak elszállított állatok)
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -83,14 +85,38 @@ const Reports = () => {
             </CardContent>
           </Card>
 
-          {/* További riportok helye a jövőben */}
-          <Card className="border-dashed">
+          {/* Vadelejtések összesítő */}
+          <Card>
             <CardHeader>
-              <CardTitle className="text-muted-foreground">További riportok</CardTitle>
+              <div className="flex items-center gap-2">
+                <FileDown className="h-5 w-5" />
+                <CardTitle>Vadelejtések összesítő</CardTitle>
+              </div>
               <CardDescription>
-                Hamarosan további exportálási lehetőségek lesznek elérhetők
+                Töltse le a teljes vadászati idény vadelejtéseit Excel formátumban
               </CardDescription>
             </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  Az Excel riport tartalmazza:
+                </p>
+                <ul className="text-sm text-muted-foreground list-disc list-inside space-y-1 ml-2">
+                  <li>Összesítő lap: Alapvető statisztikák és összesítők</li>
+                  <li>Vadfajok lap: Vadfaj szerinti bontás</li>
+                  <li>Részletes adatok lap: Minden állat összes adata</li>
+                  <li>Állat azonosító, vadfaj, nem, osztály, súly</li>
+                  <li>Vadász adatok, hűtési helyszín, biztonsági körzet</li>
+                  <li>Dátumok: hűtés, mintavétel, lejárat, elszállítás</li>
+                  <li>Állatorvosi vizsgálat adatok</li>
+                  <li>Minden egyéb tárolt információ</li>
+                </ul>
+                
+                <div className="pt-4">
+                  <HuntingSeasonReport />
+                </div>
+              </div>
+            </CardContent>
           </Card>
         </div>
       </div>
