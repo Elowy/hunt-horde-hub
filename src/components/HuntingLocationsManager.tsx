@@ -35,6 +35,7 @@ export function HuntingLocationsManager({ securityZoneId, securityZoneName }: Hu
   const [locations, setLocations] = useState<HuntingLocation[]>([]);
   const [editingLocation, setEditingLocation] = useState<HuntingLocation | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [canManage, setCanManage] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     type: "fedett_les",
@@ -43,8 +44,25 @@ export function HuntingLocationsManager({ securityZoneId, securityZoneName }: Hu
   });
 
   useEffect(() => {
+    checkPermissions();
     fetchLocations();
   }, [securityZoneId]);
+
+  const checkPermissions = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { data: roles } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", user.id);
+
+    const roleList = roles?.map(r => r.role) || [];
+    const isAuthorized = roleList.includes("admin") || 
+                        roleList.includes("editor") || 
+                        roleList.includes("super_admin");
+    setCanManage(isAuthorized);
+  };
 
   const fetchLocations = async () => {
     const { data, error } = await supabase
@@ -171,7 +189,7 @@ export function HuntingLocationsManager({ securityZoneId, securityZoneName }: Hu
           <MapPin className="h-4 w-4" />
           Pontos helyszínek - {securityZoneName}
         </h4>
-        {!showAddForm && (
+        {canManage && !showAddForm && (
           <Button size="sm" onClick={() => setShowAddForm(true)}>
             <Plus className="h-4 w-4 mr-2" />
             Új helyszín
@@ -179,7 +197,7 @@ export function HuntingLocationsManager({ securityZoneId, securityZoneName }: Hu
         )}
       </div>
 
-      {showAddForm && (
+      {canManage && showAddForm && (
         <Card>
           <CardHeader>
             <CardTitle className="text-base">
@@ -271,38 +289,40 @@ export function HuntingLocationsManager({ securityZoneId, securityZoneName }: Hu
                     )}
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    onClick={() => moveLocation(location.id, "up")}
-                    disabled={index === 0}
-                  >
-                    <ArrowUp className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    onClick={() => moveLocation(location.id, "down")}
-                    disabled={index === locations.length - 1}
-                  >
-                    <ArrowDown className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    onClick={() => handleEdit(location)}
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    onClick={() => handleDelete(location.id)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
+                {canManage && (
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => moveLocation(location.id, "up")}
+                      disabled={index === 0}
+                    >
+                      <ArrowUp className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => moveLocation(location.id, "down")}
+                      disabled={index === locations.length - 1}
+                    >
+                      <ArrowDown className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => handleEdit(location)}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => handleDelete(location.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
               </CardContent>
             </Card>
           ))}
