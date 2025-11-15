@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Search, Filter, Eye, Edit, Trash2, MapPin, LogOut, Star, Truck, FileDown, Download, TrendingUp, User, Users as UsersIcon, ChevronDown, Settings } from "lucide-react";
+import { Plus, Search, Filter, Eye, Edit, Trash2, MapPin, LogOut, Star, Truck, FileDown, Download, TrendingUp, User, Users as UsersIcon, ChevronDown, Settings, CalendarCheck } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -111,6 +112,7 @@ interface PriceSetting {
 const Dashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const isMobile = useIsMobile();
   const { isPro, loading: subscriptionLoading, productId } = useSubscription();
   const [searchTerm, setSearchTerm] = useState("");
   const [filterLocation, setFilterLocation] = useState("all");
@@ -132,15 +134,18 @@ const Dashboard = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [showLocations, setShowLocations] = useState(() => {
     const saved = localStorage.getItem('dashboard-show-locations');
-    return saved !== null ? JSON.parse(saved) : true;
+    if (saved !== null) return JSON.parse(saved);
+    return isMobile ? false : true;
   });
   const [showStatistics, setShowStatistics] = useState(() => {
     const saved = localStorage.getItem('dashboard-show-statistics');
-    return saved !== null ? JSON.parse(saved) : true;
+    if (saved !== null) return JSON.parse(saved);
+    return isMobile ? false : true;
   });
   const [showAnimals, setShowAnimals] = useState(() => {
     const saved = localStorage.getItem('dashboard-show-animals');
-    return saved !== null ? JSON.parse(saved) : true;
+    if (saved !== null) return JSON.parse(saved);
+    return isMobile ? false : true;
   });
   const [viewSettingsOpen, setViewSettingsOpen] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState("");
@@ -1221,6 +1226,27 @@ const Dashboard = () => {
             </Button>
           </div>
         </div>
+
+        {/* Mobil nézet gyorsgombok */}
+        {isMobile && (
+          <div className="flex gap-2 mb-6">
+            <Button 
+              onClick={() => navigate("/add-animal")}
+              className="flex-1"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Állat hozzáadása
+            </Button>
+            <Button 
+              onClick={() => navigate("/hunting-registrations")}
+              variant="secondary"
+              className="flex-1"
+            >
+              <CalendarCheck className="h-4 w-4 mr-2" />
+              Beiratkozás
+            </Button>
+          </div>
+        )}
 
         {/* Hűtési helyszínek - csak ha nem vadász */}
         {!isHunter && (
