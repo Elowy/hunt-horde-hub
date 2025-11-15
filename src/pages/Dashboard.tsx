@@ -1230,17 +1230,19 @@ const Dashboard = () => {
         {/* Mobil nézet gyorsgombok */}
         {isMobile && (
           <div className="flex gap-2 mb-6">
-            <Button 
-              onClick={() => navigate("/add-animal")}
-              className="flex-1"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Állat hozzáadása
-            </Button>
+            {!isHunter && (
+              <Button 
+                onClick={() => navigate("/add-animal")}
+                className="flex-1"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Állat hozzáadása
+              </Button>
+            )}
             <Button 
               onClick={() => navigate("/hunting-registrations")}
               variant="secondary"
-              className="flex-1"
+              className={isHunter ? "w-full" : "flex-1"}
             >
               <CalendarCheck className="h-4 w-4 mr-2" />
               Beiratkozás
