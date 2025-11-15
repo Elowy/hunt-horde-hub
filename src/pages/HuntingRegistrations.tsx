@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Plus, Calendar, Clock, MapPin, CheckCircle, XCircle, AlertCircle, Crown, Package, ChevronDown } from "lucide-react";
+import { ArrowLeft, Plus, Calendar, Clock, MapPin, CheckCircle, XCircle, AlertCircle, Crown, Package, ChevronDown, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -404,6 +404,25 @@ const HuntingRegistrations = () => {
 
       if (error) throw error;
       toast({ title: "Siker!", description: "Beiratkozás elutasítva!" });
+      fetchRegistrations();
+    } catch (error: any) {
+      toast({
+        title: "Hiba",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDelete = async (regId: string) => {
+    try {
+      const { error } = await supabase
+        .from("hunting_registrations")
+        .delete()
+        .eq("id", regId);
+
+      if (error) throw error;
+      toast({ title: "Siker!", description: "Beiratkozás törölve!" });
       fetchRegistrations();
     } catch (error: any) {
       toast({
@@ -937,15 +956,27 @@ const HuntingRegistrations = () => {
                       </div>
                       <div className="flex flex-col gap-2 items-end">
                         {getStatusBadge(reg)}
-                        {(isAdmin || isEditor) && (
-                          <AssignAnimalToRegistrationDialog
-                            registrationId={reg.id}
-                            isHiredHunter={!!reg.hired_hunter_id}
-                            hunterName={reg.hired_hunter_id ? reg.hired_hunters?.name : reg.profiles.contact_name}
-                            registrationSecurityZoneId={reg.security_zone_id}
-                            onAnimalAssigned={fetchRegistrations}
-                          />
-                        )}
+                        <div className="flex gap-2">
+                          {(isAdmin || isEditor) && (
+                            <AssignAnimalToRegistrationDialog
+                              registrationId={reg.id}
+                              isHiredHunter={!!reg.hired_hunter_id}
+                              hunterName={reg.hired_hunter_id ? reg.hired_hunters?.name : reg.profiles.contact_name}
+                              registrationSecurityZoneId={reg.security_zone_id}
+                              onAnimalAssigned={fetchRegistrations}
+                            />
+                          )}
+                          {isAdmin && (
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => handleDelete(reg.id)}
+                            >
+                              <Trash2 className="h-4 w-4 mr-1" />
+                              Törlés
+                            </Button>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </CardHeader>
