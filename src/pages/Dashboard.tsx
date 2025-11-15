@@ -1,12 +1,13 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Search, Filter, Eye, Edit, Trash2, MapPin, LogOut, Star, Truck, FileDown, TrendingUp, User, Users as UsersIcon } from "lucide-react";
+import { Plus, Search, Filter, Eye, Edit, Trash2, MapPin, LogOut, Star, Truck, FileDown, TrendingUp, User, Users as UsersIcon, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   Table,
   TableBody,
@@ -105,6 +106,7 @@ const Dashboard = () => {
   const [transportDocuments, setTransportDocuments] = useState<Record<string, string>>({});
   const [isAdmin, setIsAdmin] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
+  const [showLocations, setShowLocations] = useState(true);
 
   useEffect(() => {
     checkAuth();
@@ -736,28 +738,37 @@ const Dashboard = () => {
 
       <div className="container mx-auto px-6 py-8">
         {/* Hűtési helyszínek */}
-        <div className="mb-8">
+        <Collapsible open={showLocations} onOpenChange={setShowLocations} className="mb-8">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-2xl font-bold text-forest-deep">Hűtési helyszínek</h2>
+            <div className="flex items-center gap-2">
+              <CollapsibleTrigger asChild>
+                <Button variant="ghost" size="sm" className="p-0 h-auto hover:bg-transparent">
+                  <ChevronDown className={`h-5 w-5 transition-transform ${showLocations ? '' : '-rotate-90'}`} />
+                </Button>
+              </CollapsibleTrigger>
+              <h2 className="text-2xl font-bold text-forest-deep">Hűtési helyszínek</h2>
+            </div>
             <StorageLocationDialog onLocationAdded={fetchData} />
           </div>
           
-          {locations.length === 0 ? (
-            <Card>
-              <CardContent className="py-8 text-center text-muted-foreground">
-                Még nincs hűtési helyszín. Adjon hozzá egyet a kezdéshez!
-              </CardContent>
-            </Card>
-          ) : (
-            <StorageLocationCarousel
-              locations={locations}
-              getLocationStats={getLocationStats}
-              onSetDefault={handleSetDefaultLocation}
-              onDelete={handleDeleteLocation}
-              onLocationUpdated={fetchData}
-            />
-          )}
-        </div>
+          <CollapsibleContent>
+            {locations.length === 0 ? (
+              <Card>
+                <CardContent className="py-8 text-center text-muted-foreground">
+                  Még nincs hűtési helyszín. Adjon hozzá egyet a kezdéshez!
+                </CardContent>
+              </Card>
+            ) : (
+              <StorageLocationCarousel
+                locations={locations}
+                getLocationStats={getLocationStats}
+                onSetDefault={handleSetDefaultLocation}
+                onDelete={handleDeleteLocation}
+                onLocationUpdated={fetchData}
+              />
+            )}
+          </CollapsibleContent>
+        </Collapsible>
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
