@@ -31,13 +31,20 @@ interface SecurityZone {
 
 interface HuntingRegistration {
   id: string;
+  user_id: string;
   start_time: string;
   end_time: string;
   status: string;
   requires_admin_approval: boolean;
   admin_note: string | null;
+  created_at: string;
   security_zones: {
     name: string;
+  };
+  profiles: {
+    contact_name: string | null;
+    contact_phone: string | null;
+    hunter_license_number: string | null;
   };
 }
 
@@ -50,6 +57,7 @@ const HuntingRegistrations = () => {
   const [loading, setLoading] = useState(true);
   const [isHunter, setIsHunter] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [formData, setFormData] = useState({
     security_zone_id: "",
@@ -72,6 +80,8 @@ const HuntingRegistrations = () => {
         navigate("/login");
         return;
       }
+
+      setCurrentUserId(user.id);
 
       const { data: roles } = await supabase
         .from("user_roles")
@@ -107,7 +117,9 @@ const HuntingRegistrations = () => {
   const fetchRegistrations = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      
+      // Fetch registrations with security zones
+      const { data: registrationsData, error: registrationsError } = await supabase
         .from("hunting_registrations")
         .select(`
           *,
@@ -115,8 +127,31 @@ const HuntingRegistrations = () => {
         `)
         .order("start_time", { ascending: false });
 
-      if (error) throw error;
-      setRegistrations(data || []);
+      if (registrationsError) throw registrationsError;
+
+      // Fetch user profiles for all registrations
+      const userIds = [...new Set(registrationsData?.map(r => r.user_id) || [])];
+      const { data: profilesData, error: profilesError } = await supabase
+        .from("profiles")
+        .select("id, contact_name, contact_phone, hunter_license_number")
+        .in("id", userIds);
+
+      if (profilesError) throw profilesError;
+
+      // Map profiles to registrations
+      const registrationsWithProfiles = registrationsData?.map(reg => {
+        const profile = profilesData?.find(p => p.id === reg.user_id);
+        return {
+          ...reg,
+          profiles: profile || {
+            contact_name: null,
+            contact_phone: null,
+            hunter_license_number: null
+          }
+        };
+      }) || [];
+
+      setRegistrations(registrationsWithProfiles);
     } catch (error: any) {
       toast({
         title: "Hiba",
@@ -146,6 +181,15 @@ const HuntingRegistrations = () => {
       toast({
         title: "Hiba",
         description: "Minimum 3 óra vadászati időt kell megadni!",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (duration > 24) {
+      toast({
+        title: "Hiba",
+        description: "Maximum 24 óra vadászati időt lehet megadni!",
         variant: "destructive",
       });
       return;
@@ -227,17 +271,62 @@ const HuntingRegistrations = () => {
     }
   };
 
-  const getStatusBadge = (status: string, requiresApproval: boolean) => {
-    if (status === "approved") {
-      return <Badge className="bg-green-500"><CheckCircle className="h-3 w-3 mr-1" />Jóváhagyva</Badge>;
+  const handleCancel = async (regId: string) => {
+    try {
+      const { error } = await supabase
+        .from("hunting_registrations")
+        .update({ status: "cancelled" })
+        .eq("id", regId);
+
+      if (error) throw error;
+      toast({ title: "Siker!", description: "Kiiratkozás sikeres!" });
+      fetchRegistrations();
+    } catch (error: any) {
+      toast({
+        title: "Hiba",
+        description: error.message,
+        variant: "destructive",
+      });
     }
-    if (status === "rejected") {
-      return <Badge variant="destructive"><XCircle className="h-3 w-3 mr-1" />Elutasítva</Badge>;
+  };
+
+  const getRegistrationStatus = (registration: HuntingRegistration) => {
+    const now = new Date();
+    const startTime = new Date(registration.start_time);
+    const endTime = new Date(registration.end_time);
+
+    if (registration.status === "cancelled") {
+      return { label: "Kiiratkozva", variant: "secondary" as const, icon: XCircle };
     }
-    if (requiresApproval) {
-      return <Badge variant="secondary"><AlertCircle className="h-3 w-3 mr-1" />Admin jóváhagyás szükséges</Badge>;
+    
+    if (registration.status === "rejected") {
+      return { label: "Elutasítva", variant: "destructive" as const, icon: XCircle };
     }
-    return <Badge variant="outline"><Clock className="h-3 w-3 mr-1" />Függőben</Badge>;
+
+    if (registration.status === "pending" || registration.requires_admin_approval) {
+      return { label: "Elfogadásra vár", variant: "secondary" as const, icon: AlertCircle };
+    }
+
+    if (now >= startTime && now <= endTime) {
+      return { label: "Jelenleg tart", variant: "default" as const, icon: Clock };
+    }
+
+    if (now > endTime) {
+      return { label: "Véget ért", variant: "outline" as const, icon: CheckCircle };
+    }
+
+    return { label: "Jóváhagyva", variant: "default" as const, icon: CheckCircle };
+  };
+
+  const getStatusBadge = (registration: HuntingRegistration) => {
+    const status = getRegistrationStatus(registration);
+    const Icon = status.icon;
+    return (
+      <Badge variant={status.variant}>
+        <Icon className="h-3 w-3 mr-1" />
+        {status.label}
+      </Badge>
+    );
   };
 
   if (subscriptionLoading) {
@@ -320,7 +409,7 @@ const HuntingRegistrations = () => {
                   <DialogHeader>
                     <DialogTitle>Új vadászati beiratkozás</DialogTitle>
                     <DialogDescription>
-                      Minimum 3 óra vadászati idő szükséges. Átfedés esetén admin jóváhagyás kell.
+                      Minimum 3 óra, maximum 24 óra vadászati idő. Átfedés esetén admin jóváhagyás kell.
                     </DialogDescription>
                   </DialogHeader>
                   <div className="space-y-4">
@@ -397,16 +486,19 @@ const HuntingRegistrations = () => {
               </CardContent>
             </Card>
           ) : (
-            registrations.map((reg) => (
+            registrations.map((reg) => {
+              const isOwnRegistration = currentUserId === reg.user_id;
+              
+              return (
               <Card key={reg.id}>
                 <CardHeader>
                   <div className="flex items-start justify-between">
-                    <div>
+                    <div className="flex-1">
                       <CardTitle className="flex items-center gap-2">
                         <MapPin className="h-5 w-5" />
                         {reg.security_zones.name}
                       </CardTitle>
-                      <CardDescription className="mt-2">
+                      <CardDescription className="mt-2 space-y-2">
                         <div className="flex items-center gap-4 text-sm">
                           <span>
                             <Calendar className="h-4 w-4 inline mr-1" />
@@ -417,11 +509,23 @@ const HuntingRegistrations = () => {
                             {format(new Date(reg.end_time), "yyyy. MM. dd. HH:mm", { locale: hu })}
                           </span>
                         </div>
+                        <div className="text-sm space-y-1 mt-2">
+                          <div><strong>Vadász:</strong> {reg.profiles.contact_name || "Névtelen"}</div>
+                          {reg.profiles.contact_phone && (
+                            <div><strong>Telefon:</strong> {reg.profiles.contact_phone}</div>
+                          )}
+                          {reg.profiles.hunter_license_number && (
+                            <div><strong>Vadászjegy:</strong> {reg.profiles.hunter_license_number}</div>
+                          )}
+                          <div className="text-xs text-muted-foreground">
+                            Beiratkozva: {format(new Date(reg.created_at), "yyyy. MM. dd. HH:mm", { locale: hu })}
+                          </div>
+                        </div>
                       </CardDescription>
                     </div>
                     <div className="flex flex-col gap-2 items-end">
-                      {getStatusBadge(reg.status, reg.requires_admin_approval)}
-                      {isAdmin && reg.status === "pending" && (
+                      {getStatusBadge(reg)}
+                      {isAdmin && reg.requires_admin_approval && reg.status === "pending" && (
                         <div className="flex gap-2">
                           <Button
                             size="sm"
@@ -441,6 +545,16 @@ const HuntingRegistrations = () => {
                           </Button>
                         </div>
                       )}
+                      {isOwnRegistration && reg.status !== "cancelled" && reg.status !== "rejected" && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleCancel(reg.id)}
+                        >
+                          <XCircle className="h-4 w-4 mr-1" />
+                          Kiiratkozás
+                        </Button>
+                      )}
                     </div>
                   </div>
                 </CardHeader>
@@ -452,7 +566,7 @@ const HuntingRegistrations = () => {
                   </CardContent>
                 )}
               </Card>
-            ))
+            )})
           )}
         </div>
       </div>
