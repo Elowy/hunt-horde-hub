@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { FileDown } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -13,6 +13,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+interface AvailablePeriod {
+  year: number;
+  month: number;
+}
+
 export const HuntingSeasonReport = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
@@ -20,9 +25,77 @@ export const HuntingSeasonReport = () => {
   const [startMonth, setStartMonth] = useState<string>("");
   const [endYear, setEndYear] = useState<string>("");
   const [endMonth, setEndMonth] = useState<string>("");
+  const [availableYears, setAvailableYears] = useState<number[]>([]);
+  const [availableMonths, setAvailableMonths] = useState<AvailablePeriod[]>([]);
 
-  const currentYear = new Date().getFullYear();
-  const years = Array.from({ length: 10 }, (_, i) => currentYear - i);
+  useEffect(() => {
+    fetchAvailablePeriods();
+  }, []);
+
+  const fetchAvailablePeriods = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Fetch all animals to get available periods
+      const { data: animals, error } = await supabase
+        .from("animals")
+        .select("cooling_date")
+        .eq("user_id", user.id)
+        .not("cooling_date", "is", null)
+        .order("cooling_date", { ascending: false });
+
+      if (error) throw error;
+
+      // Extract unique years and year-month combinations
+      const yearsSet = new Set<number>();
+      const periodsMap = new Map<string, AvailablePeriod>();
+
+      animals?.forEach(animal => {
+        if (animal.cooling_date) {
+          const date = new Date(animal.cooling_date);
+          const year = date.getFullYear();
+          const month = date.getMonth();
+          
+          yearsSet.add(year);
+          
+          const key = `${year}-${month}`;
+          if (!periodsMap.has(key)) {
+            periodsMap.set(key, { year, month });
+          }
+        }
+      });
+
+      const years = Array.from(yearsSet).sort((a, b) => b - a);
+      const periods = Array.from(periodsMap.values()).sort((a, b) => {
+        if (a.year !== b.year) return b.year - a.year;
+        return b.month - a.month;
+      });
+
+      setAvailableYears(years);
+      setAvailableMonths(periods);
+
+      // Set default to latest period
+      if (periods.length > 0) {
+        setStartYear(periods[periods.length - 1].year.toString());
+        setStartMonth(periods[periods.length - 1].month.toString());
+        setEndYear(periods[0].year.toString());
+        setEndMonth(periods[0].month.toString());
+      }
+    } catch (error: any) {
+      console.error("Error fetching periods:", error);
+    }
+  };
+
+  const getAvailableMonthsForYear = (year: string, isStart: boolean) => {
+    if (!year) return [];
+    
+    const yearNum = parseInt(year);
+    const filtered = availableMonths.filter(p => p.year === yearNum);
+    
+    return filtered.map(p => p.month);
+  };
+
   const months = [
     { value: "0", label: "Január" },
     { value: "1", label: "Február" },
@@ -200,26 +273,37 @@ export const HuntingSeasonReport = () => {
               <SelectValue placeholder="Válasszon évet" />
             </SelectTrigger>
             <SelectContent>
-              {years.map(year => (
-                <SelectItem key={year} value={year.toString()}>
-                  {year}
-                </SelectItem>
-              ))}
+              {availableYears.length === 0 ? (
+                <SelectItem value="none" disabled>Nincs adat</SelectItem>
+              ) : (
+                availableYears.map(year => (
+                  <SelectItem key={year} value={year.toString()}>
+                    {year}
+                  </SelectItem>
+                ))
+              )}
             </SelectContent>
           </Select>
         </div>
         <div className="space-y-2">
           <Label>Kezdő hónap</Label>
-          <Select value={startMonth} onValueChange={setStartMonth}>
+          <Select value={startMonth} onValueChange={setStartMonth} disabled={!startYear}>
             <SelectTrigger>
               <SelectValue placeholder="Válasszon hónapot" />
             </SelectTrigger>
             <SelectContent>
-              {months.map(month => (
-                <SelectItem key={month.value} value={month.value}>
-                  {month.label}
-                </SelectItem>
-              ))}
+              {getAvailableMonthsForYear(startYear, true).length === 0 ? (
+                <SelectItem value="none" disabled>Nincs adat</SelectItem>
+              ) : (
+                getAvailableMonthsForYear(startYear, true).map(monthNum => {
+                  const monthData = months.find(m => parseInt(m.value) === monthNum);
+                  return (
+                    <SelectItem key={monthNum} value={monthNum.toString()}>
+                      {monthData?.label}
+                    </SelectItem>
+                  );
+                })
+              )}
             </SelectContent>
           </Select>
         </div>
@@ -233,26 +317,37 @@ export const HuntingSeasonReport = () => {
               <SelectValue placeholder="Válasszon évet" />
             </SelectTrigger>
             <SelectContent>
-              {years.map(year => (
-                <SelectItem key={year} value={year.toString()}>
-                  {year}
-                </SelectItem>
-              ))}
+              {availableYears.length === 0 ? (
+                <SelectItem value="none" disabled>Nincs adat</SelectItem>
+              ) : (
+                availableYears.map(year => (
+                  <SelectItem key={year} value={year.toString()}>
+                    {year}
+                  </SelectItem>
+                ))
+              )}
             </SelectContent>
           </Select>
         </div>
         <div className="space-y-2">
           <Label>Befejező hónap</Label>
-          <Select value={endMonth} onValueChange={setEndMonth}>
+          <Select value={endMonth} onValueChange={setEndMonth} disabled={!endYear}>
             <SelectTrigger>
               <SelectValue placeholder="Válasszon hónapot" />
             </SelectTrigger>
             <SelectContent>
-              {months.map(month => (
-                <SelectItem key={month.value} value={month.value}>
-                  {month.label}
-                </SelectItem>
-              ))}
+              {getAvailableMonthsForYear(endYear, false).length === 0 ? (
+                <SelectItem value="none" disabled>Nincs adat</SelectItem>
+              ) : (
+                getAvailableMonthsForYear(endYear, false).map(monthNum => {
+                  const monthData = months.find(m => parseInt(m.value) === monthNum);
+                  return (
+                    <SelectItem key={monthNum} value={monthNum.toString()}>
+                      {monthData?.label}
+                    </SelectItem>
+                  );
+                })
+              )}
             </SelectContent>
           </Select>
         </div>
@@ -260,7 +355,7 @@ export const HuntingSeasonReport = () => {
 
       <Button 
         onClick={generateExcel} 
-        disabled={loading}
+        disabled={loading || availableYears.length === 0}
         className="w-full"
       >
         <FileDown className="h-4 w-4 mr-2" />
