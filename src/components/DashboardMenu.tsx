@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Menu, X, User, Users, FileText, Truck, Settings, LogOut, UserPlus, Crown, MapPin, CalendarCheck, Shield, BarChart } from "lucide-react";
+import { Menu, X, User, Users, FileText, Truck, Settings, LogOut, UserPlus, Crown, MapPin, CalendarCheck, Shield, BarChart, Trophy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -187,6 +187,16 @@ export const DashboardMenu = ({ isAdmin, isEditor, onLogout, onPriceUpdated }: D
               <BarChart className="mr-2 h-4 w-4" />
               Hűtési díj statisztikák
             </Button>
+            {(isAdmin || isEditor) && (
+              <Button
+                variant="ghost"
+                className="w-full justify-start"
+                onClick={() => handleNavigation("/hunter-statistics")}
+              >
+                <Trophy className="mr-2 h-4 w-4" />
+                Vadász statisztikák
+              </Button>
+            )}
           </div>
 
           <Separator />
