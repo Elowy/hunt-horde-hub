@@ -227,7 +227,7 @@ const Index = () => {
             {pricingTiers.map((tier, index) => (
               <Card 
                 key={index} 
-                className={`relative ${tier.highlighted ? 'border-accent border-2 shadow-xl scale-105' : ''}`}
+                className={`relative flex flex-col ${tier.highlighted ? 'border-accent border-2 shadow-xl scale-105' : ''}`}
               >
                 {tier.highlighted && (
                   <div className="absolute -top-4 left-1/2 -translate-x-1/2">
@@ -247,8 +247,8 @@ const Index = () => {
                     )}
                   </div>
                 </CardHeader>
-                <CardContent>
-                  <ul className="space-y-3">
+                <CardContent className="flex-1 flex flex-col">
+                  <ul className="space-y-3 flex-1">
                     {tier.features.map((feature, idx) => (
                       <li key={idx} className="flex items-start gap-2">
                         <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
