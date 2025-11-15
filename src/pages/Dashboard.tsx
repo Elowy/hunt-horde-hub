@@ -1227,22 +1227,20 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Mobil nézet gyorsgombok */}
-        {isMobile && (
+        {/* Mobil nézet gyorsgombok - csak admin, super admin, és szerkesztő számára */}
+        {isMobile && (isAdmin || isEditor) && (
           <div className="flex gap-2 mb-6">
-            {!isHunter && (
-              <Button 
-                onClick={() => navigate("/add-animal")}
-                className="flex-1"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Állat hozzáadása
-              </Button>
-            )}
+            <Button 
+              onClick={() => navigate("/add-animal")}
+              className="flex-1"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Állat hozzáadása
+            </Button>
             <Button 
               onClick={() => navigate("/hunting-registrations")}
               variant="secondary"
-              className={isHunter ? "w-full" : "flex-1"}
+              className="flex-1"
             >
               <CalendarCheck className="h-4 w-4 mr-2" />
               Beiratkozás
