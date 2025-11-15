@@ -455,6 +455,7 @@ export type Database = {
           user_id: string
           valid_from: string
           valid_to: string | null
+          vat_rate: number
         }
         Insert: {
           class: string
@@ -467,6 +468,7 @@ export type Database = {
           user_id: string
           valid_from?: string
           valid_to?: string | null
+          vat_rate?: number
         }
         Update: {
           class?: string
@@ -479,6 +481,7 @@ export type Database = {
           user_id?: string
           valid_from?: string
           valid_to?: string | null
+          vat_rate?: number
         }
         Relationships: []
       }

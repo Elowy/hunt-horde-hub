@@ -30,6 +30,7 @@ interface PriceSetting {
   species: string;
   class: string;
   price_per_kg: number;
+  vat_rate: number;
   valid_from: string;
   valid_to: string | null;
   is_archived: boolean;
@@ -142,6 +143,7 @@ export const PriceSettingsDialog = ({ onPriceUpdated }: { onPriceUpdated: () => 
             species,
             class: animalClass,
             price_per_kg: parseFloat(price),
+            vat_rate: parseFloat(formData.vat),
             valid_from: new Date(formData.validFrom).toISOString(),
             valid_to: formData.validTo ? new Date(formData.validTo).toISOString() : null,
             is_archived: false,
@@ -232,6 +234,7 @@ export const PriceSettingsDialog = ({ onPriceUpdated }: { onPriceUpdated: () => 
             <TableHead>Faj</TableHead>
             <TableHead>Osztály</TableHead>
             <TableHead className="text-right">Ár (Ft/kg)</TableHead>
+            <TableHead className="text-right">ÁFA (%)</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -241,6 +244,9 @@ export const PriceSettingsDialog = ({ onPriceUpdated }: { onPriceUpdated: () => 
               <TableCell>{price.class}</TableCell>
               <TableCell className="text-right font-medium">
                 {price.price_per_kg.toLocaleString()} Ft
+              </TableCell>
+              <TableCell className="text-right">
+                {price.vat_rate}%
               </TableCell>
             </TableRow>
           ))}
@@ -309,7 +315,7 @@ export const PriceSettingsDialog = ({ onPriceUpdated }: { onPriceUpdated: () => 
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="validFrom">Érvényesség kezdete *</Label>
                 <Input
@@ -328,6 +334,19 @@ export const PriceSettingsDialog = ({ onPriceUpdated }: { onPriceUpdated: () => 
                   value={formData.validTo}
                   onChange={(e) => setFormData({ ...formData, validTo: e.target.value })}
                   min={formData.validFrom}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="vat">ÁFA (%) *</Label>
+                <Input
+                  id="vat"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  max="100"
+                  value={formData.vat}
+                  onChange={(e) => setFormData({ ...formData, vat: e.target.value })}
+                  required
                 />
               </div>
             </div>
