@@ -1037,6 +1037,26 @@ const Dashboard = () => {
                         <Tooltip />
                       </PieChart>
                     </ResponsiveContainer>
+                    <div className="mt-4 pt-4 border-t space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Foglalt helyek:</span>
+                        <span className="font-medium text-green-600 dark:text-green-400">
+                          {animals.filter(a => !a.is_transported).length} db
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Szabad helyek:</span>
+                        <span className="font-medium text-slate-600 dark:text-slate-400">
+                          {Math.max(0, locations.reduce((sum, loc) => sum + (loc.capacity || 0), 0) - animals.filter(a => !a.is_transported).length)} db
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-sm pt-2 border-t">
+                        <span className="text-muted-foreground font-semibold">Összes hely:</span>
+                        <span className="font-bold">
+                          {locations.reduce((sum, loc) => sum + (loc.capacity || 0), 0)} db
+                        </span>
+                      </div>
+                    </div>
                   </CardContent>
                 </Card>
                 
