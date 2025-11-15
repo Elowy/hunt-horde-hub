@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Menu, X, User, Users, FileText, Truck, Settings, LogOut, UserPlus, Crown, MapPin, CalendarCheck } from "lucide-react";
+import { Menu, X, User, Users, FileText, Truck, Settings, LogOut, UserPlus, Crown, MapPin, CalendarCheck, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -11,6 +11,7 @@ import { InviteUserDialog } from "@/components/InviteUserDialog";
 import { SettlementsAndZonesDialog } from "@/components/SettlementsAndZonesDialog";
 import { Separator } from "@/components/ui/separator";
 import { useSubscription } from "@/hooks/useSubscription";
+import { useIsSuperAdmin } from "@/hooks/useIsSuperAdmin";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface DashboardMenuProps {
@@ -23,6 +24,7 @@ export const DashboardMenu = ({ isAdmin, onLogout, onPriceUpdated }: DashboardMe
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const { isPro, loading: subscriptionLoading } = useSubscription();
+  const { isSuperAdmin } = useIsSuperAdmin();
 
   const handleNavigation = (path: string) => {
     navigate(path);
@@ -72,6 +74,24 @@ export const DashboardMenu = ({ isAdmin, onLogout, onPriceUpdated }: DashboardMe
           </div>
 
           <Separator />
+
+          {/* Super Admin menü */}
+          {isSuperAdmin && (
+            <>
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-muted-foreground px-2">Super Admin</p>
+                <Button
+                  variant="ghost"
+                  className="w-full justify-start text-primary"
+                  onClick={() => handleNavigation("/super-admin")}
+                >
+                  <Shield className="mr-2 h-4 w-4" />
+                  Super Admin Dashboard
+                </Button>
+              </div>
+              <Separator />
+            </>
+          )}
 
           {/* Admin menü */}
           {isAdmin && (
