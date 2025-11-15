@@ -219,7 +219,7 @@ export const ViewTicketDialog = ({ ticket, open, onOpenChange, isSuperAdmin, onT
         <DialogHeader>
           <div className="flex items-center justify-between">
             <DialogTitle className="text-2xl">{ticket.subject}</DialogTitle>
-            {isSuperAdmin && (
+            {isSuperAdmin ? (
               <Select value={status} onValueChange={handleStatusChange} disabled={loading}>
                 <SelectTrigger className="w-[180px]">
                   <SelectValue />
@@ -245,6 +245,13 @@ export const ViewTicketDialog = ({ ticket, open, onOpenChange, isSuperAdmin, onT
                   </SelectItem>
                 </SelectContent>
               </Select>
+            ) : (
+              <Badge variant={status === "open" ? "destructive" : status === "in_progress" ? "secondary" : "outline"}>
+                {status === "open" && <Clock className="h-3 w-3 mr-1" />}
+                {status === "in_progress" && <MessageSquare className="h-3 w-3 mr-1" />}
+                {status === "closed" && <CheckCircle className="h-3 w-3 mr-1" />}
+                {status === "open" ? "Nyitott" : status === "in_progress" ? "Folyamatban" : "Lezárt"}
+              </Badge>
             )}
           </div>
           <DialogDescription>
