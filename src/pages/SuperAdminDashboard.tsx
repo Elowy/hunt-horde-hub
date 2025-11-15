@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useIsSuperAdmin } from "@/hooks/useIsSuperAdmin";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -26,7 +27,14 @@ interface Profile {
   company_name: string | null;
   contact_name: string | null;
   contact_email: string | null;
+  contact_phone: string | null;
+  address: string | null;
+  tax_number: string | null;
   user_type: string | null;
+  hunter_license_number: string | null;
+  birth_date: string | null;
+  vat_rate: number | null;
+  created_at: string;
 }
 
 interface Animal {
@@ -90,6 +98,8 @@ const SuperAdminDashboard = () => {
     id: "",
     name: "",
   });
+  const [selectedProfile, setSelectedProfile] = useState<Profile | null>(null);
+  const [profileDialogOpen, setProfileDialogOpen] = useState(false);
 
   useEffect(() => {
     if (!checkingAdmin && !isSuperAdmin) {
@@ -314,7 +324,10 @@ const SuperAdminDashboard = () => {
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => navigate("/profile")}
+                                onClick={() => {
+                                  setSelectedProfile(profile);
+                                  setProfileDialogOpen(true);
+                                }}
                               >
                                 <Eye className="h-4 w-4" />
                               </Button>
@@ -556,6 +569,89 @@ const SuperAdminDashboard = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Felhasználó részletek dialógus */}
+      <Dialog open={profileDialogOpen} onOpenChange={setProfileDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Felhasználó adatai</DialogTitle>
+          </DialogHeader>
+          
+          {selectedProfile && (
+            <div className="space-y-6">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <h3 className="text-sm font-medium text-muted-foreground mb-1">Cégnév</h3>
+                  <p className="text-sm">{selectedProfile.company_name || "-"}</p>
+                </div>
+                
+                <div>
+                  <h3 className="text-sm font-medium text-muted-foreground mb-1">Típus</h3>
+                  <Badge variant="secondary">{selectedProfile.user_type || "-"}</Badge>
+                </div>
+                
+                <div>
+                  <h3 className="text-sm font-medium text-muted-foreground mb-1">Kapcsolattartó neve</h3>
+                  <p className="text-sm">{selectedProfile.contact_name || "-"}</p>
+                </div>
+                
+                <div>
+                  <h3 className="text-sm font-medium text-muted-foreground mb-1">Email</h3>
+                  <p className="text-sm">{selectedProfile.contact_email || "-"}</p>
+                </div>
+                
+                <div>
+                  <h3 className="text-sm font-medium text-muted-foreground mb-1">Telefon</h3>
+                  <p className="text-sm">{selectedProfile.contact_phone || "-"}</p>
+                </div>
+                
+                <div>
+                  <h3 className="text-sm font-medium text-muted-foreground mb-1">Születési dátum</h3>
+                  <p className="text-sm">
+                    {selectedProfile.birth_date 
+                      ? new Date(selectedProfile.birth_date).toLocaleDateString('hu-HU') 
+                      : "-"}
+                  </p>
+                </div>
+                
+                <div className="col-span-2">
+                  <h3 className="text-sm font-medium text-muted-foreground mb-1">Cím</h3>
+                  <p className="text-sm">{selectedProfile.address || "-"}</p>
+                </div>
+                
+                <div>
+                  <h3 className="text-sm font-medium text-muted-foreground mb-1">Adószám</h3>
+                  <p className="text-sm">{selectedProfile.tax_number || "-"}</p>
+                </div>
+                
+                <div>
+                  <h3 className="text-sm font-medium text-muted-foreground mb-1">Vadászjegy szám</h3>
+                  <p className="text-sm">{selectedProfile.hunter_license_number || "-"}</p>
+                </div>
+                
+                <div>
+                  <h3 className="text-sm font-medium text-muted-foreground mb-1">ÁFA kulcs</h3>
+                  <p className="text-sm">{selectedProfile.vat_rate ? `${selectedProfile.vat_rate}%` : "-"}</p>
+                </div>
+                
+                <div>
+                  <h3 className="text-sm font-medium text-muted-foreground mb-1">Regisztráció</h3>
+                  <p className="text-sm">
+                    {selectedProfile.created_at 
+                      ? new Date(selectedProfile.created_at).toLocaleString('hu-HU') 
+                      : "-"}
+                  </p>
+                </div>
+                
+                <div className="col-span-2">
+                  <h3 className="text-sm font-medium text-muted-foreground mb-1">Felhasználó ID</h3>
+                  <p className="text-sm font-mono text-xs">{selectedProfile.id}</p>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
