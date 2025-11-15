@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { format } from "date-fns";
 import {
   Dialog,
   DialogContent,
@@ -24,6 +25,7 @@ export const CreateAnnouncementDialog = ({ onSuccess }: CreateAnnouncementDialog
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
+  const [expiresAt, setExpiresAt] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -43,6 +45,7 @@ export const CreateAnnouncementDialog = ({ onSuccess }: CreateAnnouncementDialog
           user_id: user.id,
           title,
           content,
+          expires_at: expiresAt || null,
         });
 
       if (error) throw error;
@@ -50,6 +53,7 @@ export const CreateAnnouncementDialog = ({ onSuccess }: CreateAnnouncementDialog
       toast.success("Hír sikeresen létrehozva");
       setTitle("");
       setContent("");
+      setExpiresAt("");
       setOpen(false);
       onSuccess?.();
     } catch (error) {
@@ -97,6 +101,19 @@ export const CreateAnnouncementDialog = ({ onSuccess }: CreateAnnouncementDialog
                 rows={6}
                 required
               />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="expiresAt">Lejárati időpont (opcionális)</Label>
+              <Input
+                id="expiresAt"
+                type="datetime-local"
+                value={expiresAt}
+                onChange={(e) => setExpiresAt(e.target.value)}
+                min={format(new Date(), "yyyy-MM-dd'T'HH:mm")}
+              />
+              <p className="text-xs text-muted-foreground">
+                Ha nincs megadva, a hír határozatlan ideig aktív marad
+              </p>
             </div>
           </div>
           <DialogFooter>
