@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Plus, Calendar, Clock, MapPin, CheckCircle, XCircle, AlertCircle, Crown } from "lucide-react";
+import { ArrowLeft, Plus, Calendar, Clock, MapPin, CheckCircle, XCircle, AlertCircle, Crown, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -23,6 +23,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format } from "date-fns";
 import { hu } from "date-fns/locale";
+import { AssignAnimalToRegistrationDialog } from "@/components/AssignAnimalToRegistrationDialog";
 
 interface SecurityZone {
   id: string;
@@ -39,6 +40,13 @@ interface HunterUser {
     contact_name: string | null;
     hunter_license_number: string | null;
   };
+}
+
+interface Animal {
+  id: string;
+  animal_id: string;
+  species: string;
+  weight: number | null;
 }
 
 interface HuntingRegistration {
@@ -58,6 +66,7 @@ interface HuntingRegistration {
     contact_phone: string | null;
     hunter_license_number: string | null;
   };
+  animals?: Animal[];
 }
 
 const HuntingRegistrations = () => {
@@ -200,16 +209,27 @@ const HuntingRegistrations = () => {
 
       if (profilesError) throw profilesError;
 
-      // Map profiles to registrations
+      // Fetch animals for all registrations
+      const registrationIds = registrationsData?.map(r => r.id) || [];
+      const { data: animalsData, error: animalsError } = await supabase
+        .from("animals")
+        .select("id, animal_id, species, weight, hunting_registration_id")
+        .in("hunting_registration_id", registrationIds);
+
+      if (animalsError) throw animalsError;
+
+      // Map profiles and animals to registrations
       const registrationsWithProfiles = registrationsData?.map(reg => {
         const profile = profilesData?.find(p => p.id === reg.user_id);
+        const animals = animalsData?.filter(a => a.hunting_registration_id === reg.id) || [];
         return {
           ...reg,
           profiles: profile || {
             contact_name: null,
             contact_phone: null,
             hunter_license_number: null
-          }
+          },
+          animals
         };
       }) || [];
 
@@ -648,16 +668,38 @@ const HuntingRegistrations = () => {
                           Kiiratkozás
                         </Button>
                       )}
+                      {(isAdmin || isOwnRegistration) && (
+                        <AssignAnimalToRegistrationDialog
+                          registrationId={reg.id}
+                          onAnimalAssigned={fetchRegistrations}
+                        />
+                      )}
                     </div>
                   </div>
                 </CardHeader>
-                {reg.admin_note && (
-                  <CardContent>
+                <CardContent className="space-y-3">
+                  {reg.admin_note && (
                     <p className="text-sm text-muted-foreground">
                       <strong>Admin megjegyzés:</strong> {reg.admin_note}
                     </p>
-                  </CardContent>
-                )}
+                  )}
+                  {reg.animals && reg.animals.length > 0 && (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-sm font-medium">
+                        <Package className="h-4 w-4" />
+                        Hozzárendelt állatok ({reg.animals.length})
+                      </div>
+                      <div className="space-y-1">
+                        {reg.animals.map((animal) => (
+                          <div key={animal.id} className="text-sm text-muted-foreground pl-6">
+                            • {animal.animal_id} - {animal.species}
+                            {animal.weight && ` (${animal.weight} kg)`}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
               </Card>
             );
           })
@@ -724,13 +766,29 @@ const HuntingRegistrations = () => {
                       </div>
                     </div>
                   </CardHeader>
-                  {reg.admin_note && (
-                    <CardContent>
+                  <CardContent className="space-y-3">
+                    {reg.admin_note && (
                       <p className="text-sm text-muted-foreground">
                         <strong>Admin megjegyzés:</strong> {reg.admin_note}
                       </p>
-                    </CardContent>
-                  )}
+                    )}
+                    {reg.animals && reg.animals.length > 0 && (
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2 text-sm font-medium">
+                          <Package className="h-4 w-4" />
+                          Hozzárendelt állatok ({reg.animals.length})
+                        </div>
+                        <div className="space-y-1">
+                          {reg.animals.map((animal) => (
+                            <div key={animal.id} className="text-sm text-muted-foreground pl-6">
+                              • {animal.animal_id} - {animal.species}
+                              {animal.weight && ` (${animal.weight} kg)`}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
                 </Card>
               ))
             )}
