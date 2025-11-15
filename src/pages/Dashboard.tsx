@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Search, Filter, Eye, Edit, Trash2, MapPin, LogOut, Star, Truck, FileDown, TrendingUp, User, Users as UsersIcon, ChevronDown } from "lucide-react";
+import { Plus, Search, Filter, Eye, Edit, Trash2, MapPin, LogOut, Star, Truck, FileDown, TrendingUp, User, Users as UsersIcon, ChevronDown, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -8,6 +8,14 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Table,
   TableBody,
@@ -114,8 +122,19 @@ const Dashboard = () => {
   const [isEditor, setIsEditor] = useState(false);
   const [isHunter, setIsHunter] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
-  const [showLocations, setShowLocations] = useState(true);
-  const [showStatistics, setShowStatistics] = useState(true);
+  const [showLocations, setShowLocations] = useState(() => {
+    const saved = localStorage.getItem('dashboard-show-locations');
+    return saved !== null ? JSON.parse(saved) : true;
+  });
+  const [showStatistics, setShowStatistics] = useState(() => {
+    const saved = localStorage.getItem('dashboard-show-statistics');
+    return saved !== null ? JSON.parse(saved) : true;
+  });
+  const [showAnimals, setShowAnimals] = useState(() => {
+    const saved = localStorage.getItem('dashboard-show-animals');
+    return saved !== null ? JSON.parse(saved) : true;
+  });
+  const [viewSettingsOpen, setViewSettingsOpen] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState("");
 
   useEffect(() => {
@@ -132,6 +151,18 @@ const Dashboard = () => {
       }
     }
   }, [animals]);
+
+  useEffect(() => {
+    localStorage.setItem('dashboard-show-locations', JSON.stringify(showLocations));
+  }, [showLocations]);
+
+  useEffect(() => {
+    localStorage.setItem('dashboard-show-statistics', JSON.stringify(showStatistics));
+  }, [showStatistics]);
+
+  useEffect(() => {
+    localStorage.setItem('dashboard-show-animals', JSON.stringify(showAnimals));
+  }, [showAnimals]);
 
   const checkAuth = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -861,15 +892,79 @@ const Dashboard = () => {
               <p className="text-primary-foreground/90">Vadászati nyilvántartás és hűtés kezelése</p>
             </div>
           </div>
-          <DashboardMenu 
-            isAdmin={isAdmin}
-            isEditor={isEditor}
-            onLogout={handleLogout}
-            onPriceUpdated={fetchData}
-          />
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setViewSettingsOpen(true)}
+              className="text-white hover:bg-white/10"
+            >
+              <Settings className="h-5 w-5 mr-2" />
+              Nézet testreszabása
+            </Button>
+            <DashboardMenu 
+              isAdmin={isAdmin}
+              isEditor={isEditor}
+              onLogout={handleLogout}
+              onPriceUpdated={fetchData}
+            />
+          </div>
           </div>
         </div>
       </div>
+
+      {/* View Settings Dialog */}
+      <Dialog open={viewSettingsOpen} onOpenChange={setViewSettingsOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Nézet testreszabása</DialogTitle>
+            <DialogDescription>
+              Válassza ki, mely szakaszokat szeretné megjeleníteni a dashboard-on
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            {!isHunter && (
+              <>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="show-locations" className="cursor-pointer">
+                    Hűtési helyszínek
+                  </Label>
+                  <Checkbox
+                    id="show-locations"
+                    checked={showLocations}
+                    onCheckedChange={setShowLocations}
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="show-statistics" className="cursor-pointer">
+                    Statisztikák
+                  </Label>
+                  <Checkbox
+                    id="show-statistics"
+                    checked={showStatistics}
+                    onCheckedChange={setShowStatistics}
+                  />
+                </div>
+              </>
+            )}
+            <div className="flex items-center justify-between">
+              <Label htmlFor="show-animals" className="cursor-pointer">
+                Állat nyilvántartás
+              </Label>
+              <Checkbox
+                id="show-animals"
+                checked={showAnimals}
+                onCheckedChange={setShowAnimals}
+              />
+            </div>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button onClick={() => setViewSettingsOpen(false)}>
+              Bezárás
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <div className="container mx-auto px-6 py-8">
         {/* Hűtési helyszínek - csak ha nem vadász */}
@@ -1121,14 +1216,23 @@ const Dashboard = () => {
         )}
 
         {/* Állat nyilvántartás */}
-        <div>
+        <Collapsible open={showAnimals} onOpenChange={setShowAnimals} className="mb-8">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-2xl font-bold text-forest-deep">Állat nyilvántartás</h2>
+            <div className="flex items-center gap-2">
+              <CollapsibleTrigger asChild>
+                <Button variant="ghost" size="sm" className="p-0 h-auto hover:bg-transparent">
+                  <ChevronDown className={`h-5 w-5 transition-transform ${showAnimals ? '' : '-rotate-90'}`} />
+                </Button>
+              </CollapsibleTrigger>
+              <h2 className="text-2xl font-bold text-forest-deep">Állat nyilvántartás</h2>
+            </div>
             <Button onClick={() => navigate("/add-animal")}>
               <Plus className="h-4 w-4 mr-2" />
               Állat hozzáadása
             </Button>
           </div>
+          
+          <CollapsibleContent>
 
           {/* Keresés és szűrés */}
           <div className="space-y-4 mb-4">
@@ -1437,7 +1541,8 @@ const Dashboard = () => {
               )}
             </Tabs>
           )}
-        </div>
+          </CollapsibleContent>
+        </Collapsible>
       </div>
       
       <CreateTransportDialog
