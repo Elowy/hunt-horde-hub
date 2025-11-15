@@ -770,12 +770,12 @@ const Dashboard = () => {
     });
 
     // Group by species
-    const speciesMap = new Map<string, { count: number; weight: number; revenue: number }>();
+    const speciesMap = new Map<string, { count: number; weight: number; netRevenue: number; grossRevenue: number }>();
     
     monthAnimals.forEach(animal => {
       const species = animal.species;
       if (!speciesMap.has(species)) {
-        speciesMap.set(species, { count: 0, weight: 0, revenue: 0 });
+        speciesMap.set(species, { count: 0, weight: 0, netRevenue: 0, grossRevenue: 0 });
       }
       
       const stats = speciesMap.get(species)!;
@@ -784,14 +784,16 @@ const Dashboard = () => {
       
       // Calculate revenue
       const price = getAnimalPrice(animal);
-      stats.revenue += price.gross;
+      stats.netRevenue += price.net;
+      stats.grossRevenue += price.gross;
     });
 
     return Array.from(speciesMap.entries()).map(([species, stats]) => ({
       species,
       count: stats.count,
       weight: stats.weight,
-      revenue: stats.revenue,
+      netRevenue: stats.netRevenue,
+      grossRevenue: stats.grossRevenue,
     })).sort((a, b) => b.count - a.count);
   };
 
@@ -927,27 +929,25 @@ const Dashboard = () => {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="h-[200px] flex items-center justify-center">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
-                          <Pie
-                            data={getCapacityData()}
-                            cx="50%"
-                            cy="50%"
-                            labelLine={false}
-                            label={({ name, value }) => `${name}: ${value}`}
-                            outerRadius={80}
-                            fill="#8884d8"
-                            dataKey="value"
-                          >
-                            {getCapacityData().map((entry, index) => (
-                              <Cell key={`cell-${index}`} fill={entry.color} />
-                            ))}
-                          </Pie>
-                          <Tooltip />
-                        </PieChart>
-                      </ResponsiveContainer>
-                    </div>
+                    <ResponsiveContainer width="100%" height={200}>
+                      <PieChart>
+                        <Pie
+                          data={getCapacityData()}
+                          cx="50%"
+                          cy="50%"
+                          labelLine={false}
+                          label={({ name, value }) => `${name}: ${value}`}
+                          outerRadius={80}
+                          fill="#8884d8"
+                          dataKey="value"
+                        >
+                          {getCapacityData().map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} />
+                          ))}
+                        </Pie>
+                        <Tooltip />
+                      </PieChart>
+                    </ResponsiveContainer>
                   </CardContent>
                 </Card>
                 
@@ -1072,7 +1072,8 @@ const Dashboard = () => {
                             <TableHead>Vadfaj</TableHead>
                             <TableHead className="text-right">Elejtett állatok (db)</TableHead>
                             <TableHead className="text-right">Összsúly (kg)</TableHead>
-                            <TableHead className="text-right">Bevétel (Ft)</TableHead>
+                            <TableHead className="text-right">Nettó bevétel (Ft)</TableHead>
+                            <TableHead className="text-right">Bruttó bevétel (Ft)</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -1081,8 +1082,11 @@ const Dashboard = () => {
                               <TableCell className="font-medium">{stat.species}</TableCell>
                               <TableCell className="text-right">{stat.count}</TableCell>
                               <TableCell className="text-right">{stat.weight.toFixed(1)} kg</TableCell>
+                              <TableCell className="text-right font-semibold">
+                                {stat.netRevenue.toLocaleString('hu-HU')} Ft
+                              </TableCell>
                               <TableCell className="text-right font-semibold text-green-600 dark:text-green-400">
-                                {stat.revenue.toLocaleString('hu-HU')} Ft
+                                {stat.grossRevenue.toLocaleString('hu-HU')} Ft
                               </TableCell>
                             </TableRow>
                           ))}
@@ -1095,8 +1099,11 @@ const Dashboard = () => {
                             <TableCell className="text-right">
                               {getMonthlySpeciesStats(selectedMonth).reduce((sum, stat) => sum + stat.weight, 0).toFixed(1)} kg
                             </TableCell>
+                            <TableCell className="text-right">
+                              {getMonthlySpeciesStats(selectedMonth).reduce((sum, stat) => sum + stat.netRevenue, 0).toLocaleString('hu-HU')} Ft
+                            </TableCell>
                             <TableCell className="text-right text-green-600 dark:text-green-400">
-                              {getMonthlySpeciesStats(selectedMonth).reduce((sum, stat) => sum + stat.revenue, 0).toLocaleString('hu-HU')} Ft
+                              {getMonthlySpeciesStats(selectedMonth).reduce((sum, stat) => sum + stat.grossRevenue, 0).toLocaleString('hu-HU')} Ft
                             </TableCell>
                           </TableRow>
                         </TableBody>
