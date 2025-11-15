@@ -1,11 +1,10 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { MapContainer, TileLayer, Polygon, Marker, Popup } from "react-leaflet";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Plus, MapPin, Save, X } from "lucide-react";
 import { useMapZones } from "@/hooks/useMapZones";
 import { useMapPOIs } from "@/hooks/useMapPOIs";
-import { MapClickHandler } from "@/components/map/MapClickHandler";
 import { MapZonesList } from "@/components/map/MapZonesList";
 import { MapPOIsList } from "@/components/map/MapPOIsList";
 import { ZoneDialog } from "@/components/map/ZoneDialog";
@@ -33,15 +32,25 @@ const MapManager = () => {
   const [showPOIDialog, setShowPOIDialog] = useState(false);
   const [poiCoords, setPoiCoords] = useState<[number, number] | null>(null);
 
-  const handleDrawPoint = (coords: [number, number]) => {
-    setCurrentPolygon((prev) => [...prev, coords]);
-  };
+  useEffect(() => {
+    if (!mapRef.current) return;
 
-  const handlePlacePOI = (coords: [number, number]) => {
-    setPoiCoords(coords);
-    setShowPOIDialog(true);
-    setPlacingPOI(false);
-  };
+    const handleMapClick = (e: L.LeafletMouseEvent) => {
+      if (drawingMode) {
+        setCurrentPolygon((prev) => [...prev, [e.latlng.lat, e.latlng.lng]]);
+      } else if (placingPOI) {
+        setPoiCoords([e.latlng.lat, e.latlng.lng]);
+        setShowPOIDialog(true);
+        setPlacingPOI(false);
+      }
+    };
+
+    mapRef.current.on("click", handleMapClick);
+
+    return () => {
+      mapRef.current?.off("click", handleMapClick);
+    };
+  }, [drawingMode, placingPOI]);
 
   const startDrawing = () => {
     setDrawingMode(true);
@@ -165,14 +174,6 @@ const MapManager = () => {
               <TileLayer
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-              />
-
-              <MapClickHandler
-                mapRef={mapRef}
-                drawingMode={drawingMode}
-                placingPOI={placingPOI}
-                onDrawPoint={handleDrawPoint}
-                onPlacePOI={handlePlacePOI}
               />
 
               {currentPolygon.length > 0 && (
