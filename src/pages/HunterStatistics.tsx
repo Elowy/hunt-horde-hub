@@ -1,12 +1,12 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Trophy, TrendingUp, Package, DollarSign } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Trophy, TrendingUp, Package, DollarSign } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
+import { PageHeader } from "@/components/PageHeader";
 import { supabase } from "@/integrations/supabase/client";
 
 interface HunterStat {
@@ -79,6 +79,11 @@ const HunterStatistics = () => {
       });
       navigate("/dashboard");
     }
+  };
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    navigate("/login");
   };
 
   const fetchHunterStatistics = async () => {
@@ -176,25 +181,20 @@ const HunterStatistics = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <PageHeader 
+        isAdmin={isAdmin}
+        isEditor={isEditor}
+        onLogout={handleLogout}
+      />
+      
       <div className="container mx-auto py-6 px-4">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-4">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => navigate("/dashboard")}
-            >
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-            <div>
-              <h1 className="text-3xl font-bold flex items-center gap-2">
-                <Trophy className="h-8 w-8 text-yellow-500" />
-                Vadász statisztikák
-              </h1>
-              <p className="text-muted-foreground">Teljesítmény alapú toplisták</p>
-            </div>
-          </div>
+        {/* Page Title */}
+        <div className="mb-6">
+          <h2 className="text-3xl font-bold text-forest-deep flex items-center gap-2">
+            <Trophy className="h-8 w-8 text-yellow-500" />
+            Vadász statisztikák
+          </h2>
+          <p className="text-muted-foreground">Teljesítmény alapú toplisták</p>
         </div>
 
         {/* Statistics */}
