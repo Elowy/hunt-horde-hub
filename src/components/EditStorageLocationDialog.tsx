@@ -14,6 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Edit } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { CoolingPricesDialog } from "./CoolingPricesDialog";
 
 interface StorageLocation {
   id: string;
@@ -40,8 +41,6 @@ export const EditStorageLocationDialog = ({ location, onLocationUpdated }: EditS
     address: location.address || "",
     capacity: location.capacity?.toString() || "",
     notes: location.notes || "",
-    coolingPrice: location.cooling_price_per_kg?.toString() || "",
-    coolingVat: location.cooling_vat_rate?.toString() || "27",
   });
 
   useEffect(() => {
@@ -50,8 +49,6 @@ export const EditStorageLocationDialog = ({ location, onLocationUpdated }: EditS
       address: location.address || "",
       capacity: location.capacity?.toString() || "",
       notes: location.notes || "",
-      coolingPrice: location.cooling_price_per_kg?.toString() || "",
-      coolingVat: location.cooling_vat_rate?.toString() || "27",
     });
   }, [location]);
 
@@ -77,8 +74,6 @@ export const EditStorageLocationDialog = ({ location, onLocationUpdated }: EditS
           address: formData.address || null,
           capacity: formData.capacity ? parseInt(formData.capacity) : null,
           notes: formData.notes || null,
-          cooling_price_per_kg: formData.coolingPrice ? parseFloat(formData.coolingPrice) : 0,
-          cooling_vat_rate: formData.coolingVat ? parseFloat(formData.coolingVat) : 27,
         })
         .eq("id", location.id);
 
@@ -163,30 +158,15 @@ export const EditStorageLocationDialog = ({ location, onLocationUpdated }: EditS
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="coolingPrice">Hűtési díj (Ft/kg)</Label>
-              <Input
-                id="coolingPrice"
-                type="number"
-                step="0.01"
-                value={formData.coolingPrice}
-                onChange={(e) => setFormData({ ...formData, coolingPrice: e.target.value })}
-                placeholder="0"
-                disabled={loading}
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="coolingVat">ÁFA (%)</Label>
-              <Input
-                id="coolingVat"
-                type="number"
-                step="0.01"
-                value={formData.coolingVat}
-                onChange={(e) => setFormData({ ...formData, coolingVat: e.target.value })}
-                placeholder="27"
-                disabled={loading}
+          <div className="border-t pt-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-medium">Hűtési díjak kezelése</h3>
+                <p className="text-sm text-muted-foreground">Árlisták hozzáadása és archiválása</p>
+              </div>
+              <CoolingPricesDialog 
+                storageLocationId={location.id} 
+                storageLocationName={location.name}
               />
             </div>
           </div>
