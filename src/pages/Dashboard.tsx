@@ -137,6 +137,8 @@ const Dashboard = () => {
   });
   const [viewSettingsOpen, setViewSettingsOpen] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState("");
+  const [selectedRevenueMonth, setSelectedRevenueMonth] = useState("");
+  const [selectedCoolingMonth, setSelectedCoolingMonth] = useState("");
 
   useEffect(() => {
     checkAuth();
@@ -149,6 +151,18 @@ const Dashboard = () => {
       const months = getAvailableMonths();
       if (months.length > 0) {
         setSelectedMonth(months[0]);
+      }
+    }
+    if (animals.length > 0 && !selectedRevenueMonth) {
+      const months = getAvailableMonths();
+      if (months.length > 0) {
+        setSelectedRevenueMonth(months[0]);
+      }
+    }
+    if (animals.length > 0 && !selectedCoolingMonth) {
+      const months = getAvailableMonths();
+      if (months.length > 0) {
+        setSelectedCoolingMonth(months[0]);
       }
     }
   }, [animals]);
@@ -737,15 +751,15 @@ const Dashboard = () => {
     });
   };
 
-  const getCurrentMonthRevenue = () => {
-    const now = new Date();
-    const currentMonth = now.getMonth();
-    const currentYear = now.getFullYear();
+  const getMonthRevenue = (monthKey: string) => {
+    if (!monthKey) return 0;
+    
+    const [year, month] = monthKey.split('-').map(Number);
     
     const monthlyAnimals = animals.filter(a => {
       if (!a.cooling_date) return false;
       const date = new Date(a.cooling_date);
-      return date.getMonth() === currentMonth && date.getFullYear() === currentYear;
+      return date.getMonth() + 1 === month && date.getFullYear() === year;
     });
     
     return monthlyAnimals.reduce((sum, animal) => {
@@ -851,16 +865,16 @@ const Dashboard = () => {
     }, 0);
   };
 
-  const getCurrentMonthCoolingRevenue = () => {
-    const now = new Date();
-    const currentMonth = now.getMonth();
-    const currentYear = now.getFullYear();
+  const getMonthCoolingRevenue = (monthKey: string) => {
+    if (!monthKey) return 0;
+    
+    const [year, month] = monthKey.split('-').map(Number);
     
     return animals.reduce((sum, animal) => {
       if (animal.is_transported || !animal.weight || !animal.cooling_date) return sum;
       
       const date = new Date(animal.cooling_date);
-      if (date.getMonth() !== currentMonth || date.getFullYear() !== currentYear) return sum;
+      if (date.getMonth() + 1 !== month || date.getFullYear() !== year) return sum;
       
       const location = locations.find(loc => loc.id === animal.storage_location_id);
       if (!location || !location.cooling_price_per_kg) return sum;
@@ -1063,19 +1077,33 @@ const Dashboard = () => {
                 <Card>
                   <CardHeader className="pb-3">
                     <CardTitle className="text-sm font-medium text-muted-foreground">
-                      Havi bevétel (aktuális hónap)
+                      Havi bevétel
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
+                    <div className="mb-4">
+                      <Select value={selectedRevenueMonth} onValueChange={setSelectedRevenueMonth}>
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Válasszon hónapot" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {getAvailableMonths().map((monthKey) => (
+                            <SelectItem key={monthKey} value={monthKey}>
+                              {formatMonthLabel(monthKey)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                     <div className="text-3xl font-bold text-green-600 dark:text-green-400">
-                      {getCurrentMonthRevenue().toLocaleString('hu-HU')} Ft
+                      {getMonthRevenue(selectedRevenueMonth).toLocaleString('hu-HU')} Ft
                     </div>
                     <p className="text-sm text-muted-foreground mt-2">
-                      {animals.filter(a => {
+                      {selectedRevenueMonth && animals.filter(a => {
                         if (!a.cooling_date) return false;
                         const date = new Date(a.cooling_date);
-                        const now = new Date();
-                        return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
+                        const [year, month] = selectedRevenueMonth.split('-').map(Number);
+                        return date.getMonth() + 1 === month && date.getFullYear() === year;
                       }).length} állat hűtve ebben a hónapban
                     </p>
                     <div className="mt-4 pt-4 border-t">
@@ -1096,11 +1124,25 @@ const Dashboard = () => {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
+                    <div className="mb-4">
+                      <Select value={selectedCoolingMonth} onValueChange={setSelectedCoolingMonth}>
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Válasszon hónapot" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {getAvailableMonths().map((monthKey) => (
+                            <SelectItem key={monthKey} value={monthKey}>
+                              {formatMonthLabel(monthKey)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                     <div className="text-3xl font-bold text-purple-600 dark:text-purple-400">
-                      {getCurrentMonthCoolingRevenue().toLocaleString('hu-HU')} Ft
+                      {getMonthCoolingRevenue(selectedCoolingMonth).toLocaleString('hu-HU')} Ft
                     </div>
                     <p className="text-sm text-muted-foreground mt-2">
-                      Aktuális hónap hűtési díja
+                      Kiválasztott hónap hűtési díja
                     </p>
                     <div className="mt-4 pt-4 border-t">
                       <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
