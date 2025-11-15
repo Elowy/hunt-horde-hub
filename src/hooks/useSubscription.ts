@@ -2,9 +2,53 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 const PRO_PRODUCT_IDS = ["prod_TQMCsYuGXl2cqX", "prod_TQMCzW95I3TlPz"];
+const NORMAL_PRODUCT_IDS = ["prod_TQMCKFFwVc6lXT", "prod_TQMCwp0XrDYkOB"];
+
+export type SubscriptionTier = "free" | "normal" | "pro";
+
+export interface SubscriptionLimits {
+  maxStorageLocations: number | null; // null = unlimited
+  maxAnimals: number | null; // null = unlimited
+  canUseElectronicRegistration: boolean;
+  canManageHunters: boolean;
+  canSendInvitations: boolean;
+  canViewReports: boolean;
+  supportLevel: "none" | "medium" | "high";
+}
+
+const TIER_LIMITS: Record<SubscriptionTier, SubscriptionLimits> = {
+  free: {
+    maxStorageLocations: 1,
+    maxAnimals: 100,
+    canUseElectronicRegistration: false,
+    canManageHunters: false,
+    canSendInvitations: false,
+    canViewReports: false,
+    supportLevel: "none",
+  },
+  normal: {
+    maxStorageLocations: null,
+    maxAnimals: null,
+    canUseElectronicRegistration: false,
+    canManageHunters: false,
+    canSendInvitations: false,
+    canViewReports: true,
+    supportLevel: "medium",
+  },
+  pro: {
+    maxStorageLocations: null,
+    maxAnimals: null,
+    canUseElectronicRegistration: true,
+    canManageHunters: true,
+    canSendInvitations: true,
+    canViewReports: true,
+    supportLevel: "high",
+  },
+};
 
 export const useSubscription = () => {
   const [loading, setLoading] = useState(true);
+  const [tier, setTier] = useState<SubscriptionTier>("free");
   const [isPro, setIsPro] = useState(false);
   const [productId, setProductId] = useState<string | null>(null);
 
@@ -34,6 +78,7 @@ export const useSubscription = () => {
         
         if (expiresAt > now) {
           setProductId("trial_pro");
+          setTier("pro"); // Trial is always pro tier
           setIsPro(true);
           setLoading(false);
           return;
@@ -49,7 +94,19 @@ export const useSubscription = () => {
 
       if (lifetimeData) {
         setProductId(lifetimeData.tier);
-        setIsPro(lifetimeData.tier === "pro");
+        
+        // Determine tier for lifetime subscriptions
+        if (lifetimeData.tier === "pro") {
+          setTier("pro");
+          setIsPro(true);
+        } else if (lifetimeData.tier === "normal") {
+          setTier("normal");
+          setIsPro(false);
+        } else {
+          setTier("free");
+          setIsPro(false);
+        }
+        
         setLoading(false);
         return;
       }
@@ -62,14 +119,35 @@ export const useSubscription = () => {
       if (error) throw error;
 
       setProductId(data.product_id);
-      setIsPro(data.product_id === "pro" || PRO_PRODUCT_IDS.includes(data.product_id));
+      
+      // Determine tier based on product_id
+      if (data.product_id === "pro" || PRO_PRODUCT_IDS.includes(data.product_id)) {
+        setTier("pro");
+        setIsPro(true);
+      } else if (NORMAL_PRODUCT_IDS.includes(data.product_id)) {
+        setTier("normal");
+        setIsPro(false);
+      } else {
+        setTier("free");
+        setIsPro(false);
+      }
     } catch (error) {
       console.error("Error checking subscription:", error);
+      setTier("free");
       setIsPro(false);
     } finally {
       setLoading(false);
     }
   };
 
-  return { isPro, loading, productId, checkSubscription };
+  const limits = TIER_LIMITS[tier];
+
+  return { 
+    isPro, 
+    loading, 
+    productId, 
+    tier,
+    limits,
+    checkSubscription 
+  };
 };

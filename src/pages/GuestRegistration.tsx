@@ -14,9 +14,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, Ban, CheckCircle } from "lucide-react";
+import { CalendarIcon, Ban, CheckCircle, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useSubscription } from "@/hooks/useSubscription";
 
 const formSchema = z.object({
   guest_name: z.string().min(1, "A név megadása kötelező").max(100, "A név maximum 100 karakter lehet"),
@@ -38,6 +39,7 @@ export default function GuestRegistration() {
   const [huntingLocations, setHuntingLocations] = useState<any[]>([]);
   const [closures, setClosures] = useState<any[]>([]);
   const [submitted, setSubmitted] = useState(false);
+  const { limits, loading: subscriptionLoading } = useSubscription();
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -130,7 +132,43 @@ export default function GuestRegistration() {
     }
   };
 
-  if (submitted) {
+  if (subscriptionLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <p className="text-muted-foreground">Betöltés...</p>
+      </div>
+    );
+  }
+
+  if (!limits.canUseElectronicRegistration) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-forest-deep to-earth-warm flex items-center justify-center p-4">
+        <Card className="max-w-2xl w-full">
+          <CardHeader>
+            <CardTitle className="text-3xl text-center text-forest-deep">Nincs hozzáférés</CardTitle>
+            <CardDescription className="text-center text-lg">
+              Az elektronikus beiratkozási rendszer csak Pro előfizetéssel érhető el.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Pro funkció</AlertTitle>
+              <AlertDescription>
+                Az elektronikus beiratkozási rendszer és vendég vadászok kezelése csak Pro előfizetéssel érhető el. 
+                Váltson Pro előfizetésre ezen funkciók használatához!
+              </AlertDescription>
+            </Alert>
+            <div className="mt-6 flex justify-center">
+              <Button onClick={() => navigate("/subscriptions")}>
+                Előfizetések megtekintése
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
     return (
       <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-b from-background to-muted">
         <Card className="max-w-md w-full">
