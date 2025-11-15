@@ -502,6 +502,22 @@ const HuntingRegistrations = () => {
         .eq("id", regId);
 
       if (error) throw error;
+
+      // Send email notification about approval
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          await supabase.functions.invoke("send-registration-approval", {
+            body: {
+              registrationId: regId,
+            },
+          });
+        }
+      } catch (emailError) {
+        console.error("Error sending approval email:", emailError);
+        // Don't fail the approval if email fails
+      }
+
       toast({ title: "Siker!", description: "Beiratkozás jóváhagyva!" });
       fetchRegistrations();
     } catch (error: any) {
