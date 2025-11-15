@@ -62,6 +62,11 @@ interface SecurityZone {
   } | null;
 }
 
+interface Hunter {
+  id: string;
+  contact_name: string | null;
+}
+
 interface PriceSetting {
   species: string;
   class: string;
@@ -80,6 +85,8 @@ export const EditAnimalDialog = ({ animal, locations, onAnimalUpdated }: EditAni
   const [loading, setLoading] = useState(false);
   const [priceSettings, setPriceSettings] = useState<PriceSetting[]>([]);
   const [securityZones, setSecurityZones] = useState<SecurityZone[]>([]);
+  const [hunters, setHunters] = useState<Hunter[]>([]);
+  const [isCustomHunter, setIsCustomHunter] = useState(false);
   const [vatRate, setVatRate] = useState<number>(27);
   const [calculatedPrice, setCalculatedPrice] = useState<{ net: number; gross: number }>({ net: 0, gross: 0 });
   const [formData, setFormData] = useState({
@@ -131,9 +138,19 @@ export const EditAnimalDialog = ({ animal, locations, onAnimalUpdated }: EditAni
         vet_doctor_name: animal.vet_doctor_name || "",
         vet_result: animal.vet_result || "",
       });
+      
       fetchSecurityZones();
+      fetchHunters();
     }
   }, [open, animal]);
+
+  // Check if hunter is custom after hunters are loaded
+  useEffect(() => {
+    if (open && hunters.length > 0 && animal.hunter_name) {
+      const hunterExists = hunters.find(h => h.contact_name === animal.hunter_name);
+      setIsCustomHunter(!hunterExists);
+    }
+  }, [hunters, animal.hunter_name, open]);
 
   useEffect(() => {
     if (open) {
@@ -198,6 +215,40 @@ export const EditAnimalDialog = ({ animal, locations, onAnimalUpdated }: EditAni
       setSecurityZones(data || []);
     } catch (error: any) {
       console.error("Error fetching security zones:", error);
+    }
+  };
+
+  const fetchHunters = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Get hunter user IDs from user_roles
+      const { data: hunterRoles, error: rolesError } = await supabase
+        .from("user_roles")
+        .select("user_id")
+        .eq("role", "hunter");
+
+      if (rolesError) throw rolesError;
+
+      if (!hunterRoles || hunterRoles.length === 0) {
+        setHunters([]);
+        return;
+      }
+
+      const hunterIds = hunterRoles.map(r => r.user_id);
+
+      // Get profiles for these hunters
+      const { data: profiles, error: profilesError } = await supabase
+        .from("profiles")
+        .select("id, contact_name")
+        .in("id", hunterIds)
+        .not("contact_name", "is", null);
+
+      if (profilesError) throw profilesError;
+      setHunters(profiles || []);
+    } catch (error: any) {
+      console.error("Error fetching hunters:", error);
     }
   };
 
@@ -456,12 +507,42 @@ export const EditAnimalDialog = ({ animal, locations, onAnimalUpdated }: EditAni
 
             <div className="space-y-2">
               <Label htmlFor="hunter_name">Vadász neve</Label>
-              <Input
-                id="hunter_name"
-                value={formData.hunter_name}
-                onChange={(e) => setFormData({ ...formData, hunter_name: e.target.value })}
+              <Select
+                value={isCustomHunter ? "custom" : formData.hunter_name}
+                onValueChange={(value) => {
+                  if (value === "custom") {
+                    setIsCustomHunter(true);
+                    setFormData({ ...formData, hunter_name: "" });
+                  } else {
+                    setIsCustomHunter(false);
+                    setFormData({ ...formData, hunter_name: value });
+                  }
+                }}
                 disabled={loading}
-              />
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Válasszon vadászt..." />
+                </SelectTrigger>
+                <SelectContent className="bg-popover z-50">
+                  {hunters.map((hunter) => (
+                    <SelectItem key={hunter.id} value={hunter.contact_name || ""}>
+                      {hunter.contact_name}
+                    </SelectItem>
+                  ))}
+                  <SelectItem value="custom">Egyéb (kézi megadás)</SelectItem>
+                </SelectContent>
+              </Select>
+              
+              {isCustomHunter && (
+                <Input
+                  id="hunter_name_custom"
+                  value={formData.hunter_name}
+                  onChange={(e) => setFormData({ ...formData, hunter_name: e.target.value })}
+                  disabled={loading}
+                  placeholder="Adja meg a vadász nevét"
+                  className="mt-2"
+                />
+              )}
             </div>
 
             <div className="space-y-2">

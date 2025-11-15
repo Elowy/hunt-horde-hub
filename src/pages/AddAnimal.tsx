@@ -26,6 +26,11 @@ interface SecurityZone {
   } | null;
 }
 
+interface Hunter {
+  id: string;
+  contact_name: string | null;
+}
+
 interface PriceSetting {
   species: string;
   class: string;
@@ -37,6 +42,8 @@ const AddAnimal = () => {
   const { toast } = useToast();
   const [locations, setLocations] = useState<StorageLocation[]>([]);
   const [securityZones, setSecurityZones] = useState<SecurityZone[]>([]);
+  const [hunters, setHunters] = useState<Hunter[]>([]);
+  const [isCustomHunter, setIsCustomHunter] = useState(false);
   const [priceSettings, setPriceSettings] = useState<PriceSetting[]>([]);
   const [vatRate, setVatRate] = useState<number>(27);
   const [calculatedPrice, setCalculatedPrice] = useState<{ net: number; gross: number }>({ net: 0, gross: 0 });
@@ -68,6 +75,7 @@ const AddAnimal = () => {
     fetchPriceSettings();
     fetchVatRate();
     fetchSecurityZones();
+    fetchHunters();
   }, []);
 
   const checkAuth = async () => {
@@ -173,6 +181,40 @@ const AddAnimal = () => {
       setSecurityZones(data || []);
     } catch (error: any) {
       console.error("Error fetching security zones:", error);
+    }
+  };
+
+  const fetchHunters = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Get hunter user IDs from user_roles
+      const { data: hunterRoles, error: rolesError } = await supabase
+        .from("user_roles")
+        .select("user_id")
+        .eq("role", "hunter");
+
+      if (rolesError) throw rolesError;
+
+      if (!hunterRoles || hunterRoles.length === 0) {
+        setHunters([]);
+        return;
+      }
+
+      const hunterIds = hunterRoles.map(r => r.user_id);
+
+      // Get profiles for these hunters
+      const { data: profiles, error: profilesError } = await supabase
+        .from("profiles")
+        .select("id, contact_name")
+        .in("id", hunterIds)
+        .not("contact_name", "is", null);
+
+      if (profilesError) throw profilesError;
+      setHunters(profiles || []);
+    } catch (error: any) {
+      console.error("Error fetching hunters:", error);
     }
   };
 
@@ -453,12 +495,40 @@ const AddAnimal = () => {
 
                     <div className="space-y-2">
                       <Label htmlFor="hunterName">Vadász Neve</Label>
-                      <Input
-                        id="hunterName"
-                        value={formData.hunterName}
-                        onChange={(e) => handleInputChange("hunterName", e.target.value)}
-                        placeholder="pl. Kovács János"
-                      />
+                      <Select 
+                        value={isCustomHunter ? "custom" : formData.hunterName} 
+                        onValueChange={(value) => {
+                          if (value === "custom") {
+                            setIsCustomHunter(true);
+                            handleInputChange("hunterName", "");
+                          } else {
+                            setIsCustomHunter(false);
+                            handleInputChange("hunterName", value);
+                          }
+                        }}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Válasszon vadászt..." />
+                        </SelectTrigger>
+                        <SelectContent className="bg-popover z-50">
+                          {hunters.map((hunter) => (
+                            <SelectItem key={hunter.id} value={hunter.contact_name || ""}>
+                              {hunter.contact_name}
+                            </SelectItem>
+                          ))}
+                          <SelectItem value="custom">Egyéb (kézi megadás)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      
+                      {isCustomHunter && (
+                        <Input
+                          id="hunterNameCustom"
+                          value={formData.hunterName}
+                          onChange={(e) => handleInputChange("hunterName", e.target.value)}
+                          placeholder="Adja meg a vadász nevét"
+                          className="mt-2"
+                        />
+                      )}
                     </div>
 
                     <div className="space-y-2">
