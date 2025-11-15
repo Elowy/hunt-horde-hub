@@ -30,6 +30,7 @@ interface SecurityZone {
 interface Hunter {
   id: string;
   contact_name: string | null;
+  hunter_category: string | null;
 }
 
 interface PriceSetting {
@@ -211,7 +212,7 @@ const AddAnimal = () => {
       // Get profiles for these hunters
       const { data: profiles, error: profilesError } = await supabase
         .from("profiles")
-        .select("id, contact_name")
+        .select("id, contact_name, hunter_category")
         .in("id", hunterIds)
         .not("contact_name", "is", null);
 
@@ -220,6 +221,19 @@ const AddAnimal = () => {
     } catch (error: any) {
       console.error("Error fetching hunters:", error);
     }
+  };
+
+  const getHunterCategoryDisplay = (category: string | null): string => {
+    if (!category) return "";
+    const categoryMap: { [key: string]: string } = {
+      "tag": "Tag",
+      "vendeg": "Vendég",
+      "bervadasz": "Bérvadász",
+      "ib_vendeg": "IB Vendég",
+      "trofeas_vadasz": "Trófeás vadász",
+      "egyeb": "Egyéb"
+    };
+    return categoryMap[category] || category;
   };
 
   const calculatePrice = () => {
@@ -531,9 +545,15 @@ const AddAnimal = () => {
                           if (value === "custom") {
                             setIsCustomHunter(true);
                             handleInputChange("hunterName", "");
+                            handleInputChange("hunterType", "");
                           } else {
                             setIsCustomHunter(false);
                             handleInputChange("hunterName", value);
+                            // Automatikusan állítsa be a vadász típust
+                            const selectedHunter = hunters.find(h => h.contact_name === value);
+                            if (selectedHunter?.hunter_category) {
+                              handleInputChange("hunterType", getHunterCategoryDisplay(selectedHunter.hunter_category));
+                            }
                           }
                         }}
                       >
@@ -543,7 +563,7 @@ const AddAnimal = () => {
                         <SelectContent className="bg-popover z-50">
                           {hunters.map((hunter) => (
                             <SelectItem key={hunter.id} value={hunter.contact_name || ""}>
-                              {hunter.contact_name}
+                              {hunter.contact_name} - {getHunterCategoryDisplay(hunter.hunter_category)}
                             </SelectItem>
                           ))}
                           <SelectItem value="custom">Egyéb (kézi megadás)</SelectItem>

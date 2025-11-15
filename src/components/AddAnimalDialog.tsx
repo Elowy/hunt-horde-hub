@@ -36,6 +36,7 @@ interface SecurityZone {
 interface Hunter {
   id: string;
   contact_name: string | null;
+  hunter_category: string | null;
 }
 
 interface PriceSetting {
@@ -213,7 +214,7 @@ export const AddAnimalDialog = ({ onAnimalAdded }: AddAnimalDialogProps) => {
 
       const { data: profiles, error: profilesError } = await supabase
         .from("profiles")
-        .select("id, contact_name")
+        .select("id, contact_name, hunter_category")
         .in("id", hunterIds)
         .not("contact_name", "is", null);
 
@@ -222,6 +223,19 @@ export const AddAnimalDialog = ({ onAnimalAdded }: AddAnimalDialogProps) => {
     } catch (error: any) {
       console.error("Error fetching hunters:", error);
     }
+  };
+
+  const getHunterCategoryDisplay = (category: string | null): string => {
+    if (!category) return "";
+    const categoryMap: { [key: string]: string } = {
+      "tag": "Tag",
+      "vendeg": "Vendég",
+      "bervadasz": "Bérvadász",
+      "ib_vendeg": "IB Vendég",
+      "trofeas_vadasz": "Trófeás vadász",
+      "egyeb": "Egyéb"
+    };
+    return categoryMap[category] || category;
   };
 
   const calculatePrice = () => {
@@ -583,7 +597,14 @@ export const AddAnimalDialog = ({ onAnimalAdded }: AddAnimalDialogProps) => {
                     ) : (
                       <Select 
                         value={formData.hunterName} 
-                        onValueChange={(value) => handleInputChange("hunterName", value)}
+                        onValueChange={(value) => {
+                          handleInputChange("hunterName", value);
+                          // Automatikusan állítsuk be a vadász típust
+                          const selectedHunter = hunters.find(h => h.contact_name === value);
+                          if (selectedHunter?.hunter_category) {
+                            handleInputChange("hunterType", selectedHunter.hunter_category);
+                          }
+                        }}
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Válasszon vadászt" />
@@ -591,7 +612,7 @@ export const AddAnimalDialog = ({ onAnimalAdded }: AddAnimalDialogProps) => {
                         <SelectContent>
                           {hunters.map((hunter) => (
                             <SelectItem key={hunter.id} value={hunter.contact_name || ""}>
-                              {hunter.contact_name}
+                              {hunter.contact_name} - {getHunterCategoryDisplay(hunter.hunter_category)}
                             </SelectItem>
                           ))}
                         </SelectContent>
