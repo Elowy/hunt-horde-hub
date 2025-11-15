@@ -26,6 +26,7 @@ export type Database = {
           gender: string | null
           hunter_name: string | null
           hunter_type: string | null
+          hunting_registration_id: string | null
           id: string
           is_transported: boolean | null
           notes: string | null
@@ -55,6 +56,7 @@ export type Database = {
           gender?: string | null
           hunter_name?: string | null
           hunter_type?: string | null
+          hunting_registration_id?: string | null
           id?: string
           is_transported?: boolean | null
           notes?: string | null
@@ -84,6 +86,7 @@ export type Database = {
           gender?: string | null
           hunter_name?: string | null
           hunter_type?: string | null
+          hunting_registration_id?: string | null
           id?: string
           is_transported?: boolean | null
           notes?: string | null
@@ -103,6 +106,13 @@ export type Database = {
           weight?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "animals_hunting_registration_id_fkey"
+            columns: ["hunting_registration_id"]
+            isOneToOne: false
+            referencedRelation: "hunting_registrations"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "animals_security_zone_id_fkey"
             columns: ["security_zone_id"]
