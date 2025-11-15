@@ -36,7 +36,7 @@ const handler = async (req: Request): Promise<Response> => {
     // Get invitation details
     const { data: invitation, error: inviteError } = await supabase
       .from("invitations")
-      .select("*, profiles:invited_by(company_name)")
+      .select("*")
       .eq("email", email)
       .order("created_at", { ascending: false })
       .limit(1)
@@ -47,7 +47,14 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error("Nem található meghívó");
     }
 
-    const companyName = invitation.profiles?.company_name || "Vadásztársaság";
+    // Get company name from profiles
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("company_name")
+      .eq("id", invitation.invited_by)
+      .single();
+
+    const companyName = profile?.company_name || "Vadásztársaság";
     const registrationUrl = `${Deno.env.get("SUPABASE_URL")?.replace("/v1", "")}/register`;
 
     // Send email using Resend
