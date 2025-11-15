@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Plus, Calendar, Clock, MapPin, CheckCircle, XCircle, AlertCircle, Crown, Package } from "lucide-react";
+import { ArrowLeft, Plus, Calendar, Clock, MapPin, CheckCircle, XCircle, AlertCircle, Crown, Package, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -21,6 +21,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { format } from "date-fns";
 import { hu } from "date-fns/locale";
 import { AssignAnimalToRegistrationDialog } from "@/components/AssignAnimalToRegistrationDialog";
@@ -312,6 +313,7 @@ const HuntingRegistrations = () => {
       return;
     }
 
+
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
@@ -323,7 +325,10 @@ const HuntingRegistrations = () => {
         end_time: endTime.toISOString(),
       };
 
-      if (isAdmin && formData.selected_user_id) {
+      // Check if admin/editor is creating the registration
+      const isAdminOrEditorCreating = isAdmin || isEditor;
+
+      if ((isAdmin || isEditor) && formData.selected_user_id) {
         // Check if it's a hired hunter (starts with "hired-")
         if (formData.selected_user_id.startsWith("hired-")) {
           const hiredHunterId = formData.selected_user_id.replace("hired-", "");
@@ -336,6 +341,12 @@ const HuntingRegistrations = () => {
         insertData.user_id = user.id;
       }
 
+      // If admin or editor is creating, automatically approve
+      if (isAdminOrEditorCreating) {
+        insertData.status = "approved";
+        insertData.requires_admin_approval = false;
+      }
+
       const { error } = await supabase
         .from("hunting_registrations")
         .insert(insertData);
@@ -344,7 +355,9 @@ const HuntingRegistrations = () => {
 
       toast({
         title: "Siker!",
-        description: "Beiratkozás rögzítve! Ellenőrzés alatt áll.",
+        description: isAdminOrEditorCreating 
+          ? "Beiratkozás rögzítve és jóváhagyva!"
+          : "Beiratkozás rögzítve! Ellenőrzés alatt áll.",
       });
 
       setFormData(getDefaultFormData());
@@ -357,13 +370,17 @@ const HuntingRegistrations = () => {
         variant: "destructive",
       });
     }
+
   };
 
   const handleApprove = async (regId: string) => {
     try {
       const { error } = await supabase
         .from("hunting_registrations")
-        .update({ status: "approved" })
+        .update({ 
+          status: "approved",
+          requires_admin_approval: false 
+        })
         .eq("id", regId);
 
       if (error) throw error;
@@ -749,21 +766,24 @@ const HuntingRegistrations = () => {
                     </p>
                   )}
                   {reg.animals && reg.animals.length > 0 && (
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2 text-sm font-medium">
+                    <Collapsible>
+                      <CollapsibleTrigger className="flex items-center gap-2 text-sm font-medium hover:underline">
+                        <ChevronDown className="h-4 w-4" />
                         <Package className="h-4 w-4" />
                         Hozzárendelt állatok ({reg.animals.length})
-                      </div>
-                      <div className="grid gap-2 pl-6">
-                        {reg.animals.map((animal) => (
-                          <div key={animal.id} className="text-sm bg-muted/50 p-2 rounded">
-                            <div><strong>Azonosító:</strong> {animal.animal_id}</div>
-                            <div><strong>Faj:</strong> {animal.species}</div>
-                            {animal.weight && <div><strong>Súly:</strong> {animal.weight} kg</div>}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent className="pt-2">
+                        <div className="grid gap-2 pl-6">
+                          {reg.animals.map((animal) => (
+                            <div key={animal.id} className="text-sm bg-muted/50 p-2 rounded">
+                              <div><strong>Azonosító:</strong> {animal.animal_id}</div>
+                              <div><strong>Faj:</strong> {animal.species}</div>
+                              {animal.weight && <div><strong>Súly:</strong> {animal.weight} kg</div>}
+                            </div>
+                          ))}
+                        </div>
+                      </CollapsibleContent>
+                    </Collapsible>
                   )}
                 </CardContent>
               </Card>
@@ -936,21 +956,24 @@ const HuntingRegistrations = () => {
                       </p>
                     )}
                     {reg.animals && reg.animals.length > 0 && (
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2 text-sm font-medium">
+                      <Collapsible>
+                        <CollapsibleTrigger className="flex items-center gap-2 text-sm font-medium hover:underline">
+                          <ChevronDown className="h-4 w-4" />
                           <Package className="h-4 w-4" />
                           Hozzárendelt állatok ({reg.animals.length})
-                        </div>
-                        <div className="grid gap-2 pl-6">
-                          {reg.animals.map((animal) => (
-                            <div key={animal.id} className="text-sm bg-muted/50 p-2 rounded">
-                              <div><strong>Azonosító:</strong> {animal.animal_id}</div>
-                              <div><strong>Faj:</strong> {animal.species}</div>
-                              {animal.weight && <div><strong>Súly:</strong> {animal.weight} kg</div>}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent className="pt-2">
+                          <div className="grid gap-2 pl-6">
+                            {reg.animals.map((animal) => (
+                              <div key={animal.id} className="text-sm bg-muted/50 p-2 rounded">
+                                <div><strong>Azonosító:</strong> {animal.animal_id}</div>
+                                <div><strong>Faj:</strong> {animal.species}</div>
+                                {animal.weight && <div><strong>Súly:</strong> {animal.weight} kg</div>}
+                              </div>
+                            ))}
+                          </div>
+                        </CollapsibleContent>
+                      </Collapsible>
                     )}
                   </CardContent>
                 </Card>
