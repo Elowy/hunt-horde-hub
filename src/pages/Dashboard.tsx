@@ -35,7 +35,6 @@ import { EditAnimalDialog } from "@/components/EditAnimalDialog";
 import { CreateTransportDialog } from "@/components/CreateTransportDialog";
 import { DashboardMenu } from "@/components/DashboardMenu";
 import { StorageLocationCarousel } from "@/components/StorageLocationCarousel";
-import { CoolingRevenueReport } from "@/components/CoolingRevenueReport";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import jsPDF from "jspdf";
 import * as XLSX from "xlsx";
@@ -905,12 +904,9 @@ const Dashboard = () => {
 
                 <Card>
                   <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-sm font-medium text-muted-foreground">
-                        Hűtési díj bevétel
-                      </CardTitle>
-                      <CoolingRevenueReport />
-                    </div>
+                    <CardTitle className="text-sm font-medium text-muted-foreground">
+                      Hűtési díj bevétel
+                    </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="text-3xl font-bold text-purple-600 dark:text-purple-400">
