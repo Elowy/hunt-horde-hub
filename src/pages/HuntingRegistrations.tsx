@@ -42,6 +42,12 @@ interface HunterUser {
   };
 }
 
+interface HiredHunter {
+  id: string;
+  name: string;
+  license_number: string | null;
+}
+
 interface Animal {
   id: string;
   animal_id: string;
@@ -76,6 +82,7 @@ const HuntingRegistrations = () => {
   const [registrations, setRegistrations] = useState<HuntingRegistration[]>([]);
   const [zones, setZones] = useState<SecurityZone[]>([]);
   const [hunters, setHunters] = useState<HunterUser[]>([]);
+  const [hiredHunters, setHiredHunters] = useState<HiredHunter[]>([]);
   const [loading, setLoading] = useState(true);
   const [isHunter, setIsHunter] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -103,6 +110,7 @@ const HuntingRegistrations = () => {
     checkUserRole();
     fetchZones();
     fetchHunters();
+    fetchHiredHunters();
     fetchRegistrations();
   }, []);
 
@@ -178,6 +186,24 @@ const HuntingRegistrations = () => {
 
         setHunters(huntersList);
       }
+    } catch (error: any) {
+      toast({
+        title: "Hiba",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const fetchHiredHunters = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("hired_hunters")
+        .select("id, name, license_number")
+        .order("name");
+
+      if (error) throw error;
+      setHiredHunters(data || []);
     } catch (error: any) {
       toast({
         title: "Hiba",
@@ -492,22 +518,28 @@ const HuntingRegistrations = () => {
                   </DialogHeader>
                   <div className="space-y-4">
                     {isAdmin && (
-                      <div className="space-y-2">
-                        <Label>Vadász kiválasztása *</Label>
-                        <Select value={formData.selected_user_id} onValueChange={(value) => setFormData({ ...formData, selected_user_id: value })}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Válasszon vadászt" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {hunters.map((hunter) => (
-                              <SelectItem key={hunter.id} value={hunter.id}>
-                                {hunter.profiles.contact_name || "Név nélkül"} 
-                                {hunter.profiles.hunter_license_number && ` (${hunter.profiles.hunter_license_number})`}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
+                    <div className="space-y-2">
+                      <Label>Vadász kiválasztása *</Label>
+                      <Select value={formData.selected_user_id} onValueChange={(value) => setFormData({ ...formData, selected_user_id: value })}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Válasszon vadászt" />
+                        </SelectTrigger>
+                        <SelectContent className="max-h-[300px]">
+                          {hiredHunters.map((hunter) => (
+                            <SelectItem key={`hired-${hunter.id}`} value={`hired-${hunter.id}`}>
+                              Bérvadász - {hunter.name}
+                              {hunter.license_number && ` (${hunter.license_number})`}
+                            </SelectItem>
+                          ))}
+                          {hunters.map((hunter) => (
+                            <SelectItem key={hunter.id} value={hunter.id}>
+                              {hunter.profiles.contact_name || "Név nélkül"} 
+                              {hunter.profiles.hunter_license_number && ` (${hunter.profiles.hunter_license_number})`}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                     )}
                     <div className="space-y-2">
                       <Label>Biztonsági körzet *</Label>
@@ -573,8 +605,11 @@ const HuntingRegistrations = () => {
 
       <div className="container mx-auto px-6 py-8">
         <Tabs defaultValue="active" className="space-y-6">
-          <TabsList className="grid w-full max-w-md grid-cols-2">
+          <TabsList className={`grid w-full ${isAdmin || isEditor ? 'max-w-2xl grid-cols-3' : 'max-w-md grid-cols-2'}`}>
             <TabsTrigger value="active">Aktív beiratkozások</TabsTrigger>
+            {(isAdmin || isEditor) && (
+              <TabsTrigger value="pending">Elfogadásra vár</TabsTrigger>
+            )}
             <TabsTrigger value="archive">Archív</TabsTrigger>
           </TabsList>
 
@@ -707,6 +742,88 @@ const HuntingRegistrations = () => {
           })
         )}
           </TabsContent>
+
+          {/* Elfogadásra váró beiratkozások */}
+          {(isAdmin || isEditor) && (
+            <TabsContent value="pending" className="space-y-4">
+              {loading ? (
+                <p>Betöltés...</p>
+              ) : registrations.filter(reg => reg.status === "pending" && reg.requires_admin_approval).length === 0 ? (
+                <Card>
+                  <CardContent className="p-6 text-center text-muted-foreground">
+                    Nincs elfogadásra váró beiratkozás.
+                  </CardContent>
+                </Card>
+              ) : (
+                registrations.filter(reg => reg.status === "pending" && reg.requires_admin_approval).map((reg) => (
+                  <Card key={reg.id}>
+                    <CardHeader>
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <CardTitle className="flex items-center gap-2">
+                            <MapPin className="h-5 w-5" />
+                            {reg.security_zones.name}
+                          </CardTitle>
+                          <CardDescription className="mt-2 space-y-2">
+                            <div className="flex items-center gap-4 text-sm">
+                              <span>
+                                <Calendar className="h-4 w-4 inline mr-1" />
+                                {format(new Date(reg.start_time), "yyyy. MM. dd. HH:mm", { locale: hu })}
+                              </span>
+                              <span>-</span>
+                              <span>
+                                {format(new Date(reg.end_time), "yyyy. MM. dd. HH:mm", { locale: hu })}
+                              </span>
+                            </div>
+                            <div className="text-sm space-y-1 mt-2">
+                              <div><strong>Vadász:</strong> {reg.profiles.contact_name || "Névtelen"}</div>
+                              {reg.profiles.contact_phone && (
+                                <div><strong>Telefon:</strong> {reg.profiles.contact_phone}</div>
+                              )}
+                              {reg.profiles.hunter_license_number && (
+                                <div><strong>Vadászjegy:</strong> {reg.profiles.hunter_license_number}</div>
+                              )}
+                              <div className="text-xs text-muted-foreground">
+                                Beiratkozva: {format(new Date(reg.created_at), "yyyy. MM. dd. HH:mm", { locale: hu })}
+                              </div>
+                            </div>
+                          </CardDescription>
+                        </div>
+                        <div className="flex flex-col gap-2 items-end">
+                          {getStatusBadge(reg)}
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleApprove(reg.id)}
+                            >
+                              <CheckCircle className="h-4 w-4 mr-1" />
+                              Jóváhagy
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleReject(reg.id)}
+                            >
+                              <XCircle className="h-4 w-4 mr-1" />
+                              Elutasít
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    {reg.admin_note && (
+                      <CardContent>
+                        <p className="text-sm text-muted-foreground">
+                          <strong>Admin megjegyzés:</strong> {reg.admin_note}
+                        </p>
+                      </CardContent>
+                    )}
+                  </Card>
+                ))
+              )}
+            </TabsContent>
+          )}
 
           {/* Archív beiratkozások */}
           <TabsContent value="archive" className="space-y-4">

@@ -165,6 +165,42 @@ export type Database = {
         }
         Relationships: []
       }
+      hired_hunters: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+          license_number: string | null
+          name: string
+          notes: string | null
+          phone: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          license_number?: string | null
+          name: string
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          license_number?: string | null
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       hunting_registrations: {
         Row: {
           admin_note: string | null

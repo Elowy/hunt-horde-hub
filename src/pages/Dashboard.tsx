@@ -111,6 +111,7 @@ const Dashboard = () => {
   const [showTransportDialog, setShowTransportDialog] = useState(false);
   const [transportDocuments, setTransportDocuments] = useState<Record<string, string>>({});
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isEditor, setIsEditor] = useState(false);
   const [isHunter, setIsHunter] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [showLocations, setShowLocations] = useState(true);
@@ -137,6 +138,16 @@ const Dashboard = () => {
       .maybeSingle();
 
     setIsAdmin(!!adminRole);
+
+    // Check if user is editor
+    const { data: editorRole } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", user.id)
+      .eq("role", "editor")
+      .maybeSingle();
+
+    setIsEditor(!!editorRole);
 
     // Check if user is hunter
     const { data: hunterRole } = await supabase
@@ -784,6 +795,7 @@ const Dashboard = () => {
           </div>
           <DashboardMenu 
             isAdmin={isAdmin}
+            isEditor={isEditor}
             onLogout={handleLogout}
             onPriceUpdated={fetchData}
           />
