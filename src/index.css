@@ -153,3 +153,14 @@
     box-shadow: none;
   }
 }
+
+/* Carousel smooth scrolling */
+.touch-pan-x {
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+  cursor: grab;
+}
+
+.touch-pan-x:active {
+  cursor: grabbing;
+}

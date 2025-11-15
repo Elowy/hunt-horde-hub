@@ -33,6 +33,7 @@ import { ViewAnimalDialog } from "@/components/ViewAnimalDialog";
 import { EditAnimalDialog } from "@/components/EditAnimalDialog";
 import { CreateTransportDialog } from "@/components/CreateTransportDialog";
 import { DashboardMenu } from "@/components/DashboardMenu";
+import { StorageLocationCarousel } from "@/components/StorageLocationCarousel";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import jsPDF from "jspdf";
 import * as XLSX from "xlsx";
@@ -748,72 +749,13 @@ const Dashboard = () => {
               </CardContent>
             </Card>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {locations.map((location) => {
-                const stats = getLocationStats(location.id);
-                return (
-                  <Card key={location.id} className={location.is_default ? "border-accent border-2" : ""}>
-                    <CardHeader className="pb-3">
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-center gap-2">
-                          <MapPin className="h-5 w-5 text-accent" />
-                          <CardTitle className="text-lg">{location.name}</CardTitle>
-                          {location.is_default && (
-                            <Badge variant="outline" className="text-accent border-accent">
-                              Alapértelmezett
-                            </Badge>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-1">
-                          {!location.is_default && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleSetDefaultLocation(location.id)}
-                              className="h-8 w-8 p-0"
-                            >
-                              <Star className="h-4 w-4 text-muted-foreground hover:text-accent" />
-                            </Button>
-                          )}
-                          <EditStorageLocationDialog location={location} onLocationUpdated={fetchData} />
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDeleteLocation(location.id)}
-                            className="h-8 w-8 p-0"
-                          >
-                            <Trash2 className="h-4 w-4 text-muted-foreground hover:text-destructive" />
-                          </Button>
-                        </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="space-y-2">
-                      {location.address && (
-                        <p className="text-sm text-muted-foreground">{location.address}</p>
-                      )}
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Teljes havi hűtési érték:</span>
-                        <span className="font-semibold">{stats.monthlyCoolingValue.toLocaleString("hu-HU")} Ft</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Jelenlegi bentlévő:</span>
-                        <span className="font-semibold">{stats.currentCount} db</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Havi elszállított:</span>
-                        <span className="font-semibold">{stats.monthlyShipped} db</span>
-                      </div>
-                      {location.capacity && (
-                        <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">Kapacitás:</span>
-                          <span className="font-semibold">{location.capacity} db</span>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
+            <StorageLocationCarousel
+              locations={locations}
+              getLocationStats={getLocationStats}
+              onSetDefault={handleSetDefaultLocation}
+              onDelete={handleDeleteLocation}
+              onLocationUpdated={fetchData}
+            />
           )}
         </div>
 
