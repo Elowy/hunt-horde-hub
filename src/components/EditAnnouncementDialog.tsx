@@ -26,12 +26,14 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { format } from "date-fns";
 
 interface Announcement {
   id: string;
   title: string;
   content: string;
   user_id: string;
+  expires_at: string | null;
 }
 
 interface EditAnnouncementDialogProps {
@@ -43,6 +45,11 @@ export const EditAnnouncementDialog = ({ announcement, onSuccess }: EditAnnounce
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState(announcement.title);
   const [content, setContent] = useState(announcement.content);
+  const [expiresAt, setExpiresAt] = useState(
+    announcement.expires_at 
+      ? format(new Date(announcement.expires_at), "yyyy-MM-dd'T'HH:mm")
+      : ""
+  );
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -50,13 +57,14 @@ export const EditAnnouncementDialog = ({ announcement, onSuccess }: EditAnnounce
     setLoading(true);
 
     try {
-      const { error } = await supabase
-        .from("announcements")
-        .update({
-          title,
-          content,
-        })
-        .eq("id", announcement.id);
+    const { error } = await supabase
+      .from("announcements")
+      .update({
+        title,
+        content,
+        expires_at: expiresAt || null,
+      })
+      .eq("id", announcement.id);
 
       if (error) throw error;
 
@@ -125,6 +133,19 @@ export const EditAnnouncementDialog = ({ announcement, onSuccess }: EditAnnounce
                   rows={6}
                   required
                 />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-expiresAt">Lejárati időpont (opcionális)</Label>
+                <Input
+                  id="edit-expiresAt"
+                  type="datetime-local"
+                  value={expiresAt}
+                  onChange={(e) => setExpiresAt(e.target.value)}
+                  min={format(new Date(), "yyyy-MM-dd'T'HH:mm")}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Ha nincs megadva, a hír határozatlan ideig aktív marad
+                </p>
               </div>
             </div>
             <DialogFooter>
