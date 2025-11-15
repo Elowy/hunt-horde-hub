@@ -206,6 +206,7 @@ export type Database = {
           admin_note: string | null
           created_at: string
           end_time: string
+          hired_hunter_id: string | null
           id: string
           requires_admin_approval: boolean
           security_zone_id: string
@@ -218,6 +219,7 @@ export type Database = {
           admin_note?: string | null
           created_at?: string
           end_time: string
+          hired_hunter_id?: string | null
           id?: string
           requires_admin_approval?: boolean
           security_zone_id: string
@@ -230,6 +232,7 @@ export type Database = {
           admin_note?: string | null
           created_at?: string
           end_time?: string
+          hired_hunter_id?: string | null
           id?: string
           requires_admin_approval?: boolean
           security_zone_id?: string
@@ -239,6 +242,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "hunting_registrations_hired_hunter_id_fkey"
+            columns: ["hired_hunter_id"]
+            isOneToOne: false
+            referencedRelation: "hired_hunters"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "hunting_registrations_security_zone_id_fkey"
             columns: ["security_zone_id"]

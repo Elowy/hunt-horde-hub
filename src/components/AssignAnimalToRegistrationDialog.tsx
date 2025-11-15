@@ -18,10 +18,19 @@ interface Animal {
 
 interface AssignAnimalToRegistrationDialogProps {
   registrationId: string;
+  isHiredHunter: boolean;
+  hunterName: string | null;
+  registrationSecurityZoneId: string;
   onAnimalAssigned: () => void;
 }
 
-export const AssignAnimalToRegistrationDialog = ({ registrationId, onAnimalAssigned }: AssignAnimalToRegistrationDialogProps) => {
+export const AssignAnimalToRegistrationDialog = ({ 
+  registrationId,
+  isHiredHunter,
+  hunterName,
+  registrationSecurityZoneId,
+  onAnimalAssigned 
+}: AssignAnimalToRegistrationDialogProps) => {
   const [open, setOpen] = useState(false);
   const [animals, setAnimals] = useState<Animal[]>([]);
   const [selectedAnimalId, setSelectedAnimalId] = useState("");
@@ -65,9 +74,19 @@ export const AssignAnimalToRegistrationDialog = ({ registrationId, onAnimalAssig
 
     try {
       setLoading(true);
+      
+      // Determine hunter type
+      const hunterType = isHiredHunter ? "bérvadász" : "tag";
+      
+      // Update animal with registration data
       const { error } = await supabase
         .from("animals")
-        .update({ hunting_registration_id: registrationId })
+        .update({ 
+          hunting_registration_id: registrationId,
+          hunter_name: hunterName || "Névtelen",
+          hunter_type: hunterType,
+          security_zone_id: registrationSecurityZoneId
+        })
         .eq("id", selectedAnimalId);
 
       if (error) throw error;
