@@ -411,9 +411,12 @@ export const EditAnimalDialog = ({ animal, locations, onAnimalUpdated }: EditAni
                   <SelectValue placeholder="Válasszon..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="🦌 Szarvas">🦌 Szarvas</SelectItem>
-                  <SelectItem value="🐗 Vaddisznó">🐗 Vaddisznó</SelectItem>
                   <SelectItem value="🐏 Őz">🐏 Őz</SelectItem>
+                  <SelectItem value="🦌 Dám Szarvas">🦌 Dám Szarvas</SelectItem>
+                  <SelectItem value="🦌 Szika Szarvas">🦌 Szika Szarvas</SelectItem>
+                  <SelectItem value="🦌 Gím Szarvas">🦌 Gím Szarvas</SelectItem>
+                  <SelectItem value="🐗 Vaddisznó">🐗 Vaddisznó</SelectItem>
+                  <SelectItem value="🐏 Muflon">🐏 Muflon</SelectItem>
                 </SelectContent>
               </Select>
             </div>
