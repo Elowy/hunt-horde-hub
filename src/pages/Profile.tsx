@@ -259,16 +259,13 @@ const Profile = () => {
   const handleDeleteAccount = async () => {
     try {
       setDeletingAccount(true);
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
 
-      // Delete user's profile (will cascade delete all related data due to foreign key constraints)
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .delete()
-        .eq("id", user.id);
+      // Call the edge function to delete the entire account
+      const { error } = await supabase.functions.invoke('delete-user-account', {
+        method: 'POST',
+      });
 
-      if (profileError) throw profileError;
+      if (error) throw error;
 
       toast({
         title: "Fiók törölve",
