@@ -72,14 +72,22 @@ const HuntingRegistrations = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [formData, setFormData] = useState({
-    security_zone_id: "",
-    start_date: "",
-    start_time: "",
-    end_date: "",
-    end_time: "",
-    selected_user_id: "",
-  });
+  
+  const getDefaultFormData = () => {
+    const now = new Date();
+    const endTime = new Date(now.getTime() + 12 * 60 * 60 * 1000); // 12 hours later
+    
+    return {
+      security_zone_id: "",
+      start_date: format(now, "yyyy-MM-dd"),
+      start_time: format(now, "HH:mm"),
+      end_date: format(endTime, "yyyy-MM-dd"),
+      end_time: format(endTime, "HH:mm"),
+      selected_user_id: "",
+    };
+  };
+  
+  const [formData, setFormData] = useState(getDefaultFormData());
 
   useEffect(() => {
     checkUserRole();
@@ -269,14 +277,7 @@ const HuntingRegistrations = () => {
         description: "Beiratkozás rögzítve! Ellenőrzés alatt áll.",
       });
 
-      setFormData({
-        security_zone_id: "",
-        start_date: "",
-        start_time: "",
-        end_date: "",
-        end_time: "",
-        selected_user_id: "",
-      });
+      setFormData(getDefaultFormData());
       setDialogOpen(false);
       fetchRegistrations();
     } catch (error: any) {
