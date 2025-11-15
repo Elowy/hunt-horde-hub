@@ -20,6 +20,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format } from "date-fns";
 import { hu } from "date-fns/locale";
 
@@ -168,14 +169,14 @@ const HuntingRegistrations = () => {
     try {
       setLoading(true);
       
-      // Fetch registrations with security zones
+      // Fetch registrations with security zones, ordered by creation date (newest first)
       const { data: registrationsData, error: registrationsError } = await supabase
         .from("hunting_registrations")
         .select(`
           *,
           security_zones (name)
         `)
-        .order("start_time", { ascending: false });
+        .order("created_at", { ascending: false });
 
       if (registrationsError) throw registrationsError;
 
@@ -545,18 +546,37 @@ const HuntingRegistrations = () => {
       </div>
 
       <div className="container mx-auto px-6 py-8">
-        <div className="space-y-4">
-          {loading ? (
-            <p>Betöltés...</p>
-          ) : registrations.length === 0 ? (
-            <Card>
-              <CardContent className="p-6 text-center text-muted-foreground">
-                Még nincs beiratkozás rögzítve.
-              </CardContent>
-            </Card>
-          ) : (
-            registrations.map((reg) => {
-              const isOwnRegistration = currentUserId === reg.user_id;
+        <Tabs defaultValue="active" className="space-y-6">
+          <TabsList className="grid w-full max-w-md grid-cols-2">
+            <TabsTrigger value="active">Aktív beiratkozások</TabsTrigger>
+            <TabsTrigger value="archive">Archív</TabsTrigger>
+          </TabsList>
+
+          {/* Aktív beiratkozások */}
+          <TabsContent value="active" className="space-y-4">
+            {loading ? (
+              <p>Betöltés...</p>
+            ) : registrations.filter(reg => {
+              const now = new Date();
+              const endTime = new Date(reg.end_time);
+              const isEnded = now > endTime;
+              const isArchived = reg.status === "cancelled" || reg.status === "rejected" || isEnded;
+              return !isArchived;
+            }).length === 0 ? (
+              <Card>
+                <CardContent className="p-6 text-center text-muted-foreground">
+                  Nincs aktív beiratkozás.
+                </CardContent>
+              </Card>
+            ) : (
+              registrations.filter(reg => {
+                const now = new Date();
+                const endTime = new Date(reg.end_time);
+                const isEnded = now > endTime;
+                const isArchived = reg.status === "cancelled" || reg.status === "rejected" || isEnded;
+                return !isArchived;
+              }).map((reg) => {
+                const isOwnRegistration = currentUserId === reg.user_id;
               
               return (
               <Card key={reg.id}>
@@ -635,9 +655,83 @@ const HuntingRegistrations = () => {
                   </CardContent>
                 )}
               </Card>
-            )})
-          )}
-        </div>
+            );
+          })
+        )}
+          </TabsContent>
+
+          {/* Archív beiratkozások */}
+          <TabsContent value="archive" className="space-y-4">
+            {loading ? (
+              <p>Betöltés...</p>
+            ) : registrations.filter(reg => {
+              const now = new Date();
+              const endTime = new Date(reg.end_time);
+              const isEnded = now > endTime;
+              return reg.status === "cancelled" || reg.status === "rejected" || isEnded;
+            }).length === 0 ? (
+              <Card>
+                <CardContent className="p-6 text-center text-muted-foreground">
+                  Nincs archivált beiratkozás.
+                </CardContent>
+              </Card>
+            ) : (
+              registrations.filter(reg => {
+                const now = new Date();
+                const endTime = new Date(reg.end_time);
+                const isEnded = now > endTime;
+                return reg.status === "cancelled" || reg.status === "rejected" || isEnded;
+              }).map((reg) => (
+                <Card key={reg.id} className="opacity-75">
+                  <CardHeader>
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <CardTitle className="flex items-center gap-2">
+                          <MapPin className="h-5 w-5" />
+                          {reg.security_zones.name}
+                        </CardTitle>
+                        <CardDescription className="mt-2 space-y-2">
+                          <div className="flex items-center gap-4 text-sm">
+                            <span>
+                              <Calendar className="h-4 w-4 inline mr-1" />
+                              {format(new Date(reg.start_time), "yyyy. MM. dd. HH:mm", { locale: hu })}
+                            </span>
+                            <span>-</span>
+                            <span>
+                              {format(new Date(reg.end_time), "yyyy. MM. dd. HH:mm", { locale: hu })}
+                            </span>
+                          </div>
+                          <div className="text-sm space-y-1 mt-2">
+                            <div><strong>Vadász:</strong> {reg.profiles.contact_name || "Névtelen"}</div>
+                            {reg.profiles.contact_phone && (
+                              <div><strong>Telefon:</strong> {reg.profiles.contact_phone}</div>
+                            )}
+                            {reg.profiles.hunter_license_number && (
+                              <div><strong>Vadászjegy:</strong> {reg.profiles.hunter_license_number}</div>
+                            )}
+                            <div className="text-xs text-muted-foreground">
+                              Beiratkozva: {format(new Date(reg.created_at), "yyyy. MM. dd. HH:mm", { locale: hu })}
+                            </div>
+                          </div>
+                        </CardDescription>
+                      </div>
+                      <div className="flex flex-col gap-2 items-end">
+                        {getStatusBadge(reg)}
+                      </div>
+                    </div>
+                  </CardHeader>
+                  {reg.admin_note && (
+                    <CardContent>
+                      <p className="text-sm text-muted-foreground">
+                        <strong>Admin megjegyzés:</strong> {reg.admin_note}
+                      </p>
+                    </CardContent>
+                  )}
+                </Card>
+              ))
+            )}
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );
