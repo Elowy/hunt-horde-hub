@@ -64,7 +64,7 @@ const Index = () => {
       name: "Ingyenes",
       price: "0 Ft",
       period: "",
-      features: ["1 hűtési hely", "Maximum 100 állat"],
+      features: ["1 hűtési hely", "Maximum 100 állat", "Nincs felhasználó kezelés"],
       highlighted: false
     },
     {
@@ -72,7 +72,7 @@ const Index = () => {
       price: "1 950 Ft",
       period: "/hó",
       yearlyPrice: "18 720 Ft/év",
-      features: ["Korlátlan hűtési hely", "Korlátlan állatok", "Statisztikák, jelentések", "Közepes támogatás (48h)"],
+      features: ["Korlátlan hűtési hely", "Korlátlan állatok", "Maximum 3 szerkesztő", "Vadászok kezelése", "Statisztikák, jelentések", "Közepes támogatás (48h)"],
       highlighted: false
     },
     {
@@ -80,7 +80,7 @@ const Index = () => {
       price: "4 950 Ft",
       period: "/hó",
       yearlyPrice: "47 520 Ft/év",
-      features: ["Korlátlan hűtési hely", "Korlátlan állatok", "Elektronikus beiratkozás", "Vadászok kezelése", "Meghívások", "Statisztikák, jelentések", "Magas támogatás (24h)"],
+      features: ["Korlátlan hűtési hely", "Korlátlan állatok", "Korlátlan szerkesztők", "Elektronikus beiratkozás", "Vadászok kezelése", "Meghívások", "Statisztikák, jelentések", "Magas támogatás (24h)"],
       highlighted: true
     }
   ];

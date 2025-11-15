@@ -9,6 +9,7 @@ export type SubscriptionTier = "free" | "normal" | "pro";
 export interface SubscriptionLimits {
   maxStorageLocations: number | null; // null = unlimited
   maxAnimals: number | null; // null = unlimited
+  maxEditors: number | null; // null = unlimited
   canUseElectronicRegistration: boolean;
   canManageHunters: boolean;
   canSendInvitations: boolean;
@@ -20,6 +21,7 @@ const TIER_LIMITS: Record<SubscriptionTier, SubscriptionLimits> = {
   free: {
     maxStorageLocations: 1,
     maxAnimals: 100,
+    maxEditors: 0,
     canUseElectronicRegistration: false,
     canManageHunters: false,
     canSendInvitations: false,
@@ -29,15 +31,17 @@ const TIER_LIMITS: Record<SubscriptionTier, SubscriptionLimits> = {
   normal: {
     maxStorageLocations: null,
     maxAnimals: null,
+    maxEditors: 3,
     canUseElectronicRegistration: false,
-    canManageHunters: false,
-    canSendInvitations: false,
+    canManageHunters: true,
+    canSendInvitations: true,
     canViewReports: true,
     supportLevel: "medium",
   },
   pro: {
     maxStorageLocations: null,
     maxAnimals: null,
+    maxEditors: null,
     canUseElectronicRegistration: true,
     canManageHunters: true,
     canSendInvitations: true,
