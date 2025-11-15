@@ -31,7 +31,7 @@ const queryClient = new QueryClient();
 const App = () => (
   <BrowserRouter>
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider defaultTheme="light" storageKey="hunting-theme">
+      <ThemeProvider defaultTheme="dark" storageKey="hunting-theme">
         <TooltipProvider>
           <Toaster />
           <Sonner />
