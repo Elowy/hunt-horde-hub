@@ -185,8 +185,8 @@ export const TransportDocumentsDialog = () => {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" className="h-10">
-          <FileText className="h-4 w-4 mr-2" />
+        <Button variant="ghost" className="w-full justify-start">
+          <FileText className="mr-2 h-4 w-4" />
           Elszállítók
         </Button>
       </DialogTrigger>

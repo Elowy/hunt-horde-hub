@@ -139,8 +139,8 @@ export const PriceSettingsDialog = ({ onPriceUpdated }: { onPriceUpdated: () => 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" className="h-10">
-          <Settings className="h-4 w-4 mr-2" />
+        <Button variant="ghost" className="w-full justify-start">
+          <Settings className="mr-2 h-4 w-4" />
           Árak beállítása
         </Button>
       </DialogTrigger>

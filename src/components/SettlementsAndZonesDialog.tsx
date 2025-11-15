@@ -247,8 +247,8 @@ export function SettlementsAndZonesDialog() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="lg">
-          <MapPin className="mr-2 h-5 w-5" />
+        <Button variant="ghost" className="w-full justify-start">
+          <MapPin className="mr-2 h-4 w-4" />
           Települések és Beírókörzetek
         </Button>
       </DialogTrigger>
