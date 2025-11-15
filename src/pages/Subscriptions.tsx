@@ -11,20 +11,20 @@ import { RedeemCodeDialog } from "@/components/RedeemCodeDialog";
 const SUBSCRIPTION_TIERS = {
   free: {
     name: "Ingyenes",
-    features: ["1 hűtési hely", "Korlátlan állat hozzáadása"],
+    features: ["1 hűtési hely", "Maximum 100 állat regisztrálható"],
     price: "0 Ft",
     product_id: null,
   },
   normal_monthly: {
     name: "Normal - Havi",
-    features: ["1 hűtési hely", "Korlátlan állat hozzáadása"],
+    features: ["Korlátlan hűtési hely", "Korlátlan állat regisztráció"],
     price: "1 950 Ft/hó",
     price_id: "price_1STVU8G2Zidvt9jUBO5yBhEx",
     product_id: "prod_TQMCKFFwVc6lXT",
   },
   normal_yearly: {
     name: "Normal - Éves",
-    features: ["1 hűtési hely", "Korlátlan állat hozzáadása", "20% megtakarítás"],
+    features: ["Korlátlan hűtési hely", "Korlátlan állat regisztráció", "20% megtakarítás"],
     price: "18 720 Ft/év",
     savings: "(1 560 Ft/hó)",
     price_id: "price_1STVUFG2Zidvt9jUlxDihADG",

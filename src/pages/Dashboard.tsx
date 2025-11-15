@@ -47,6 +47,8 @@ import { StorageLocationCarousel } from "@/components/StorageLocationCarousel";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import jsPDF from "jspdf";
 import * as XLSX from "xlsx";
+import { getActiveRole } from "@/components/RoleSwitcher";
+import { useSubscription } from "@/hooks/useSubscription";
 
 interface StorageLocation {
   id: string;
@@ -105,6 +107,7 @@ interface PriceSetting {
 const Dashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { isPro, loading: subscriptionLoading, productId } = useSubscription();
   const [searchTerm, setSearchTerm] = useState("");
   const [filterLocation, setFilterLocation] = useState("all");
   const [filterSpecies, setFilterSpecies] = useState("all");
@@ -139,6 +142,11 @@ const Dashboard = () => {
   const [selectedMonth, setSelectedMonth] = useState("");
   const [selectedRevenueMonth, setSelectedRevenueMonth] = useState("");
   const [selectedCoolingMonth, setSelectedCoolingMonth] = useState("");
+
+  // Ellenőrizzük, hogy a felhasználó ingyenes-e
+  const PRO_PRODUCT_IDS = ["prod_TQMCsYuGXl2cqX", "prod_TQMCzW95I3TlPz"];
+  const NORMAL_PRODUCT_IDS = ["prod_TQMCKFFwVc6lXT", "prod_TQMCwp0XrDYkOB"];
+  const isFreeUser = !productId || (!PRO_PRODUCT_IDS.includes(productId) && !NORMAL_PRODUCT_IDS.includes(productId) && productId !== "trial_pro");
 
   useEffect(() => {
     checkAuth();
@@ -186,6 +194,25 @@ const Dashboard = () => {
       return;
     }
 
+    // Check if user is super admin
+    const { data: superAdminRole } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", user.id)
+      .eq("role", "super_admin")
+      .maybeSingle();
+
+    const isSuperAdmin = !!superAdminRole;
+
+    // If super admin is impersonating a role, use that role
+    const impersonateRole = getActiveRole();
+    if (isSuperAdmin && impersonateRole && impersonateRole !== "super_admin") {
+      setIsAdmin(impersonateRole === "admin");
+      setIsEditor(impersonateRole === "editor");
+      setIsHunter(impersonateRole === "hunter");
+      return;
+    }
+
     // Check if user is admin
     const { data: adminRole } = await supabase
       .from("user_roles")
@@ -194,7 +221,7 @@ const Dashboard = () => {
       .eq("role", "admin")
       .maybeSingle();
 
-    setIsAdmin(!!adminRole);
+    setIsAdmin(!!adminRole || isSuperAdmin);
 
     // Check if user is editor
     const { data: editorRole } = await supabase
@@ -204,7 +231,7 @@ const Dashboard = () => {
       .eq("role", "editor")
       .maybeSingle();
 
-    setIsEditor(!!editorRole);
+    setIsEditor(!!editorRole || isSuperAdmin);
 
     // Check if user is hunter
     const { data: hunterRole } = await supabase
@@ -927,16 +954,18 @@ const Dashboard = () => {
                     onCheckedChange={setShowLocations}
                   />
                 </div>
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="show-statistics" className="cursor-pointer">
-                    Statisztikák
-                  </Label>
-                  <Checkbox
-                    id="show-statistics"
-                    checked={showStatistics}
-                    onCheckedChange={setShowStatistics}
-                  />
-                </div>
+                {!isFreeUser && (
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="show-statistics" className="cursor-pointer">
+                      Statisztikák
+                    </Label>
+                    <Checkbox
+                      id="show-statistics"
+                      checked={showStatistics}
+                      onCheckedChange={setShowStatistics}
+                    />
+                  </div>
+                )}
               </>
             )}
             <div className="flex items-center justify-between">
@@ -1010,8 +1039,8 @@ const Dashboard = () => {
           </Collapsible>
         )}
 
-        {/* Statisztika - csak ha nem vadász, becsukható */}
-        {!isHunter && (
+        {/* Statisztika - csak ha nem vadász és nem ingyenes felhasználó, becsukható */}
+        {!isHunter && !isFreeUser && (
           <Collapsible open={showStatistics} onOpenChange={setShowStatistics} className="mb-8">
             <div className="flex items-center gap-2 mb-4">
               <CollapsibleTrigger asChild>
