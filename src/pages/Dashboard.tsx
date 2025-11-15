@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Search, Filter, Eye, Edit, Trash2, MapPin, LogOut, Star, Truck, FileDown, Download, TrendingUp, User, Users as UsersIcon, ChevronDown, Settings, CalendarCheck } from "lucide-react";
+import { Plus, Search, Filter, Eye, Edit, Trash2, MapPin, LogOut, Star, Truck, FileDown, Download, TrendingUp, User, Users as UsersIcon, ChevronDown, Settings, CalendarCheck, List, Ticket, FileText, UserCog } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -47,6 +47,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { StorageLocationCarousel } from "@/components/StorageLocationCarousel";
 import { AddAnimalDialog } from "@/components/AddAnimalDialog";
 import { AnnouncementBanner } from "@/components/AnnouncementBanner";
+import { QuickActionsSettingsDialog } from "@/components/QuickActionsSettingsDialog";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import jsPDF from "jspdf";
 import * as XLSX from "xlsx";
@@ -153,6 +154,8 @@ const Dashboard = () => {
   const [selectedMonth, setSelectedMonth] = useState("");
   const [selectedRevenueMonth, setSelectedRevenueMonth] = useState("");
   const [selectedCoolingMonth, setSelectedCoolingMonth] = useState("");
+  const [quickAction1, setQuickAction1] = useState("add_animal");
+  const [quickAction2, setQuickAction2] = useState("hunting_registration");
 
   // Ellenőrizzük, hogy a felhasználó ingyenes-e
   // Admin, editor és super admin felhasználók mindig láthatják a statisztikákat
@@ -163,6 +166,7 @@ const Dashboard = () => {
   useEffect(() => {
     checkAuth();
     fetchData();
+    fetchQuickActionsSettings();
   }, []);
 
   useEffect(() => {
@@ -332,6 +336,30 @@ const Dashboard = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchQuickActionsSettings = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from("quick_actions_settings")
+        .select("*")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (error && error.code !== "PGRST116") {
+        throw error;
+      }
+
+      if (data) {
+        setQuickAction1(data.action_1);
+        setQuickAction2(data.action_2);
+      }
+    } catch (error) {
+      console.error("Error fetching quick actions settings:", error);
     }
   };
 
@@ -1138,6 +1166,119 @@ const Dashboard = () => {
     }, 0);
   };
 
+  const renderQuickActionButton = (action: string, index: number) => {
+    const buttonClass = "flex-1";
+    
+    switch (action) {
+      case "add_animal":
+        return <AddAnimalDialog key={`action-${index}`} onAnimalAdded={fetchData} />;
+      
+      case "hunting_registration":
+        return (
+          <Button 
+            key={`action-${index}`}
+            onClick={() => navigate("/hunting-registrations")}
+            variant="secondary"
+            className={buttonClass}
+          >
+            <CalendarCheck className="h-4 w-4 mr-2" />
+            Beiratkozás
+          </Button>
+        );
+      
+      case "hunting_registrations":
+        return (
+          <Button 
+            key={`action-${index}`}
+            onClick={() => navigate("/hunting-registrations")}
+            variant="secondary"
+            className={buttonClass}
+          >
+            <List className="h-4 w-4 mr-2" />
+            Beiratkozások
+          </Button>
+        );
+      
+      case "hunters":
+        return (
+          <Button 
+            key={`action-${index}`}
+            onClick={() => navigate("/hired-hunters")}
+            variant="secondary"
+            className={buttonClass}
+          >
+            <UsersIcon className="h-4 w-4 mr-2" />
+            Bérvadászok
+          </Button>
+        );
+      
+      case "tickets":
+        return (
+          <Button 
+            key={`action-${index}`}
+            onClick={() => navigate("/tickets")}
+            variant="secondary"
+            className={buttonClass}
+          >
+            <Ticket className="h-4 w-4 mr-2" />
+            Támogatás
+          </Button>
+        );
+      
+      case "reports":
+        return (
+          <Button 
+            key={`action-${index}`}
+            onClick={() => navigate("/reports")}
+            variant="secondary"
+            className={buttonClass}
+          >
+            <FileText className="h-4 w-4 mr-2" />
+            Jelentések
+          </Button>
+        );
+      
+      case "settings":
+        return (
+          <Button 
+            key={`action-${index}`}
+            onClick={() => navigate("/settings")}
+            variant="secondary"
+            className={buttonClass}
+          >
+            <Settings className="h-4 w-4 mr-2" />
+            Beállítások
+          </Button>
+        );
+      
+      case "users":
+        return (
+          <Button 
+            key={`action-${index}`}
+            onClick={() => navigate("/users")}
+            variant="secondary"
+            className={buttonClass}
+          >
+            <UserCog className="h-4 w-4 mr-2" />
+            Felhasználók
+          </Button>
+        );
+      
+      default:
+        return (
+          <Button 
+            key={`action-${index}`}
+            onClick={() => navigate("/hunting-registrations")}
+            variant="secondary"
+            className={buttonClass}
+          >
+            <CalendarCheck className="h-4 w-4 mr-2" />
+            Beiratkozás
+          </Button>
+        );
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -1230,20 +1371,20 @@ const Dashboard = () => {
         </div>
 
 
+
         {/* Mobil nézet gyorsgombok - csak admin, super admin, és szerkesztő számára */}
         {isMobile && (isAdmin || isEditor) && (
-          <div className="flex gap-2 mb-6">
-            <AddAnimalDialog onAnimalAdded={fetchData} />
-            <Button 
-              onClick={() => navigate("/hunting-registrations")}
-              variant="secondary"
-              className="flex-1"
-            >
-              <CalendarCheck className="h-4 w-4 mr-2" />
-              Beiratkozás
-            </Button>
-          </div>
+          <>
+            <div className="flex gap-2 mb-4">
+              {renderQuickActionButton(quickAction1, 1)}
+              {renderQuickActionButton(quickAction2, 2)}
+            </div>
+            <div className="flex justify-center mb-6">
+              <QuickActionsSettingsDialog onSettingsChanged={fetchQuickActionsSettings} />
+            </div>
+          </>
         )}
+
 
         {/* Announcement Banner */}
         <AnnouncementBanner isAdmin={isAdmin} isEditor={isEditor} />
