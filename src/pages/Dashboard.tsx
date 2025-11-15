@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Search, Filter, Eye, Edit, Trash2, MapPin, LogOut, Star, Truck, FileDown, Download, TrendingUp, User, Users as UsersIcon, ChevronDown, Settings, CalendarCheck, CheckCircle, XCircle } from "lucide-react";
+import { Plus, Search, Filter, Eye, Edit, Trash2, MapPin, LogOut, Star, Truck, FileDown, Download, TrendingUp, User, Users as UsersIcon, ChevronDown, Settings, CalendarCheck } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -114,7 +114,7 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const isMobile = useIsMobile();
-  const { isPro, loading: subscriptionLoading, productId, tier, limits } = useSubscription();
+  const { isPro, loading: subscriptionLoading, productId } = useSubscription();
   const [searchTerm, setSearchTerm] = useState("");
   const [filterLocation, setFilterLocation] = useState("all");
   const [filterSpecies, setFilterSpecies] = useState("all");
@@ -1228,118 +1228,6 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Előfizetési információs kártya */}
-        {!isHunter && (
-          <Card className="mb-6 border-accent/20">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="text-xl">
-                    {tier === "free" && "Ingyenes csomag"}
-                    {tier === "normal" && "Normal csomag"}
-                    {tier === "pro" && "Pro csomag"}
-                  </CardTitle>
-                  <CardDescription>Előfizetési kvóták és használat</CardDescription>
-                </div>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => navigate("/subscriptions")}
-                >
-                  Előfizetés kezelése
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Hűtési helyek */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">Hűtési helyek</span>
-                    <Badge variant={limits.maxStorageLocations && locations.length >= limits.maxStorageLocations ? "destructive" : "secondary"}>
-                      {limits.maxStorageLocations === null 
-                        ? `${locations.length} / Korlátlan` 
-                        : `${locations.length} / ${limits.maxStorageLocations}`}
-                    </Badge>
-                  </div>
-                  {limits.maxStorageLocations !== null && (
-                    <div className="w-full bg-muted rounded-full h-2">
-                      <div 
-                        className={`h-2 rounded-full transition-all ${
-                          locations.length >= limits.maxStorageLocations ? 'bg-destructive' : 'bg-accent'
-                        }`}
-                        style={{ width: `${Math.min((locations.length / limits.maxStorageLocations) * 100, 100)}%` }}
-                      />
-                    </div>
-                  )}
-                </div>
-
-                {/* Állatok */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">Állatok</span>
-                    <Badge variant={limits.maxAnimals && animals.length >= limits.maxAnimals ? "destructive" : "secondary"}>
-                      {limits.maxAnimals === null 
-                        ? `${animals.length} / Korlátlan` 
-                        : `${animals.length} / ${limits.maxAnimals}`}
-                    </Badge>
-                  </div>
-                  {limits.maxAnimals !== null && (
-                    <div className="w-full bg-muted rounded-full h-2">
-                      <div 
-                        className={`h-2 rounded-full transition-all ${
-                          animals.length >= limits.maxAnimals ? 'bg-destructive' : 'bg-accent'
-                        }`}
-                        style={{ width: `${Math.min((animals.length / limits.maxAnimals) * 100, 100)}%` }}
-                      />
-                    </div>
-                  )}
-                </div>
-
-                {/* Funkciók hozzáférés */}
-                <div className="md:col-span-2 pt-4 border-t">
-                  <p className="text-sm font-medium mb-3">Elérhető funkciók:</p>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                    <div className="flex items-center gap-2 text-sm">
-                      {limits.canViewReports ? (
-                        <CheckCircle className="h-4 w-4 text-green-600" />
-                      ) : (
-                        <XCircle className="h-4 w-4 text-muted-foreground" />
-                      )}
-                      <span className={!limits.canViewReports ? "text-muted-foreground" : ""}>Riportok</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm">
-                      {limits.canUseElectronicRegistration ? (
-                        <CheckCircle className="h-4 w-4 text-green-600" />
-                      ) : (
-                        <XCircle className="h-4 w-4 text-muted-foreground" />
-                      )}
-                      <span className={!limits.canUseElectronicRegistration ? "text-muted-foreground" : ""}>
-                        Elektronikus beiratkozás
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm">
-                      {limits.canManageHunters ? (
-                        <CheckCircle className="h-4 w-4 text-green-600" />
-                      ) : (
-                        <XCircle className="h-4 w-4 text-muted-foreground" />
-                      )}
-                      <span className={!limits.canManageHunters ? "text-muted-foreground" : ""}>Vadászok kezelése</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm">
-                      {limits.canSendInvitations ? (
-                        <CheckCircle className="h-4 w-4 text-green-600" />
-                      ) : (
-                        <XCircle className="h-4 w-4 text-muted-foreground" />
-                      )}
-                      <span className={!limits.canSendInvitations ? "text-muted-foreground" : ""}>Meghívások</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
 
         {/* Mobil nézet gyorsgombok - csak admin, super admin, és szerkesztő számára */}
         {isMobile && (isAdmin || isEditor) && (
