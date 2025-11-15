@@ -18,6 +18,7 @@ import HiredHunters from "./pages/HiredHunters";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard";
 import Settings from "./pages/Settings";
 import Reports from "./pages/Reports";
+import MapManager from "./pages/MapManager";
 import HunterStatistics from "./pages/HunterStatistics";
 import TimeBasedStatistics from "./pages/TimeBasedStatistics";
 import TransportArchive from "./pages/TransportArchive";
@@ -56,6 +57,7 @@ const App = () => (
             <Route path="/tickets" element={<Tickets />} />
             <Route path="/activity-log" element={<ActivityLog />} />
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+            <Route path="/map-manager" element={<MapManager />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
