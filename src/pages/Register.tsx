@@ -176,9 +176,9 @@ const Register = () => {
     <div className="min-h-screen bg-gradient-to-br from-earth-warm to-background flex items-center justify-center p-4">
       <Card className="w-full max-w-md shadow-lg">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold text-forest-deep">Register Your Company</CardTitle>
+          <CardTitle className="text-2xl font-bold text-forest-deep">Regisztrálja cégét</CardTitle>
           <CardDescription>
-            Join Hunt Storage Solutions to manage your animal inventory
+            Csatlakozzon a Vadgondnokhoz vadászati nyilvántartásának kezeléséhez
           </CardDescription>
         </CardHeader>
         
