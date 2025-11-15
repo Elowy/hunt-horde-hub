@@ -175,6 +175,10 @@ export const DashboardMenu = ({ isAdmin, onLogout, onPriceUpdated }: DashboardMe
               Értesítések
             </Button>
             <div className="flex items-center justify-between px-2">
+              <span className="text-sm">Nézet</span>
+              <ViewportToggle />
+            </div>
+            <div className="flex items-center justify-between px-2">
               <span className="text-sm">Téma</span>
               <ThemeToggle />
             </div>
@@ -191,17 +195,6 @@ export const DashboardMenu = ({ isAdmin, onLogout, onPriceUpdated }: DashboardMe
             <Crown className="mr-2 h-4 w-4" />
             Előfizetések
           </Button>
-
-          <Separator />
-
-          {/* Nézet beállítások */}
-          <div className="space-y-2">
-            <p className="text-sm font-medium text-muted-foreground px-2">Megjelenés</p>
-            <div className="flex gap-2 px-2">
-              <ViewportToggle />
-              <ThemeToggle />
-            </div>
-          </div>
 
           <Separator />
 
