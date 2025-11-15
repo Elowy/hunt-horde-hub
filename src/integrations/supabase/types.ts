@@ -39,6 +39,8 @@ export type Database = {
           storage_location_id: string
           transport_cooling_price: number | null
           transport_cooling_vat_rate: number | null
+          transport_price_per_kg: number | null
+          transport_vat_rate: number | null
           transported_at: string | null
           updated_at: string
           user_id: string
@@ -73,6 +75,8 @@ export type Database = {
           storage_location_id: string
           transport_cooling_price?: number | null
           transport_cooling_vat_rate?: number | null
+          transport_price_per_kg?: number | null
+          transport_vat_rate?: number | null
           transported_at?: string | null
           updated_at?: string
           user_id: string
@@ -107,6 +111,8 @@ export type Database = {
           storage_location_id?: string
           transport_cooling_price?: number | null
           transport_cooling_vat_rate?: number | null
+          transport_price_per_kg?: number | null
+          transport_vat_rate?: number | null
           transported_at?: string | null
           updated_at?: string
           user_id?: string
@@ -442,28 +448,37 @@ export type Database = {
           class: string
           created_at: string
           id: string
+          is_archived: boolean
           price_per_kg: number
           species: string
           updated_at: string
           user_id: string
+          valid_from: string
+          valid_to: string | null
         }
         Insert: {
           class: string
           created_at?: string
           id?: string
+          is_archived?: boolean
           price_per_kg?: number
           species: string
           updated_at?: string
           user_id: string
+          valid_from?: string
+          valid_to?: string | null
         }
         Update: {
           class?: string
           created_at?: string
           id?: string
+          is_archived?: boolean
           price_per_kg?: number
           species?: string
           updated_at?: string
           user_id?: string
+          valid_from?: string
+          valid_to?: string | null
         }
         Relationships: []
       }
