@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DashboardMenu } from "@/components/DashboardMenu";
+import { NotificationBell } from "@/components/NotificationBell";
 
 interface PageHeaderProps {
   isAdmin?: boolean;
@@ -40,13 +41,16 @@ export const PageHeader = ({
           </Button>
 
           {/* Menu */}
-          <DashboardMenu 
-            isAdmin={isAdmin}
-            isEditor={isEditor}
-            isHunter={isHunter}
-            onLogout={onLogout}
-            onPriceUpdated={onPriceUpdated}
-          />
+          <div className="flex items-center gap-2">
+            <NotificationBell />
+            <DashboardMenu 
+              isAdmin={isAdmin}
+              isEditor={isEditor}
+              isHunter={isHunter}
+              onLogout={onLogout}
+              onPriceUpdated={onPriceUpdated}
+            />
+          </div>
         </div>
       </div>
     </div>
