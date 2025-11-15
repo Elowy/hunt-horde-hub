@@ -14,20 +14,20 @@ import { Progress } from "@/components/ui/progress";
 const SUBSCRIPTION_TIERS = {
   free: {
     name: "Ingyenes",
-    features: ["1 hűtési hely", "Maximum 100 állat"],
+    features: ["1 hűtési hely", "Maximum 100 állat", "Nincs felhasználó kezelés"],
     price: "0 Ft",
     product_id: null,
   },
   normal_monthly: {
     name: "Normal - Havi",
-    features: ["Korlátlan hűtési hely", "Korlátlan állatok", "Statisztikák, jelentések", "Közepes támogatás (48h)"],
+    features: ["Korlátlan hűtési hely", "Korlátlan állatok", "Maximum 3 szerkesztő", "Vadászok kezelése", "Statisztikák, jelentések", "Közepes támogatás (48h)"],
     price: "1 950 Ft/hó",
     price_id: "price_1STVU8G2Zidvt9jUBO5yBhEx",
     product_id: "prod_TQMCKFFwVc6lXT",
   },
   normal_yearly: {
     name: "Normal - Éves",
-    features: ["Korlátlan hűtési hely", "Korlátlan állatok", "Statisztikák, jelentések", "Közepes támogatás (48h)", "20% megtakarítás"],
+    features: ["Korlátlan hűtési hely", "Korlátlan állatok", "Maximum 3 szerkesztő", "Vadászok kezelése", "Statisztikák, jelentések", "Közepes támogatás (48h)", "20% megtakarítás"],
     price: "18 720 Ft/év",
     savings: "(1 560 Ft/hó)",
     price_id: "price_1STVUFG2Zidvt9jUlxDihADG",
@@ -35,14 +35,14 @@ const SUBSCRIPTION_TIERS = {
   },
   pro_monthly: {
     name: "Pro - Havi",
-    features: ["Korlátlan hűtési hely", "Korlátlan állatok", "Elektronikus beiratkozás", "Vadászok kezelése", "Meghívások", "Statisztikák, jelentések", "Magas támogatás (24h)"],
+    features: ["Korlátlan hűtési hely", "Korlátlan állatok", "Korlátlan szerkesztők", "Elektronikus beiratkozás", "Vadászok kezelése", "Meghívások", "Statisztikák, jelentések", "Magas támogatás (24h)"],
     price: "4 950 Ft/hó",
     price_id: "price_1STVUGG2Zidvt9jUbzxwXRRf",
     product_id: "prod_TQMCsYuGXl2cqX",
   },
   pro_yearly: {
     name: "Pro - Éves",
-    features: ["Korlátlan hűtési hely", "Korlátlan állatok", "Elektronikus beiratkozás", "Vadászok kezelése", "Meghívások", "Statisztikák, jelentések", "Magas támogatás (24h)", "20% megtakarítás"],
+    features: ["Korlátlan hűtési hely", "Korlátlan állatok", "Korlátlan szerkesztők", "Elektronikus beiratkozás", "Vadászok kezelése", "Meghívások", "Statisztikák, jelentések", "Magas támogatás (24h)", "20% megtakarítás"],
     price: "47 520 Ft/év",
     savings: "(3 960 Ft/hó)",
     price_id: "price_1STVUHG2Zidvt9jU5eKdE2B6",
