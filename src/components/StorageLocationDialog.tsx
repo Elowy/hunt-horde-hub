@@ -15,15 +15,18 @@ import {
 import { Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useSubscription } from "@/hooks/useSubscription";
 
 interface StorageLocationDialogProps {
   onLocationAdded: () => void;
+  currentLocationCount?: number;
 }
 
-export const StorageLocationDialog = ({ onLocationAdded }: StorageLocationDialogProps) => {
+export const StorageLocationDialog = ({ onLocationAdded, currentLocationCount = 0 }: StorageLocationDialogProps) => {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+  const { tier, limits } = useSubscription();
   const [formData, setFormData] = useState({
     name: "",
     address: "",
@@ -45,6 +48,17 @@ export const StorageLocationDialog = ({ onLocationAdded }: StorageLocationDialog
           description: "Nincs bejelentkezve!",
           variant: "destructive",
         });
+        return;
+      }
+
+      // Ellenőrizzük a hűtési hely limitet ingyenes felhasználóknak
+      if (limits.maxStorageLocations !== null && currentLocationCount >= limits.maxStorageLocations) {
+        toast({
+          title: "Limit elérve",
+          description: `Az ${tier === "free" ? "ingyenes" : ""} verzióban maximum ${limits.maxStorageLocations} hűtési hely regisztrálható. Váltson Normal vagy Pro előfizetésre a korlátlan hozzáadáshoz!`,
+          variant: "destructive",
+        });
+        setLoading(false);
         return;
       }
 

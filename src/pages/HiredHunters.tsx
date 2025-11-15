@@ -1,11 +1,13 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Edit, Trash2 } from "lucide-react";
+import { Plus, Edit, Trash2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { PageHeader } from "@/components/PageHeader";
 import { supabase } from "@/integrations/supabase/client";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { useSubscription } from "@/hooks/useSubscription";
 import {
   Dialog,
   DialogContent,
@@ -49,6 +51,7 @@ const HiredHunters = () => {
   const [editingHunter, setEditingHunter] = useState<HiredHunter | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [hunterToDelete, setHunterToDelete] = useState<string | null>(null);
+  const { limits, loading: subscriptionLoading } = useSubscription();
   const [formData, setFormData] = useState({
     name: "",
     license_number: "",
@@ -226,7 +229,40 @@ const HiredHunters = () => {
     }
   };
 
-  return (
+  if (loading || subscriptionLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <p className="text-muted-foreground">Betöltés...</p>
+      </div>
+    );
+  }
+
+  if (!limits.canManageHunters) {
+    return (
+      <div className="min-h-screen bg-background">
+        <PageHeader 
+          isAdmin={isAdmin}
+          isEditor={isEditor}
+          onLogout={handleLogout}
+        />
+        
+        <div className="container mx-auto py-6 px-4">
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Nincs hozzáférés</AlertTitle>
+            <AlertDescription>
+              A bérvadászok kezelése funkció csak Pro előfizetéssel érhető el. Váltson Pro előfizetésre ezen funkció használatához!
+            </AlertDescription>
+          </Alert>
+          <div className="mt-4">
+            <Button onClick={() => navigate("/subscriptions")}>
+              Előfizetések megtekintése
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
     <div className="min-h-screen bg-background">
       <PageHeader 
         isAdmin={isAdmin}

@@ -6,12 +6,16 @@ import { CoolingRevenueReport } from "@/components/CoolingRevenueReport";
 import { HuntingSeasonReport } from "@/components/HuntingSeasonReport";
 import { PageHeader } from "@/components/PageHeader";
 import { supabase } from "@/integrations/supabase/client";
+import { useSubscription } from "@/hooks/useSubscription";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
 
 const Reports = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isEditor, setIsEditor] = useState(false);
+  const { limits, loading: subscriptionLoading } = useSubscription();
 
   useEffect(() => {
     checkAuth();
@@ -48,10 +52,37 @@ const Reports = () => {
     navigate("/login");
   };
 
-  if (loading) {
+  if (loading || subscriptionLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <p className="text-muted-foreground">Betöltés...</p>
+      </div>
+    );
+  }
+
+  if (!limits.canViewReports) {
+    return (
+      <div className="min-h-screen bg-background">
+        <PageHeader 
+          isAdmin={isAdmin}
+          isEditor={isEditor}
+          onLogout={handleLogout}
+        />
+        
+        <div className="container mx-auto py-6 px-4">
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Nincs hozzáférés</AlertTitle>
+            <AlertDescription>
+              A statisztikák és riportok funkció csak Normal és Pro előfizetéssel érhető el. Kérjük váltson Normal vagy Pro előfizetésre ezen funkciók használatához!
+            </AlertDescription>
+          </Alert>
+          <div className="mt-4">
+            <Button onClick={() => navigate("/subscriptions")}>
+              Előfizetések megtekintése
+            </Button>
+          </div>
+        </div>
       </div>
     );
   }

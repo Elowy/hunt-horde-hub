@@ -1255,7 +1255,7 @@ const Dashboard = () => {
                 </CollapsibleTrigger>
                 <h2 className="text-2xl font-bold text-forest-deep">Hűtési helyszínek</h2>
               </div>
-              <StorageLocationDialog onLocationAdded={fetchData} />
+              <StorageLocationDialog onLocationAdded={fetchData} currentLocationCount={locations.length} />
             </div>
             
             <CollapsibleContent>
