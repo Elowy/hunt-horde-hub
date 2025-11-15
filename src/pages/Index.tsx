@@ -32,27 +32,30 @@ const Index = () => {
   const features = [
     {
       icon: Database,
-      title: "Vadászati Nyilvántartás",
-      description: "Állat azonosítók, típusok, súlyok, helyszínek és hűtési állapotok pontos követése"
+      title: "Vadállomány Nyilvántartás",
+      description: "Állat azonosítók, típusok, súlyok, helyszínek és hűtési állapotok pontos követése. Korlátlan számú vad hozzáadása és kezelése."
     },
     {
       icon: Shield,
-      title: "Biztonságos Adattárolás", 
-      description: "Professzionális szintű biztonság a vadászati nyilvántartásokhoz és céges adatokhoz"
+      title: "Elektronikus Beiratkozási Rendszer",
+      description: "QR kód alapú vadászati beiratkozás mobil eszközökről. Vendégvadászok és bérvadászok egyszerű regisztrációja időpontokkal."
     },
     {
       icon: Users,
-      title: "Több Felhasználó",
-      description: "Regisztrálja cégét és kezelje a csapat hozzáférését a nyilvántartási adatokhoz"
+      title: "Többfelhasználós Hozzáférés",
+      description: "Szerepkör alapú jogosultságok (admin, szerkesztő, néző). Csapattagok meghívása és tevékenységük nyomon követése."
     }
   ];
 
   const benefits = [
-    "Egyszerűsített állat nyilvántartás",
-    "Professzionális tároló kezelés",
-    "Valós idejű készlet követés", 
-    "Biztonságos céges regisztráció",
-    "Könnyen használható felület"
+    "Elektronikus beiratkozási rendszer QR kóddal",
+    "Vadállomány nyilvántartás és hűtés kezelés",
+    "Szállítási dokumentumok automatikus generálása",
+    "Statisztikák és riportok vadászati szezonról",
+    "Árazási rendszer és bevételi kimutatások",
+    "Többfelhasználós rendszer szerepkörökkel",
+    "Revírzónák és vadászhelyek kezelése",
+    "Mobil és asztali felületen egyaránt használható"
   ];
 
   const pricingTiers = [
@@ -149,8 +152,8 @@ const Index = () => {
             <span className="text-accent">Vadgondnok</span>
           </h1>
           <p className="text-xl md:text-2xl mb-8 text-white/90 max-w-2xl mx-auto leading-relaxed">
-            Professzionális állat nyilvántartás vadászati cégek számára. 
-            Biztonságos, hatékony és modern megoldás a vadászati iparág számára.
+            Professzionális vadászati nyilvántartó rendszer elektronikus beiratkozással. 
+            Kezelje vadállományát, hűtését és vadászati regisztrációit egy helyen, biztonságosan és hatékonyan.
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
