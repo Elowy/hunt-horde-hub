@@ -35,6 +35,7 @@ import { CreateTransportDialog } from "@/components/CreateTransportDialog";
 import { DashboardMenu } from "@/components/DashboardMenu";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import jsPDF from "jspdf";
+import * as XLSX from "xlsx";
 
 interface StorageLocation {
   id: string;
@@ -89,6 +90,10 @@ const Dashboard = () => {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [filterLocation, setFilterLocation] = useState("all");
+  const [filterSpecies, setFilterSpecies] = useState("all");
+  const [filterClass, setFilterClass] = useState("all");
+  const [filterGender, setFilterGender] = useState("all");
+  const [filterVetCheck, setFilterVetCheck] = useState("all");
   const [animals, setAnimals] = useState<Animal[]>([]);
   const [locations, setLocations] = useState<StorageLocation[]>([]);
   const [priceSettings, setPriceSettings] = useState<PriceSetting[]>([]);
@@ -98,6 +103,7 @@ const Dashboard = () => {
   const [showTransportDialog, setShowTransportDialog] = useState(false);
   const [transportDocuments, setTransportDocuments] = useState<Record<string, string>>({});
   const [isAdmin, setIsAdmin] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => {
     checkAuth();
@@ -260,6 +266,75 @@ const Dashboard = () => {
       });
     }
   };
+
+  const exportSelectedToExcel = () => {
+    if (selectedAnimals.size === 0) {
+      toast({
+        title: "Nincs kiválasztott állat",
+        description: "Kérjük, válasszon ki legalább egy állatot az exportáláshoz.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const selectedData = animals.filter(animal => selectedAnimals.has(animal.id));
+    
+    const excelData = selectedData.map(animal => ({
+      "Állat ID": animal.animal_id,
+      "Faj": animal.species,
+      "Nem": animal.gender || "-",
+      "Osztály": animal.class || "-",
+      "Súly (kg)": animal.weight || 0,
+      "Kor": animal.age || "-",
+      "Állapot": animal.condition || "-",
+      "Vadász neve": animal.hunter_name || "-",
+      "Vadász típus": animal.hunter_type || "-",
+      "Hűtési hely": getLocationName(animal.storage_location_id),
+      "Hűtés dátuma": animal.cooling_date ? new Date(animal.cooling_date).toLocaleDateString('hu-HU') : "-",
+      "Lejárati dátum": animal.expiry_date ? new Date(animal.expiry_date).toLocaleDateString('hu-HU') : "-",
+      "Állatorvosi ellenőrzés": animal.vet_check ? "Igen" : "Nem",
+      "Minta ID": animal.sample_id || "-",
+      "Mintavétel dátuma": animal.sample_date ? new Date(animal.sample_date).toLocaleDateString('hu-HU') : "-",
+      "Megjegyzések": animal.notes || "-",
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(excelData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Kiválasztott állatok");
+
+    // Auto-size columns
+    const maxWidth = 50;
+    const colWidths = Object.keys(excelData[0] || {}).map(key => ({
+      wch: Math.min(
+        maxWidth,
+        Math.max(
+          key.length,
+          ...excelData.map(row => String(row[key as keyof typeof row]).length)
+        )
+      )
+    }));
+    worksheet['!cols'] = colWidths;
+
+    XLSX.writeFile(workbook, `allatok_${new Date().toISOString().split('T')[0]}.xlsx`);
+
+    toast({
+      title: "Sikeres exportálás",
+      description: `${selectedAnimals.size} állat exportálva Excel fájlba.`,
+    });
+  };
+
+  const resetFilters = () => {
+    setSearchTerm("");
+    setFilterLocation("all");
+    setFilterSpecies("all");
+    setFilterClass("all");
+    setFilterGender("all");
+    setFilterVetCheck("all");
+  };
+
+  const uniqueSpecies = Array.from(new Set(animals.map(a => a.species))).filter(Boolean);
+  const uniqueClasses = Array.from(new Set(animals.map(a => a.class))).filter(Boolean);
+  const uniqueGenders = Array.from(new Set(animals.map(a => a.gender))).filter(Boolean);
 
   const handleDeleteLocation = async (locationId: string) => {
     // Check if there are animals at this location
@@ -490,11 +565,22 @@ const Dashboard = () => {
   const filteredAnimals = animals.filter(animal => {
     const matchesSearch = 
       animal.species.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      animal.animal_id.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesFilter = 
+      animal.animal_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (animal.hunter_name && animal.hunter_name.toLowerCase().includes(searchTerm.toLowerCase()));
+    const matchesLocation = 
       filterLocation === "all" || animal.storage_location_id === filterLocation;
+    const matchesSpecies = 
+      filterSpecies === "all" || animal.species === filterSpecies;
+    const matchesClass = 
+      filterClass === "all" || animal.class === filterClass;
+    const matchesGender = 
+      filterGender === "all" || animal.gender === filterGender;
+    const matchesVetCheck = 
+      filterVetCheck === "all" || 
+      (filterVetCheck === "checked" && animal.vet_check) ||
+      (filterVetCheck === "unchecked" && !animal.vet_check);
     
-    return matchesSearch && matchesFilter;
+    return matchesSearch && matchesLocation && matchesSpecies && matchesClass && matchesGender && matchesVetCheck;
   });
 
   // Szétválasztás hűtött és elszállított állatokra
@@ -842,32 +928,115 @@ const Dashboard = () => {
           </div>
 
           {/* Keresés és szűrés */}
-          <div className="flex gap-4 mb-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Keresés azonosító vagy faj alapján..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
+          <div className="space-y-4 mb-4">
+            <div className="flex gap-4">
+              <div className="flex-1">
+                <div className="relative">
+                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Keresés azonosító, faj vagy vadász alapján..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
               </div>
-            </div>
-            <Select value={filterLocation} onValueChange={setFilterLocation}>
-              <SelectTrigger className="w-[200px]">
+              <Button
+                variant="outline"
+                onClick={() => setShowFilters(!showFilters)}
+              >
                 <Filter className="h-4 w-4 mr-2" />
-                <SelectValue placeholder="Helyszín szűrés" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Minden helyszín</SelectItem>
-                {locations.map((location) => (
-                  <SelectItem key={location.id} value={location.id}>
-                    {location.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+                {showFilters ? "Szűrők elrejtése" : "További szűrők"}
+              </Button>
+              {selectedAnimals.size > 0 && (
+                <Button
+                  variant="default"
+                  onClick={exportSelectedToExcel}
+                >
+                  <FileDown className="h-4 w-4 mr-2" />
+                  Excel export ({selectedAnimals.size})
+                </Button>
+              )}
+            </div>
+
+            {showFilters && (
+              <div className="grid grid-cols-1 md:grid-cols-5 gap-4 p-4 bg-muted rounded-lg">
+                <Select value={filterLocation} onValueChange={setFilterLocation}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Helyszín" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Minden helyszín</SelectItem>
+                    {locations.map((location) => (
+                      <SelectItem key={location.id} value={location.id}>
+                        {location.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <Select value={filterSpecies} onValueChange={setFilterSpecies}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Faj" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Minden faj</SelectItem>
+                    {uniqueSpecies.map((species) => (
+                      <SelectItem key={species} value={species}>
+                        {species}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <Select value={filterClass} onValueChange={setFilterClass}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Osztály" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Minden osztály</SelectItem>
+                    {uniqueClasses.map((cls) => (
+                      <SelectItem key={cls} value={cls}>
+                        {cls}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <Select value={filterGender} onValueChange={setFilterGender}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Nem" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Minden nem</SelectItem>
+                    {uniqueGenders.map((gender) => (
+                      <SelectItem key={gender} value={gender}>
+                        {gender}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <Select value={filterVetCheck} onValueChange={setFilterVetCheck}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Állatorvosi ellenőrzés" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Minden</SelectItem>
+                    <SelectItem value="checked">Ellenőrizve</SelectItem>
+                    <SelectItem value="unchecked">Nincs ellenőrizve</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Button
+                  variant="ghost"
+                  onClick={resetFilters}
+                  className="md:col-span-5"
+                >
+                  Szűrők törlése
+                </Button>
+              </div>
+            )}
           </div>
 
           {/* Táblázat - Tabs-okkal */}
