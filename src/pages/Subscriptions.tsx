@@ -11,20 +11,20 @@ import { RedeemCodeDialog } from "@/components/RedeemCodeDialog";
 const SUBSCRIPTION_TIERS = {
   free: {
     name: "Ingyenes",
-    features: ["1 hűtési hely", "Maximum 5 állat"],
+    features: ["1 hűtési hely", "Korlátlan állat hozzáadása"],
     price: "0 Ft",
     product_id: null,
   },
   normal_monthly: {
     name: "Normal - Havi",
-    features: ["1 hűtési hely", "20 állat havonta"],
+    features: ["1 hűtési hely", "Korlátlan állat hozzáadása"],
     price: "1 950 Ft/hó",
     price_id: "price_1STVU8G2Zidvt9jUBO5yBhEx",
     product_id: "prod_TQMCKFFwVc6lXT",
   },
   normal_yearly: {
     name: "Normal - Éves",
-    features: ["1 hűtési hely", "20 állat havonta", "20% megtakarítás"],
+    features: ["1 hűtési hely", "Korlátlan állat hozzáadása", "20% megtakarítás"],
     price: "18 720 Ft/év",
     savings: "(1 560 Ft/hó)",
     price_id: "price_1STVUFG2Zidvt9jUlxDihADG",
@@ -32,14 +32,14 @@ const SUBSCRIPTION_TIERS = {
   },
   pro_monthly: {
     name: "Pro - Havi",
-    features: ["Korlátlan hűtési helyek", "Korlátlan állatok"],
+    features: ["Korlátlan hűtési hely", "Korlátlan állat hozzáadása", "Elektronikus beiratkozási rendszer"],
     price: "4 950 Ft/hó",
     price_id: "price_1STVUGG2Zidvt9jUbzxwXRRf",
     product_id: "prod_TQMCsYuGXl2cqX",
   },
   pro_yearly: {
     name: "Pro - Éves",
-    features: ["Korlátlan hűtési helyek", "Korlátlan állatok", "20% megtakarítás"],
+    features: ["Korlátlan hűtési hely", "Korlátlan állat hozzáadása", "Elektronikus beiratkozási rendszer", "20% megtakarítás"],
     price: "47 520 Ft/év",
     savings: "(3 960 Ft/hó)",
     price_id: "price_1STVUHG2Zidvt9jU5eKdE2B6",

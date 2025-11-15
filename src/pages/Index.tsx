@@ -44,7 +44,7 @@ const Index = () => {
       name: "Ingyenes",
       price: "0 Ft",
       period: "",
-      features: ["1 hűtési hely", "Maximum 5 állat", "Alap funkciók"],
+      features: ["1 hűtési hely", "Korlátlan állat hozzáadása", "Alap funkciók"],
       highlighted: false
     },
     {
@@ -52,7 +52,7 @@ const Index = () => {
       price: "1 950 Ft",
       period: "/hó",
       yearlyPrice: "18 720 Ft/év",
-      features: ["1 hűtési hely", "Korlátlan állat hozzáadás", "Alapvető statisztikák"],
+      features: ["1 hűtési hely", "Korlátlan állat hozzáadása"],
       highlighted: false
     },
     {
@@ -60,7 +60,7 @@ const Index = () => {
       price: "4 950 Ft",
       period: "/hó",
       yearlyPrice: "47 520 Ft/év",
-      features: ["Korlátlan hűtési helyek", "Korlátlan állatok", "Vadászati beiratkozások", "Részletes statisztikák", "Prioritás támogatás", "1 hónap ingyenes próba"],
+      features: ["Korlátlan hűtési hely", "Korlátlan állat hozzáadása", "Elektronikus beiratkozási rendszer", "Prioritás támogatás", "1 hónap ingyenes próba"],
       highlighted: true
     }
   ];
