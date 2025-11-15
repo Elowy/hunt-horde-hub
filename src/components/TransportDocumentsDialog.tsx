@@ -187,7 +187,7 @@ export const TransportDocumentsDialog = () => {
       <DialogTrigger asChild>
         <Button variant="ghost" className="w-full justify-start">
           <FileText className="mr-2 h-4 w-4" />
-          Elszállítók
+          Elszállítási dokumentumok
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
