@@ -58,6 +58,8 @@ interface Animal {
 interface HuntingRegistration {
   id: string;
   user_id: string;
+  hired_hunter_id: string | null;
+  security_zone_id: string;
   start_time: string;
   end_time: string;
   status: string;
@@ -72,6 +74,10 @@ interface HuntingRegistration {
     contact_phone: string | null;
     hunter_license_number: string | null;
   };
+  hired_hunters: {
+    name: string;
+    license_number: string | null;
+  } | null;
   animals?: Animal[];
 }
 
@@ -222,7 +228,8 @@ const HuntingRegistrations = () => {
         .from("hunting_registrations")
         .select(`
           *,
-          security_zones (name)
+          security_zones (name),
+          hired_hunters (name, license_number)
         `)
         .order("created_at", { ascending: false });
 
@@ -309,14 +316,29 @@ const HuntingRegistrations = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
+      // Determine which ID to use based on admin selection
+      let insertData: any = {
+        security_zone_id: formData.security_zone_id,
+        start_time: startTime.toISOString(),
+        end_time: endTime.toISOString(),
+      };
+
+      if (isAdmin && formData.selected_user_id) {
+        // Check if it's a hired hunter (starts with "hired-")
+        if (formData.selected_user_id.startsWith("hired-")) {
+          const hiredHunterId = formData.selected_user_id.replace("hired-", "");
+          insertData.hired_hunter_id = hiredHunterId;
+          insertData.user_id = user.id; // Admin's ID for ownership
+        } else {
+          insertData.user_id = formData.selected_user_id;
+        }
+      } else {
+        insertData.user_id = user.id;
+      }
+
       const { error } = await supabase
         .from("hunting_registrations")
-        .insert({
-          user_id: user.id,
-          security_zone_id: formData.security_zone_id,
-          start_time: startTime.toISOString(),
-          end_time: endTime.toISOString(),
-        });
+        .insert(insertData);
 
       if (error) throw error;
 
@@ -659,18 +681,21 @@ const HuntingRegistrations = () => {
                             {format(new Date(reg.end_time), "yyyy. MM. dd. HH:mm", { locale: hu })}
                           </span>
                         </div>
-                        <div className="text-sm space-y-1 mt-2">
-                          <div><strong>Vadász:</strong> {reg.profiles.contact_name || "Névtelen"}</div>
-                          {reg.profiles.contact_phone && (
-                            <div><strong>Telefon:</strong> {reg.profiles.contact_phone}</div>
-                          )}
-                          {reg.profiles.hunter_license_number && (
-                            <div><strong>Vadászjegy:</strong> {reg.profiles.hunter_license_number}</div>
-                          )}
-                          <div className="text-xs text-muted-foreground">
-                            Beiratkozva: {format(new Date(reg.created_at), "yyyy. MM. dd. HH:mm", { locale: hu })}
-                          </div>
-                        </div>
+                            <div className="text-sm space-y-1 mt-2">
+                              <div><strong>Vadász:</strong> {reg.hired_hunter_id ? reg.hired_hunters?.name : reg.profiles.contact_name || "Névtelen"}</div>
+                              {reg.hired_hunter_id && reg.hired_hunters?.license_number && (
+                                <div><strong>Vadászjegy:</strong> {reg.hired_hunters.license_number}</div>
+                              )}
+                              {!reg.hired_hunter_id && reg.profiles.contact_phone && (
+                                <div><strong>Telefon:</strong> {reg.profiles.contact_phone}</div>
+                              )}
+                              {!reg.hired_hunter_id && reg.profiles.hunter_license_number && (
+                                <div><strong>Vadászjegy:</strong> {reg.profiles.hunter_license_number}</div>
+                              )}
+                              <div className="text-xs text-muted-foreground">
+                                Beiratkozva: {format(new Date(reg.created_at), "yyyy. MM. dd. HH:mm", { locale: hu })}
+                              </div>
+                            </div>
                       </CardDescription>
                     </div>
                     <div className="flex flex-col gap-2 items-end">
@@ -708,6 +733,9 @@ const HuntingRegistrations = () => {
                       {(isAdmin || isEditor) && (
                         <AssignAnimalToRegistrationDialog
                           registrationId={reg.id}
+                          isHiredHunter={!!reg.hired_hunter_id}
+                          hunterName={reg.hired_hunter_id ? reg.hired_hunters?.name : reg.profiles.contact_name}
+                          registrationSecurityZoneId={reg.security_zone_id}
                           onAnimalAssigned={fetchRegistrations}
                         />
                       )}
@@ -726,11 +754,12 @@ const HuntingRegistrations = () => {
                         <Package className="h-4 w-4" />
                         Hozzárendelt állatok ({reg.animals.length})
                       </div>
-                      <div className="space-y-1">
+                      <div className="grid gap-2 pl-6">
                         {reg.animals.map((animal) => (
-                          <div key={animal.id} className="text-sm text-muted-foreground pl-6">
-                            • {animal.animal_id} - {animal.species}
-                            {animal.weight && ` (${animal.weight} kg)`}
+                          <div key={animal.id} className="text-sm bg-muted/50 p-2 rounded">
+                            <div><strong>Azonosító:</strong> {animal.animal_id}</div>
+                            <div><strong>Faj:</strong> {animal.species}</div>
+                            {animal.weight && <div><strong>Súly:</strong> {animal.weight} kg</div>}
                           </div>
                         ))}
                       </div>
@@ -775,18 +804,21 @@ const HuntingRegistrations = () => {
                                 {format(new Date(reg.end_time), "yyyy. MM. dd. HH:mm", { locale: hu })}
                               </span>
                             </div>
-                            <div className="text-sm space-y-1 mt-2">
-                              <div><strong>Vadász:</strong> {reg.profiles.contact_name || "Névtelen"}</div>
-                              {reg.profiles.contact_phone && (
-                                <div><strong>Telefon:</strong> {reg.profiles.contact_phone}</div>
-                              )}
-                              {reg.profiles.hunter_license_number && (
-                                <div><strong>Vadászjegy:</strong> {reg.profiles.hunter_license_number}</div>
-                              )}
-                              <div className="text-xs text-muted-foreground">
-                                Beiratkozva: {format(new Date(reg.created_at), "yyyy. MM. dd. HH:mm", { locale: hu })}
-                              </div>
+                          <div className="text-sm space-y-1 mt-2">
+                            <div><strong>Vadász:</strong> {reg.hired_hunter_id ? reg.hired_hunters?.name : reg.profiles.contact_name || "Névtelen"}</div>
+                            {reg.hired_hunter_id && reg.hired_hunters?.license_number && (
+                              <div><strong>Vadászjegy:</strong> {reg.hired_hunters.license_number}</div>
+                            )}
+                            {!reg.hired_hunter_id && reg.profiles.contact_phone && (
+                              <div><strong>Telefon:</strong> {reg.profiles.contact_phone}</div>
+                            )}
+                            {!reg.hired_hunter_id && reg.profiles.hunter_license_number && (
+                              <div><strong>Vadászjegy:</strong> {reg.profiles.hunter_license_number}</div>
+                            )}
+                            <div className="text-xs text-muted-foreground">
+                              Beiratkozva: {format(new Date(reg.created_at), "yyyy. MM. dd. HH:mm", { locale: hu })}
                             </div>
+                          </div>
                           </CardDescription>
                         </div>
                         <div className="flex flex-col gap-2 items-end">
@@ -866,18 +898,21 @@ const HuntingRegistrations = () => {
                               {format(new Date(reg.end_time), "yyyy. MM. dd. HH:mm", { locale: hu })}
                             </span>
                           </div>
-                          <div className="text-sm space-y-1 mt-2">
-                            <div><strong>Vadász:</strong> {reg.profiles.contact_name || "Névtelen"}</div>
-                            {reg.profiles.contact_phone && (
-                              <div><strong>Telefon:</strong> {reg.profiles.contact_phone}</div>
-                            )}
-                            {reg.profiles.hunter_license_number && (
-                              <div><strong>Vadászjegy:</strong> {reg.profiles.hunter_license_number}</div>
-                            )}
-                            <div className="text-xs text-muted-foreground">
-                              Beiratkozva: {format(new Date(reg.created_at), "yyyy. MM. dd. HH:mm", { locale: hu })}
+                            <div className="text-sm space-y-1 mt-2">
+                              <div><strong>Vadász:</strong> {reg.hired_hunter_id ? reg.hired_hunters?.name : reg.profiles.contact_name || "Névtelen"}</div>
+                              {reg.hired_hunter_id && reg.hired_hunters?.license_number && (
+                                <div><strong>Vadászjegy:</strong> {reg.hired_hunters.license_number}</div>
+                              )}
+                              {!reg.hired_hunter_id && reg.profiles.contact_phone && (
+                                <div><strong>Telefon:</strong> {reg.profiles.contact_phone}</div>
+                              )}
+                              {!reg.hired_hunter_id && reg.profiles.hunter_license_number && (
+                                <div><strong>Vadászjegy:</strong> {reg.profiles.hunter_license_number}</div>
+                              )}
+                              <div className="text-xs text-muted-foreground">
+                                Beiratkozva: {format(new Date(reg.created_at), "yyyy. MM. dd. HH:mm", { locale: hu })}
+                              </div>
                             </div>
-                          </div>
                         </CardDescription>
                       </div>
                       <div className="flex flex-col gap-2 items-end">
@@ -885,6 +920,9 @@ const HuntingRegistrations = () => {
                         {(isAdmin || isEditor) && (
                           <AssignAnimalToRegistrationDialog
                             registrationId={reg.id}
+                            isHiredHunter={!!reg.hired_hunter_id}
+                            hunterName={reg.hired_hunter_id ? reg.hired_hunters?.name : reg.profiles.contact_name}
+                            registrationSecurityZoneId={reg.security_zone_id}
                             onAnimalAssigned={fetchRegistrations}
                           />
                         )}
@@ -903,11 +941,12 @@ const HuntingRegistrations = () => {
                           <Package className="h-4 w-4" />
                           Hozzárendelt állatok ({reg.animals.length})
                         </div>
-                        <div className="space-y-1">
+                        <div className="grid gap-2 pl-6">
                           {reg.animals.map((animal) => (
-                            <div key={animal.id} className="text-sm text-muted-foreground pl-6">
-                              • {animal.animal_id} - {animal.species}
-                              {animal.weight && ` (${animal.weight} kg)`}
+                            <div key={animal.id} className="text-sm bg-muted/50 p-2 rounded">
+                              <div><strong>Azonosító:</strong> {animal.animal_id}</div>
+                              <div><strong>Faj:</strong> {animal.species}</div>
+                              {animal.weight && <div><strong>Súly:</strong> {animal.weight} kg</div>}
                             </div>
                           ))}
                         </div>
