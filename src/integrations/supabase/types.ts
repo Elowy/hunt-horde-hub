@@ -318,9 +318,15 @@ export type Database = {
           admin_note: string | null
           created_at: string
           end_time: string
+          guest_address: string | null
+          guest_email: string | null
+          guest_license_number: string | null
+          guest_name: string | null
+          guest_phone: string | null
           hired_hunter_id: string | null
           hunting_location_id: string | null
           id: string
+          is_guest: boolean | null
           requires_admin_approval: boolean
           security_zone_id: string
           start_time: string
@@ -332,9 +338,15 @@ export type Database = {
           admin_note?: string | null
           created_at?: string
           end_time: string
+          guest_address?: string | null
+          guest_email?: string | null
+          guest_license_number?: string | null
+          guest_name?: string | null
+          guest_phone?: string | null
           hired_hunter_id?: string | null
           hunting_location_id?: string | null
           id?: string
+          is_guest?: boolean | null
           requires_admin_approval?: boolean
           security_zone_id: string
           start_time: string
@@ -346,9 +358,15 @@ export type Database = {
           admin_note?: string | null
           created_at?: string
           end_time?: string
+          guest_address?: string | null
+          guest_email?: string | null
+          guest_license_number?: string | null
+          guest_name?: string | null
+          guest_phone?: string | null
           hired_hunter_id?: string | null
           hunting_location_id?: string | null
           id?: string
+          is_guest?: boolean | null
           requires_admin_approval?: boolean
           security_zone_id?: string
           start_time?: string
