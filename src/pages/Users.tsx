@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { PageHeader } from "@/components/PageHeader";
 import { supabase } from "@/integrations/supabase/client";
+import { BanUserDialog } from "@/components/BanUserDialog";
 import {
   Table,
   TableBody,
@@ -41,6 +42,8 @@ interface User {
     company_name: string | null;
     contact_name: string | null;
     hunter_category: string | null;
+    banned_until: string | null;
+    ban_reason: string | null;
   };
 }
 
@@ -141,7 +144,7 @@ const Users = () => {
         const userIds = rolesData.map(r => r.user_id);
         const { data: profilesData } = await supabase
           .from("profiles")
-          .select("id, company_name, contact_name, hunter_category")
+          .select("id, company_name, contact_name, hunter_category, banned_until, ban_reason")
           .in("id", userIds);
 
         // Create a pseudo-user list from profiles
@@ -410,9 +413,17 @@ const Users = () => {
                           {user.profiles?.company_name || user.profiles?.contact_name || "Névtelen felhasználó"}
                         </TableCell>
                         <TableCell>
-                          <Badge variant={getRoleBadgeVariant(role)}>
-                            {getRoleLabel(role)}
-                          </Badge>
+                          <div className="flex flex-col gap-1">
+                            <Badge variant={getRoleBadgeVariant(role)}>
+                              {getRoleLabel(role)}
+                            </Badge>
+                            {user.profiles?.banned_until && 
+                             new Date(user.profiles.banned_until) > new Date() && (
+                              <Badge variant="destructive" className="text-xs">
+                                Kitiltva
+                              </Badge>
+                            )}
+                          </div>
                         </TableCell>
                         <TableCell>
                           <Select
@@ -436,34 +447,43 @@ const Users = () => {
                           {new Date(user.created_at).toLocaleDateString("hu-HU")}
                         </TableCell>
                         <TableCell>
-                          <Select
-                            value={role}
-                            onValueChange={(value) => handleRoleChange(user.id, value)}
-                          >
-                            <SelectTrigger className="w-[180px]">
-                              <SelectValue placeholder="Szerepkör választás" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="admin">
-                                <div className="flex items-center gap-2">
-                                  <Shield className="h-4 w-4" />
-                                  Adminisztrátor
-                                </div>
-                              </SelectItem>
-                              <SelectItem value="editor">
-                                <div className="flex items-center gap-2">
-                                  <UserCheck className="h-4 w-4" />
-                                  Szerkesztő
-                                </div>
-                              </SelectItem>
-                              <SelectItem value="viewer">
-                                <div className="flex items-center gap-2">
-                                  <UsersIcon className="h-4 w-4" />
-                                  Megtekintő
-                                </div>
-                              </SelectItem>
-                            </SelectContent>
-                          </Select>
+                          <div className="flex items-center gap-2">
+                            <Select
+                              value={role}
+                              onValueChange={(value) => handleRoleChange(user.id, value)}
+                            >
+                              <SelectTrigger className="w-[180px]">
+                                <SelectValue placeholder="Szerepkör választás" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="admin">
+                                  <div className="flex items-center gap-2">
+                                    <Shield className="h-4 w-4" />
+                                    Adminisztrátor
+                                  </div>
+                                </SelectItem>
+                                <SelectItem value="editor">
+                                  <div className="flex items-center gap-2">
+                                    <UserCheck className="h-4 w-4" />
+                                    Szerkesztő
+                                  </div>
+                                </SelectItem>
+                                <SelectItem value="viewer">
+                                  <div className="flex items-center gap-2">
+                                    <UsersIcon className="h-4 w-4" />
+                                    Megtekintő
+                                  </div>
+                                </SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <BanUserDialog
+                              userId={user.id}
+                              userEmail={user.email || user.profiles?.contact_name || "Névtelen"}
+                              currentBanUntil={user.profiles?.banned_until}
+                              currentBanReason={user.profiles?.ban_reason}
+                              onBanUpdated={fetchData}
+                            />
+                          </div>
                         </TableCell>
                       </TableRow>
                     );

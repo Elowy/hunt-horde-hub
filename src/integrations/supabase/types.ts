@@ -665,6 +665,8 @@ export type Database = {
       profiles: {
         Row: {
           address: string | null
+          ban_reason: string | null
+          banned_until: string | null
           birth_date: string | null
           company_name: string | null
           contact_email: string | null
@@ -683,6 +685,8 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          ban_reason?: string | null
+          banned_until?: string | null
           birth_date?: string | null
           company_name?: string | null
           contact_email?: string | null
@@ -703,6 +707,8 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          ban_reason?: string | null
+          banned_until?: string | null
           birth_date?: string | null
           company_name?: string | null
           contact_email?: string | null
