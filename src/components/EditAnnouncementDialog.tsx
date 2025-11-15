@@ -24,9 +24,9 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { format } from "date-fns";
 
 interface Announcement {
   id: string;
@@ -41,16 +41,36 @@ interface EditAnnouncementDialogProps {
   onSuccess?: () => void;
 }
 
+const getExpiryType = (expiresAt: string | null): string => {
+  if (!expiresAt) return "none";
+  
+  const expiryDate = new Date(expiresAt);
+  const now = new Date();
+  const diffDays = Math.floor((expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+  
+  if (diffDays <= 7) return "week";
+  if (diffDays <= 31) return "month";
+  return "none";
+};
+
 export const EditAnnouncementDialog = ({ announcement, onSuccess }: EditAnnouncementDialogProps) => {
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState(announcement.title);
   const [content, setContent] = useState(announcement.content);
-  const [expiresAt, setExpiresAt] = useState(
-    announcement.expires_at 
-      ? format(new Date(announcement.expires_at), "yyyy-MM-dd'T'HH:mm")
-      : ""
-  );
+  const [expiryType, setExpiryType] = useState(getExpiryType(announcement.expires_at));
   const [loading, setLoading] = useState(false);
+
+  const calculateExpiryDate = (type: string): string | null => {
+    if (type === "none") return null;
+    
+    const now = new Date();
+    if (type === "week") {
+      now.setDate(now.getDate() + 7);
+    } else if (type === "month") {
+      now.setMonth(now.getMonth() + 1);
+    }
+    return now.toISOString();
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,7 +82,7 @@ export const EditAnnouncementDialog = ({ announcement, onSuccess }: EditAnnounce
       .update({
         title,
         content,
-        expires_at: expiresAt || null,
+        expires_at: calculateExpiryDate(expiryType),
       })
       .eq("id", announcement.id);
 
@@ -135,16 +155,19 @@ export const EditAnnouncementDialog = ({ announcement, onSuccess }: EditAnnounce
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="edit-expiresAt">Lejárati időpont (opcionális)</Label>
-                <Input
-                  id="edit-expiresAt"
-                  type="datetime-local"
-                  value={expiresAt}
-                  onChange={(e) => setExpiresAt(e.target.value)}
-                  min={format(new Date(), "yyyy-MM-dd'T'HH:mm")}
-                />
+                <Label htmlFor="edit-expiryType">Lejárati időtartam</Label>
+                <Select value={expiryType} onValueChange={setExpiryType}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Válassz időtartamot" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Nincs lejárat</SelectItem>
+                    <SelectItem value="week">1 hét</SelectItem>
+                    <SelectItem value="month">1 hónap</SelectItem>
+                  </SelectContent>
+                </Select>
                 <p className="text-xs text-muted-foreground">
-                  Ha nincs megadva, a hír határozatlan ideig aktív marad
+                  Ha nincs lejárat van kiválasztva, a hír határozatlan ideig aktív marad
                 </p>
               </div>
             </div>
