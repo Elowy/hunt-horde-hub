@@ -98,11 +98,28 @@ export const BanUserDialog = ({
 
       if (error) throw error;
 
+      // Send email notification
+      try {
+        await supabase.functions.invoke('send-ban-notification', {
+          body: {
+            userId: userId,
+            userEmail: userEmail,
+            action: banDuration === "unban" ? "unban" : "ban",
+            bannedUntil: bannedUntil,
+            banReason: banReason,
+          },
+        });
+        console.log('Ban notification email sent successfully');
+      } catch (emailError) {
+        console.error('Error sending ban notification email:', emailError);
+        // Don't fail the whole operation if email fails
+      }
+
       toast({
         title: "Siker",
         description: banDuration === "unban" 
-          ? "A felhasználó kitiltása feloldva."
-          : "A felhasználó sikeresen kitiltva.",
+          ? "A felhasználó kitiltása feloldva. Email értesítés elküldve."
+          : "A felhasználó sikeresen kitiltva. Email értesítés elküldve.",
       });
 
       setOpen(false);
