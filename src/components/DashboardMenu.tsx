@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Menu, X, User, Users, FileText, Truck, Settings, LogOut, UserPlus, Crown, MapPin, CalendarCheck, Shield } from "lucide-react";
+import { Menu, X, User, Users, FileText, Truck, Settings, LogOut, UserPlus, Crown, MapPin, CalendarCheck, Shield, BarChart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -159,6 +159,21 @@ export const DashboardMenu = ({ isAdmin, onLogout, onPriceUpdated }: DashboardMe
               )}
               {isAdmin && <SettlementsAndZonesDialog />}
             </div>
+          </div>
+
+          <Separator />
+
+          {/* Riportok */}
+          <div className="space-y-2">
+            <p className="text-sm font-medium text-muted-foreground px-2">Riportok</p>
+            <Button
+              variant="ghost"
+              className="w-full justify-start"
+              onClick={() => handleNavigation("/reports")}
+            >
+              <BarChart className="mr-2 h-4 w-4" />
+              Hűtési díj statisztikák
+            </Button>
           </div>
 
           <Separator />
