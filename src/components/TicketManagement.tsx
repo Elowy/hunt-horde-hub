@@ -94,97 +94,86 @@ export const TicketManagement = () => {
 
   if (loading) {
     return (
-      <Card>
-        <CardContent className="py-12 text-center">
-          <p className="text-muted-foreground">Betöltés...</p>
-        </CardContent>
-      </Card>
+      <div className="py-12 text-center">
+        <p className="text-muted-foreground">Betöltés...</p>
+      </div>
     );
   }
 
   return (
-    <>
-      <Card>
-        <CardHeader>
-          <div className="flex justify-between items-center">
-            <CardTitle>Támogatási jegyek kezelése</CardTitle>
-            <div className="flex gap-2">
-              <Button
-                variant={filterStatus === "all" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setFilterStatus("all")}
-              >
-                Összes ({tickets.length})
-              </Button>
-              <Button
-                variant={filterStatus === "open" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setFilterStatus("open")}
-              >
-                Nyitott ({tickets.filter(t => t.status === "open").length})
-              </Button>
-              <Button
-                variant={filterStatus === "in_progress" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setFilterStatus("in_progress")}
-              >
-                Folyamatban ({tickets.filter(t => t.status === "in_progress").length})
-              </Button>
-              <Button
-                variant={filterStatus === "closed" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setFilterStatus("closed")}
-              >
-                Lezárt ({tickets.filter(t => t.status === "closed").length})
-              </Button>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {filteredTickets.length === 0 ? (
-            <div className="py-12 text-center">
-              <MessageSquare className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-              <p className="text-muted-foreground">
-                {filterStatus === "all" ? "Még nincs támogatási jegy" : `Nincs ${filterStatus === "open" ? "nyitott" : filterStatus === "in_progress" ? "folyamatban lévő" : "lezárt"} jegy`}
-              </p>
-            </div>
-          ) : (
-            <div className="grid gap-4">
-              {filteredTickets.map((ticket) => (
-                <Card 
-                  key={ticket.id} 
-                  className="cursor-pointer hover:shadow-md transition-shadow"
-                  onClick={() => handleTicketClick(ticket)}
-                >
-                  <CardHeader>
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          {getStatusBadge(ticket.status)}
-                          <Badge variant="outline">{getCategoryLabel(ticket.category)}</Badge>
-                        </div>
-                        <CardTitle className="text-xl mb-1">{ticket.subject}</CardTitle>
-                        <p className="text-sm text-muted-foreground line-clamp-2">
-                          {ticket.message}
-                        </p>
-                      </div>
+    <div className="space-y-4">
+      <div className="flex gap-2">
+        <Button
+          variant={filterStatus === "all" ? "default" : "outline"}
+          size="sm"
+          onClick={() => setFilterStatus("all")}
+        >
+          Összes ({tickets.length})
+        </Button>
+        <Button
+          variant={filterStatus === "open" ? "default" : "outline"}
+          size="sm"
+          onClick={() => setFilterStatus("open")}
+        >
+          Nyitott ({tickets.filter(t => t.status === "open").length})
+        </Button>
+        <Button
+          variant={filterStatus === "in_progress" ? "default" : "outline"}
+          size="sm"
+          onClick={() => setFilterStatus("in_progress")}
+        >
+          Folyamatban ({tickets.filter(t => t.status === "in_progress").length})
+        </Button>
+        <Button
+          variant={filterStatus === "closed" ? "default" : "outline"}
+          size="sm"
+          onClick={() => setFilterStatus("closed")}
+        >
+          Lezárt ({tickets.filter(t => t.status === "closed").length})
+        </Button>
+      </div>
+      {filteredTickets.length === 0 ? (
+        <div className="py-12 text-center">
+          <MessageSquare className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+          <p className="text-muted-foreground">
+            {filterStatus === "all" ? "Még nincs támogatási jegy" : `Nincs ${filterStatus === "open" ? "nyitott" : filterStatus === "in_progress" ? "folyamatban lévő" : "lezárt"} jegy`}
+          </p>
+        </div>
+      ) : (
+        <div className="grid gap-4">
+          {filteredTickets.map((ticket) => (
+            <Card 
+              key={ticket.id} 
+              className="cursor-pointer hover:shadow-md transition-shadow"
+              onClick={() => handleTicketClick(ticket)}
+            >
+              <CardHeader>
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      {getStatusBadge(ticket.status)}
+                      <Badge variant="outline">{getCategoryLabel(ticket.category)}</Badge>
                     </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex items-center justify-between text-sm text-muted-foreground">
-                      <span>Létrehozva: {format(new Date(ticket.created_at), "yyyy. MM. dd. HH:mm", { locale: hu })}</span>
-                      <Button variant="ghost" size="sm">
-                        <MessageSquare className="h-4 w-4 mr-2" />
-                        Megnyitás
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                    <CardTitle className="text-xl mb-1">{ticket.subject}</CardTitle>
+                    <p className="text-sm text-muted-foreground line-clamp-2">
+                      {ticket.message}
+                    </p>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center justify-between text-sm text-muted-foreground">
+                  <span>Létrehozva: {format(new Date(ticket.created_at), "yyyy. MM. dd. HH:mm", { locale: hu })}</span>
+                  <Button variant="ghost" size="sm">
+                    <MessageSquare className="h-4 w-4 mr-2" />
+                    Megnyitás
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
 
       {selectedTicket && (
         <ViewTicketDialog
@@ -195,6 +184,6 @@ export const TicketManagement = () => {
           onTicketUpdated={fetchTickets}
         />
       )}
-    </>
+    </div>
   );
 };
