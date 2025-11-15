@@ -65,6 +65,7 @@ interface SecurityZone {
 interface Hunter {
   id: string;
   contact_name: string | null;
+  hunter_category: string | null;
 }
 
 interface PriceSetting {
@@ -241,7 +242,7 @@ export const EditAnimalDialog = ({ animal, locations, onAnimalUpdated }: EditAni
       // Get profiles for these hunters
       const { data: profiles, error: profilesError } = await supabase
         .from("profiles")
-        .select("id, contact_name")
+        .select("id, contact_name, hunter_category")
         .in("id", hunterIds)
         .not("contact_name", "is", null);
 
@@ -250,6 +251,19 @@ export const EditAnimalDialog = ({ animal, locations, onAnimalUpdated }: EditAni
     } catch (error: any) {
       console.error("Error fetching hunters:", error);
     }
+  };
+
+  const getHunterCategoryDisplay = (category: string | null): string => {
+    if (!category) return "";
+    const categoryMap: { [key: string]: string } = {
+      "tag": "Tag",
+      "vendeg": "Vendég",
+      "bervadasz": "Bérvadász",
+      "ib_vendeg": "IB Vendég",
+      "trofeas_vadasz": "Trófeás vadász",
+      "egyeb": "Egyéb"
+    };
+    return categoryMap[category] || category;
   };
 
   const fetchPriceSettings = async () => {
@@ -512,10 +526,15 @@ export const EditAnimalDialog = ({ animal, locations, onAnimalUpdated }: EditAni
                 onValueChange={(value) => {
                   if (value === "custom") {
                     setIsCustomHunter(true);
-                    setFormData({ ...formData, hunter_name: "" });
+                    setFormData({ ...formData, hunter_name: "", hunter_type: "" });
                   } else {
                     setIsCustomHunter(false);
                     setFormData({ ...formData, hunter_name: value });
+                    // Automatikusan állítsa be a vadász típust
+                    const selectedHunter = hunters.find(h => h.contact_name === value);
+                    if (selectedHunter?.hunter_category) {
+                      setFormData(prev => ({ ...prev, hunter_type: getHunterCategoryDisplay(selectedHunter.hunter_category) }));
+                    }
                   }
                 }}
                 disabled={loading}
@@ -526,7 +545,7 @@ export const EditAnimalDialog = ({ animal, locations, onAnimalUpdated }: EditAni
                 <SelectContent className="bg-popover z-50">
                   {hunters.map((hunter) => (
                     <SelectItem key={hunter.id} value={hunter.contact_name || ""}>
-                      {hunter.contact_name}
+                      {hunter.contact_name} - {getHunterCategoryDisplay(hunter.hunter_category)}
                     </SelectItem>
                   ))}
                   <SelectItem value="custom">Egyéb (kézi megadás)</SelectItem>
