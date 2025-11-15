@@ -182,14 +182,24 @@ export const DashboardMenu = ({ isAdmin, isEditor, isHunter, onLogout, onPriceUp
                     Vadászati beiratkozások
                   </Button>
                   {(isAdmin || isEditor) && (
-                    <Button
-                      variant="ghost"
-                      className="w-full justify-start"
-                      onClick={() => handleNavigation("/hired-hunters")}
-                    >
-                      <Users className="mr-2 h-4 w-4" />
-                      Bérvadászok
-                    </Button>
+                    <>
+                      <Button
+                        variant="ghost"
+                        className="w-full justify-start"
+                        onClick={() => handleNavigation("/hired-hunters")}
+                      >
+                        <Users className="mr-2 h-4 w-4" />
+                        Bérvadászok
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        className="w-full justify-start"
+                        onClick={() => handleNavigation("/map-manager")}
+                      >
+                        <MapPin className="mr-2 h-4 w-4" />
+                        Térképes Kezelő
+                      </Button>
+                    </>
                   )}
                 </>
               ) : (
