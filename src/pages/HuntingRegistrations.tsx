@@ -28,6 +28,9 @@ interface SecurityZone {
   id: string;
   name: string;
   description: string | null;
+  settlements: {
+    name: string;
+  } | null;
 }
 
 interface HunterUser {
@@ -112,7 +115,7 @@ const HuntingRegistrations = () => {
     try {
       const { data, error } = await supabase
         .from("security_zones")
-        .select("*")
+        .select("*, settlements(name)")
         .order("name");
 
       if (error) throw error;
@@ -492,7 +495,7 @@ const HuntingRegistrations = () => {
                         <SelectContent>
                           {zones.map((zone) => (
                             <SelectItem key={zone.id} value={zone.id}>
-                              {zone.name}
+                              {zone.settlements?.name ? `${zone.settlements.name} - ${zone.name}` : zone.name}
                             </SelectItem>
                           ))}
                         </SelectContent>
