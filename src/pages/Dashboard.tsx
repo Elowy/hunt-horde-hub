@@ -116,11 +116,22 @@ const Dashboard = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [showLocations, setShowLocations] = useState(true);
   const [showStatistics, setShowStatistics] = useState(true);
+  const [selectedMonth, setSelectedMonth] = useState("");
 
   useEffect(() => {
     checkAuth();
     fetchData();
   }, []);
+
+  useEffect(() => {
+    // Set first available month when animals are loaded
+    if (animals.length > 0 && !selectedMonth) {
+      const months = getAvailableMonths();
+      if (months.length > 0) {
+        setSelectedMonth(months[0]);
+      }
+    }
+  }, [animals]);
 
   const checkAuth = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -736,6 +747,61 @@ const Dashboard = () => {
     ];
   };
 
+  const getAvailableMonths = () => {
+    const monthsSet = new Set<string>();
+    animals.forEach(animal => {
+      if (animal.cooling_date) {
+        const date = new Date(animal.cooling_date);
+        const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+        monthsSet.add(monthKey);
+      }
+    });
+    return Array.from(monthsSet).sort().reverse();
+  };
+
+  const getMonthlySpeciesStats = (monthKey: string) => {
+    if (!monthKey) return [];
+    
+    const [year, month] = monthKey.split('-').map(Number);
+    const monthAnimals = animals.filter(animal => {
+      if (!animal.cooling_date) return false;
+      const date = new Date(animal.cooling_date);
+      return date.getFullYear() === year && date.getMonth() + 1 === month;
+    });
+
+    // Group by species
+    const speciesMap = new Map<string, { count: number; weight: number; revenue: number }>();
+    
+    monthAnimals.forEach(animal => {
+      const species = animal.species;
+      if (!speciesMap.has(species)) {
+        speciesMap.set(species, { count: 0, weight: 0, revenue: 0 });
+      }
+      
+      const stats = speciesMap.get(species)!;
+      stats.count += 1;
+      stats.weight += animal.weight || 0;
+      
+      // Calculate revenue
+      const price = getAnimalPrice(animal);
+      stats.revenue += price.gross;
+    });
+
+    return Array.from(speciesMap.entries()).map(([species, stats]) => ({
+      species,
+      count: stats.count,
+      weight: stats.weight,
+      revenue: stats.revenue,
+    })).sort((a, b) => b.count - a.count);
+  };
+
+  const formatMonthLabel = (monthKey: string) => {
+    const [year, month] = monthKey.split('-');
+    const monthNames = ['Január', 'Február', 'Március', 'Április', 'Május', 'Június', 
+                       'Július', 'Augusztus', 'Szeptember', 'Október', 'November', 'December'];
+    return `${monthNames[parseInt(month) - 1]} ${year}`;
+  };
+
   const getCoolingRevenue = () => {
     return animals.reduce((sum, animal) => {
       if (animal.is_transported || !animal.weight) return sum;
@@ -967,6 +1033,80 @@ const Dashboard = () => {
                       />
                     </BarChart>
                   </ResponsiveContainer>
+                </CardContent>
+              </Card>
+
+              {/* Fajonkénti havi elejtési statisztika */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <TrendingUp className="h-5 w-5" />
+                    Fajonkénti havi elejtési statisztika
+                  </CardTitle>
+                  <CardDescription>Elejtett állatok fajonként a kiválasztott hónapban</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {/* Month selector */}
+                    <div className="flex items-center gap-2">
+                      <label className="text-sm font-medium">Hónap:</label>
+                      <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+                        <SelectTrigger className="w-[200px]">
+                          <SelectValue placeholder="Válasszon hónapot" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {getAvailableMonths().map((monthKey) => (
+                            <SelectItem key={monthKey} value={monthKey}>
+                              {formatMonthLabel(monthKey)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Species statistics table */}
+                    {selectedMonth && getMonthlySpeciesStats(selectedMonth).length > 0 ? (
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Vadfaj</TableHead>
+                            <TableHead className="text-right">Elejtett állatok (db)</TableHead>
+                            <TableHead className="text-right">Összsúly (kg)</TableHead>
+                            <TableHead className="text-right">Bevétel (Ft)</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {getMonthlySpeciesStats(selectedMonth).map((stat) => (
+                            <TableRow key={stat.species}>
+                              <TableCell className="font-medium">{stat.species}</TableCell>
+                              <TableCell className="text-right">{stat.count}</TableCell>
+                              <TableCell className="text-right">{stat.weight.toFixed(1)} kg</TableCell>
+                              <TableCell className="text-right font-semibold text-green-600 dark:text-green-400">
+                                {stat.revenue.toLocaleString('hu-HU')} Ft
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                          {/* Total row */}
+                          <TableRow className="font-bold bg-muted/50">
+                            <TableCell>Összesen</TableCell>
+                            <TableCell className="text-right">
+                              {getMonthlySpeciesStats(selectedMonth).reduce((sum, stat) => sum + stat.count, 0)}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {getMonthlySpeciesStats(selectedMonth).reduce((sum, stat) => sum + stat.weight, 0).toFixed(1)} kg
+                            </TableCell>
+                            <TableCell className="text-right text-green-600 dark:text-green-400">
+                              {getMonthlySpeciesStats(selectedMonth).reduce((sum, stat) => sum + stat.revenue, 0).toLocaleString('hu-HU')} Ft
+                            </TableCell>
+                          </TableRow>
+                        </TableBody>
+                      </Table>
+                    ) : (
+                      <p className="text-center text-muted-foreground py-8">
+                        {selectedMonth ? "Nincs adat a kiválasztott hónapra" : "Válasszon egy hónapot"}
+                      </p>
+                    )}
+                  </div>
                 </CardContent>
               </Card>
             </CollapsibleContent>
