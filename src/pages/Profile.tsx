@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Save, User, Mail, Crown } from "lucide-react";
+import { Save, User, Mail, Crown, Trash2, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,6 +11,17 @@ import { supabase } from "@/integrations/supabase/client";
 import { InviteUserDialog } from "@/components/InviteUserDialog";
 import { useSubscription } from "@/hooks/useSubscription";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -34,6 +45,8 @@ const Profile = () => {
   });
   const [codeSent, setCodeSent] = useState(false);
   const [sendingCode, setSendingCode] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(false);
 
   useEffect(() => {
     fetchProfileData();
@@ -240,6 +253,40 @@ const Profile = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    try {
+      setDeletingAccount(true);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Delete user's profile (will cascade delete all related data due to foreign key constraints)
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .delete()
+        .eq("id", user.id);
+
+      if (profileError) throw profileError;
+
+      toast({
+        title: "Fiók törölve",
+        description: "Fiókja és minden kapcsolódó adata sikeresen törölve lett.",
+      });
+
+      // Sign out and redirect to home page
+      await supabase.auth.signOut();
+      navigate("/");
+    } catch (error: any) {
+      toast({
+        title: "Hiba",
+        description: error.message || "Hiba történt a fiók törlése során.",
+        variant: "destructive",
+      });
+    } finally {
+      setDeletingAccount(false);
+      setDeleteDialogOpen(false);
     }
   };
 
@@ -469,6 +516,75 @@ const Profile = () => {
               </CardContent>
             </Card>
           )}
+
+          {/* Adatvédelmi és fiók törlés */}
+          <Card className="border-destructive/50">
+            <CardHeader>
+              <CardTitle className="text-destructive">Veszélyzóna</CardTitle>
+              <CardDescription>
+                Fiók törlés és adatvédelmi beállítások
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Button
+                  variant="outline"
+                  onClick={() => navigate("/privacy-policy")}
+                  className="w-full mb-4"
+                >
+                  <AlertTriangle className="h-4 w-4 mr-2" />
+                  Adatvédelmi Nyilatkozat
+                </Button>
+              </div>
+              
+              <Alert className="border-destructive/50 bg-destructive/10">
+                <AlertTriangle className="h-4 w-4 text-destructive" />
+                <AlertDescription>
+                  <strong>Figyelem!</strong> A fiók törlése végleges és visszafordíthatatlan. 
+                  Minden adat véglegesen törlésre kerül.
+                </AlertDescription>
+              </Alert>
+
+              <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" className="w-full">
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Fiók törlése
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Biztosan törli a fiókját?</AlertDialogTitle>
+                    <AlertDialogDescription className="space-y-2">
+                      <p>
+                        Ez a művelet <strong>véglegesen törli</strong> az összes adatát, beleértve:
+                      </p>
+                      <ul className="list-disc pl-6 space-y-1">
+                        <li>Személyes adatok és profil információk</li>
+                        <li>Vadászati nyilvántartások és beiratkozások</li>
+                        <li>Szállítási dokumentumok</li>
+                        <li>Hűtési helyszínek és beállítások</li>
+                        <li>Összes kapcsolódó adat</li>
+                      </ul>
+                      <p className="text-destructive font-semibold mt-4">
+                        Ez a művelet nem vonható vissza!
+                      </p>
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel disabled={deletingAccount}>Mégse</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={handleDeleteAccount}
+                      disabled={deletingAccount}
+                      className="bg-destructive hover:bg-destructive/90"
+                    >
+                      {deletingAccount ? "Törlés..." : "Igen, törlöm a fiókom"}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>

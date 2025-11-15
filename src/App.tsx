@@ -23,6 +23,7 @@ import TimeBasedStatistics from "./pages/TimeBasedStatistics";
 import TransportArchive from "./pages/TransportArchive";
 import Tickets from "./pages/Tickets";
 import ActivityLog from "./pages/ActivityLog";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -54,6 +55,7 @@ const App = () => (
             <Route path="/transport-archive" element={<TransportArchive />} />
             <Route path="/tickets" element={<Tickets />} />
             <Route path="/activity-log" element={<ActivityLog />} />
+            <Route path="/privacy-policy" element={<PrivacyPolicy />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
