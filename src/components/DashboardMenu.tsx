@@ -10,6 +10,7 @@ import { TransporterDialog } from "@/components/TransporterDialog";
 import { PriceSettingsDialog } from "@/components/PriceSettingsDialog";
 import { InviteUserDialog } from "@/components/InviteUserDialog";
 import { SettlementsAndZonesDialog } from "@/components/SettlementsAndZonesDialog";
+import { SecurityZoneClosuresDialog } from "@/components/SecurityZoneClosuresDialog";
 import { AddAnimalDialog } from "@/components/AddAnimalDialog";
 import { Separator } from "@/components/ui/separator";
 import { useSubscription } from "@/hooks/useSubscription";
@@ -171,7 +172,12 @@ export const DashboardMenu = ({ isAdmin, isEditor, isHunter, onLogout, onPriceUp
                   </AlertDescription>
                 </Alert>
               )}
-              {isAdmin && <SettlementsAndZonesDialog />}
+              {(isAdmin || isEditor) && (
+                <>
+                  <SettlementsAndZonesDialog />
+                  <SecurityZoneClosuresDialog />
+                </>
+              )}
             </div>
           </div>
 

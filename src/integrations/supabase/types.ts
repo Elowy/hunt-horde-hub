@@ -652,6 +652,47 @@ export type Database = {
           },
         ]
       }
+      security_zone_closures: {
+        Row: {
+          created_at: string
+          end_date: string
+          id: string
+          reason: string
+          security_zone_id: string
+          start_date: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          end_date: string
+          id?: string
+          reason: string
+          security_zone_id: string
+          start_date: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          end_date?: string
+          id?: string
+          reason?: string
+          security_zone_id?: string
+          start_date?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "security_zone_closures_security_zone_id_fkey"
+            columns: ["security_zone_id"]
+            isOneToOne: false
+            referencedRelation: "security_zones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       security_zones: {
         Row: {
           created_at: string
