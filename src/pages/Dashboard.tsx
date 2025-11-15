@@ -1214,7 +1214,7 @@ const Dashboard = () => {
       <div className="container mx-auto px-6 py-8">
         {/* Dashboard specific content header */}
         <div className="mb-6">
-          <h2 className="text-3xl font-bold text-forest-deep mb-2">Állat Nyilvántartó</h2>
+          <h2 className="text-3xl font-bold text-forest-deep mb-2">Vadgondnok</h2>
           <div className="flex items-center justify-between">
             <p className="text-muted-foreground">Vadászati nyilvántartás és hűtés kezelése</p>
             <Button

@@ -65,7 +65,7 @@ const handler = async (req: Request): Promise<Response> => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: "Állat Nyilvántartó <onboarding@resend.dev>",
+        from: "Vadgondnok <onboarding@resend.dev>",
         to: [email],
         subject: `Meghívó a ${companyName} vadászati nyilvántartásához`,
         html: `

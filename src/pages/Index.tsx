@@ -146,7 +146,7 @@ const Index = () => {
         
         <div className="relative z-10 text-center text-white max-w-4xl mx-auto px-6">
           <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight">
-            Vadászati Hűtés <span className="text-accent">Kezelő</span>
+            <span className="text-accent">Vadgondnok</span>
           </h1>
           <p className="text-xl md:text-2xl mb-8 text-white/90 max-w-2xl mx-auto leading-relaxed">
             Professzionális állat nyilvántartás vadászati cégek számára. 
@@ -273,7 +273,7 @@ const Index = () => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div>
               <h2 className="text-4xl font-bold text-forest-deep mb-6">
-                Miért válassza a Vadászati Hűtés Kezelőt?
+                Miért válassza a Vadgondnokot?
               </h2>
               <p className="text-lg text-muted-foreground mb-8">
                 Kifejezetten vadászati cégek számára készült, platformunk biztosítja a szükséges 
