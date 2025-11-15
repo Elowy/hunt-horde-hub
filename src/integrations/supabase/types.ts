@@ -569,6 +569,7 @@ export type Database = {
           contact_name: string | null
           contact_phone: string | null
           created_at: string
+          hunter_category: Database["public"]["Enums"]["hunter_category"] | null
           hunter_license_number: string | null
           id: string
           privacy_policy_accepted: boolean | null
@@ -586,6 +587,9 @@ export type Database = {
           contact_name?: string | null
           contact_phone?: string | null
           created_at?: string
+          hunter_category?:
+            | Database["public"]["Enums"]["hunter_category"]
+            | null
           hunter_license_number?: string | null
           id: string
           privacy_policy_accepted?: boolean | null
@@ -603,6 +607,9 @@ export type Database = {
           contact_name?: string | null
           contact_phone?: string | null
           created_at?: string
+          hunter_category?:
+            | Database["public"]["Enums"]["hunter_category"]
+            | null
           hunter_license_number?: string | null
           id?: string
           privacy_policy_accepted?: boolean | null
@@ -1092,6 +1099,13 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "editor" | "viewer" | "hunter" | "super_admin"
+      hunter_category:
+        | "tag"
+        | "vendeg"
+        | "bervadasz"
+        | "ib_vendeg"
+        | "trofeas_vadasz"
+        | "egyeb"
       hunting_location_type:
         | "fedett_les"
         | "nem_fedett_les"
@@ -1226,6 +1240,14 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "editor", "viewer", "hunter", "super_admin"],
+      hunter_category: [
+        "tag",
+        "vendeg",
+        "bervadasz",
+        "ib_vendeg",
+        "trofeas_vadasz",
+        "egyeb",
+      ],
       hunting_location_type: [
         "fedett_les",
         "nem_fedett_les",
