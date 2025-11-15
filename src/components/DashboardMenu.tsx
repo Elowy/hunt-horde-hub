@@ -10,6 +10,7 @@ import { TransporterDialog } from "@/components/TransporterDialog";
 import { PriceSettingsDialog } from "@/components/PriceSettingsDialog";
 import { InviteUserDialog } from "@/components/InviteUserDialog";
 import { SettlementsAndZonesDialog } from "@/components/SettlementsAndZonesDialog";
+import { AddAnimalDialog } from "@/components/AddAnimalDialog";
 import { Separator } from "@/components/ui/separator";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useIsSuperAdmin } from "@/hooks/useIsSuperAdmin";
@@ -122,14 +123,7 @@ export const DashboardMenu = ({ isAdmin, isEditor, isHunter, onLogout, onPriceUp
               <div className="space-y-2">
                 <p className="text-sm font-medium text-muted-foreground px-2">Nyilvántartás</p>
                 <div className="space-y-2">
-                  <Button
-                    variant="ghost"
-                    className="w-full justify-start"
-                    onClick={() => handleNavigation("/add-animal")}
-                  >
-                    <FileText className="mr-2 h-4 w-4" />
-                    Vad felvétele
-                  </Button>
+                  <AddAnimalDialog onAnimalAdded={onPriceUpdated} />
                   <TransportDocumentsDialog />
                   <TransporterDialog />
                   <PriceSettingsDialog onPriceUpdated={onPriceUpdated} />
