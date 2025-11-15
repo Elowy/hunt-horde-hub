@@ -64,6 +64,39 @@ const Register = () => {
       return;
     }
 
+    // Vadász típusnál ellenőrizzük a meghívót
+    if (formData.userType === "hunter") {
+      const { data: invitation, error: invitationError } = await supabase
+        .from("invitations")
+        .select("*")
+        .eq("email", formData.email)
+        .eq("role", "hunter")
+        .eq("accepted", false)
+        .single();
+
+      if (invitationError || !invitation) {
+        toast({
+          title: "Meghívó szükséges",
+          description: "Vadász regisztrációhoz érvényes meghívó szükséges. Kérjen meghívót a rendszer adminisztrátorától!",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Ellenőrizzük a lejáratot
+      const expiresAt = new Date(invitation.expires_at);
+      const now = new Date();
+      
+      if (expiresAt < now) {
+        toast({
+          title: "Lejárt meghívó",
+          description: "A meghívó lejárt. Kérjen új meghívót a rendszer adminisztrátorától!",
+          variant: "destructive"
+        });
+        return;
+      }
+    }
+
     setLoading(true);
 
     try {
@@ -98,6 +131,16 @@ const Register = () => {
       }
 
       if (data.user) {
+        // Ha vadász és van meghívó, megjelöljük elfogadottnak
+        if (formData.userType === "hunter") {
+          await supabase
+            .from("invitations")
+            .update({ accepted: true })
+            .eq("email", formData.email)
+            .eq("role", "hunter")
+            .eq("accepted", false);
+        }
+
         // Ha feliratkozott a hírlevélre, létrehozzuk a próbaidőszakot
         if (formData.newsletterSubscribed) {
           const expiresAt = new Date();
