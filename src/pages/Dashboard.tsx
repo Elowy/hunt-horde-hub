@@ -814,12 +814,7 @@ const Dashboard = () => {
                   {getCurrentYearRevenue().toLocaleString('hu-HU')} Ft
                 </div>
                 <p className="text-sm text-muted-foreground mt-1">
-                  {animals.filter(a => {
-                    if (!a.cooling_date) return false;
-                    const date = new Date(a.cooling_date);
-                    const now = new Date();
-                    return date.getFullYear() === now.getFullYear();
-                  }).length} állat hűtve ebben az évben
+                  Éves bevétel (aktuális év)
                 </p>
               </div>
             </CardContent>
