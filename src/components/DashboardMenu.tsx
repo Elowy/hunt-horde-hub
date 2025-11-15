@@ -19,11 +19,12 @@ import { RoleSwitcher } from "@/components/RoleSwitcher";
 interface DashboardMenuProps {
   isAdmin: boolean;
   isEditor: boolean;
+  isHunter: boolean;
   onLogout: () => void;
   onPriceUpdated: () => void;
 }
 
-export const DashboardMenu = ({ isAdmin, isEditor, onLogout, onPriceUpdated }: DashboardMenuProps) => {
+export const DashboardMenu = ({ isAdmin, isEditor, isHunter, onLogout, onPriceUpdated }: DashboardMenuProps) => {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const { isPro, loading: subscriptionLoading } = useSubscription();
@@ -116,24 +117,28 @@ export const DashboardMenu = ({ isAdmin, isEditor, onLogout, onPriceUpdated }: D
           )}
 
           {/* Nyilvántartás */}
-          <div className="space-y-2">
-            <p className="text-sm font-medium text-muted-foreground px-2">Nyilvántartás</p>
-            <div className="space-y-2">
-              <Button
-                variant="ghost"
-                className="w-full justify-start"
-                onClick={() => handleNavigation("/add-animal")}
-              >
-                <FileText className="mr-2 h-4 w-4" />
-                Vad felvétele
-              </Button>
-              <TransportDocumentsDialog />
-              <TransporterDialog />
-              <PriceSettingsDialog onPriceUpdated={onPriceUpdated} />
-            </div>
-          </div>
+          {!isHunter && (
+            <>
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-muted-foreground px-2">Nyilvántartás</p>
+                <div className="space-y-2">
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-start"
+                    onClick={() => handleNavigation("/add-animal")}
+                  >
+                    <FileText className="mr-2 h-4 w-4" />
+                    Vad felvétele
+                  </Button>
+                  <TransportDocumentsDialog />
+                  <TransporterDialog />
+                  <PriceSettingsDialog onPriceUpdated={onPriceUpdated} />
+                </div>
+              </div>
 
-          <Separator />
+              <Separator />
+            </>
+          )}
 
           {/* Vadászati */}
           <div className="space-y-2">
@@ -179,74 +184,82 @@ export const DashboardMenu = ({ isAdmin, isEditor, onLogout, onPriceUpdated }: D
           <Separator />
 
           {/* Riportok */}
-          <div className="space-y-2">
-            <p className="text-sm font-medium text-muted-foreground px-2">Riportok</p>
-            <Button
-              variant="ghost"
-              className="w-full justify-start"
-              onClick={() => handleNavigation("/reports")}
-            >
-              <BarChart className="mr-2 h-4 w-4" />
-              Hűtési díj statisztikák
-            </Button>
-            {(isAdmin || isEditor) && (
-              <>
+          {!isHunter && (
+            <>
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-muted-foreground px-2">Riportok</p>
                 <Button
                   variant="ghost"
                   className="w-full justify-start"
-                  onClick={() => handleNavigation("/hunter-statistics")}
+                  onClick={() => handleNavigation("/reports")}
                 >
-                  <Trophy className="mr-2 h-4 w-4" />
-                  Vadász statisztikák
+                  <BarChart className="mr-2 h-4 w-4" />
+                  Hűtési díj statisztikák
                 </Button>
-                <Button
-                  variant="ghost"
-                  className="w-full justify-start"
-                  onClick={() => handleNavigation("/time-based-statistics")}
-                >
-                  <Clock className="mr-2 h-4 w-4" />
-                  Időalapú statisztikák
-                </Button>
-              </>
-            )}
-          </div>
+                {(isAdmin || isEditor) && (
+                  <>
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-start"
+                      onClick={() => handleNavigation("/hunter-statistics")}
+                    >
+                      <Trophy className="mr-2 h-4 w-4" />
+                      Vadász statisztikák
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-start"
+                      onClick={() => handleNavigation("/time-based-statistics")}
+                    >
+                      <Clock className="mr-2 h-4 w-4" />
+                      Időalapú statisztikák
+                    </Button>
+                  </>
+                )}
+              </div>
 
-          <Separator />
+              <Separator />
+            </>
+          )}
 
           {/* Beállítások */}
-          <div className="space-y-2">
-            <p className="text-sm font-medium text-muted-foreground px-2">Beállítások</p>
-            <Button
-              variant="ghost"
-              className="w-full justify-start"
-              onClick={() => handleNavigation("/settings")}
-            >
-              <Settings className="mr-2 h-4 w-4" />
-              Értesítések
-            </Button>
-            <div className="flex items-center justify-between px-2">
-              <span className="text-sm">Nézet</span>
-              <ViewportToggle />
-            </div>
-            <div className="flex items-center justify-between px-2">
-              <span className="text-sm">Téma</span>
-              <ThemeToggle />
-            </div>
-          </div>
+          {!isHunter && (
+            <>
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-muted-foreground px-2">Beállítások</p>
+                <Button
+                  variant="ghost"
+                  className="w-full justify-start"
+                  onClick={() => handleNavigation("/settings")}
+                >
+                  <Settings className="mr-2 h-4 w-4" />
+                  Értesítések
+                </Button>
+                <div className="flex items-center justify-between px-2">
+                  <span className="text-sm">Nézet</span>
+                  <ViewportToggle />
+                </div>
+                <div className="flex items-center justify-between px-2">
+                  <span className="text-sm">Téma</span>
+                  <ThemeToggle />
+                </div>
+              </div>
 
-          <Separator />
+              <Separator />
 
-          {/* Előfizetések */}
-          <Button
-            variant="ghost"
-            className="w-full justify-start bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-600 dark:text-yellow-400"
-            onClick={() => handleNavigation("/subscriptions")}
-          >
-            <Crown className="mr-2 h-4 w-4" />
-            Előfizetések
-          </Button>
+              {/* Előfizetések */}
+              <Button
+                variant="ghost"
+                className="w-full justify-start bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-600 dark:text-yellow-400"
+                onClick={() => handleNavigation("/subscriptions")}
+              >
+                <Crown className="mr-2 h-4 w-4" />
+                Előfizetések
+              </Button>
 
-          <Separator />
+              <Separator />
+            </>
+          )}
 
           {/* Kijelentkezés */}
           <Button

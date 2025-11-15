@@ -6,6 +6,7 @@ import { DashboardMenu } from "@/components/DashboardMenu";
 interface PageHeaderProps {
   isAdmin?: boolean;
   isEditor?: boolean;
+  isHunter?: boolean;
   onLogout?: () => void;
   onPriceUpdated?: () => void;
 }
@@ -13,6 +14,7 @@ interface PageHeaderProps {
 export const PageHeader = ({ 
   isAdmin = false, 
   isEditor = false, 
+  isHunter = false,
   onLogout = () => {},
   onPriceUpdated = () => {}
 }: PageHeaderProps) => {
@@ -41,6 +43,7 @@ export const PageHeader = ({
           <DashboardMenu 
             isAdmin={isAdmin}
             isEditor={isEditor}
+            isHunter={isHunter}
             onLogout={onLogout}
             onPriceUpdated={onPriceUpdated}
           />

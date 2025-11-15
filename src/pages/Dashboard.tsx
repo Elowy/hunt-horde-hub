@@ -696,7 +696,10 @@ const Dashboard = () => {
       (filterVetCheck === "checked" && animal.vet_check) ||
       (filterVetCheck === "unchecked" && !animal.vet_check);
     
-    return matchesSearch && matchesLocation && matchesSpecies && matchesClass && matchesGender && matchesVetCheck;
+    // Hunters should not see transported animals
+    const matchesTransportStatus = !isHunter || !animal.is_transported;
+    
+    return matchesSearch && matchesLocation && matchesSpecies && matchesClass && matchesGender && matchesVetCheck && matchesTransportStatus;
   });
 
   // Szétválasztás hűtött és elszállított állatokra
@@ -928,6 +931,7 @@ const Dashboard = () => {
       <PageHeader 
         isAdmin={isAdmin}
         isEditor={isEditor}
+        isHunter={isHunter}
         onLogout={handleLogout}
         onPriceUpdated={fetchData}
       />
@@ -1529,18 +1533,22 @@ const Dashboard = () => {
                                   locationName={getLocationName(animal.storage_location_id)}
                                   price={price.gross}
                                 />
-                                <EditAnimalDialog 
-                                  animal={animal} 
-                                  locations={locations}
-                                  onAnimalUpdated={fetchData}
-                                />
-                                <Button 
-                                  variant="ghost" 
-                                  size="sm"
-                                  onClick={() => handleDeleteAnimal(animal)}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
+                                {!isHunter && (
+                                  <>
+                                    <EditAnimalDialog 
+                                      animal={animal} 
+                                      locations={locations}
+                                      onAnimalUpdated={fetchData}
+                                    />
+                                    <Button 
+                                      variant="ghost" 
+                                      size="sm"
+                                      onClick={() => handleDeleteAnimal(animal)}
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </>
+                                )}
                               </div>
                             </TableCell>
                           </TableRow>
