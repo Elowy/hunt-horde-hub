@@ -1028,6 +1028,18 @@ const Dashboard = () => {
                                   locationName={transportDocuments[animal.id] || "Ismeretlen elszállító"}
                                   price={price.gross}
                                 />
+                                <EditAnimalDialog 
+                                  animal={animal} 
+                                  locations={locations}
+                                  onAnimalUpdated={fetchData}
+                                />
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm"
+                                  onClick={() => handleDeleteAnimal(animal)}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
                               </div>
                             </TableCell>
                           </TableRow>

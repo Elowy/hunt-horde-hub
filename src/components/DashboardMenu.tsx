@@ -38,11 +38,11 @@ export const DashboardMenu = ({ isAdmin, onLogout, onPriceUpdated }: DashboardMe
           <Menu className="h-5 w-5" />
         </Button>
       </SheetTrigger>
-      <SheetContent side="right" className="w-[300px] sm:w-[400px]">
+      <SheetContent side="right" className="w-[300px] sm:w-[400px] overflow-y-auto">
         <SheetHeader>
           <SheetTitle>Menü</SheetTitle>
         </SheetHeader>
-        <div className="mt-6 space-y-4">
+        <div className="mt-6 space-y-4 pb-8">
           {/* Profil */}
           <div className="space-y-2">
             <Button
