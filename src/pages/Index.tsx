@@ -89,7 +89,7 @@ const Index = () => {
         
         <div className="relative z-10 text-center text-white max-w-4xl mx-auto px-6">
           <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight">
-            Vadászati Hűtés <span className="text-hunt-orange">Kezelő</span>
+            Vadászati Hűtés <span className="text-accent">Kezelő</span>
           </h1>
           <p className="text-xl md:text-2xl mb-8 text-white/90 max-w-2xl mx-auto leading-relaxed">
             Professzionális állat nyilvántartás vadászati cégek számára. 
@@ -167,11 +167,11 @@ const Index = () => {
             {pricingTiers.map((tier, index) => (
               <Card 
                 key={index} 
-                className={`relative ${tier.highlighted ? 'border-hunt-orange border-2 shadow-xl scale-105' : ''}`}
+                className={`relative ${tier.highlighted ? 'border-accent border-2 shadow-xl scale-105' : ''}`}
               >
                 {tier.highlighted && (
                   <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-                    <Badge className="bg-hunt-orange text-white px-4 py-1">
+                    <Badge className="bg-accent text-accent-foreground px-4 py-1">
                       <Crown className="h-4 w-4 mr-1 inline" />
                       Ajánlott
                     </Badge>
