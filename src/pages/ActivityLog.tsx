@@ -34,6 +34,32 @@ export default function ActivityLog() {
     checkAdminStatus();
   }, []);
 
+  useEffect(() => {
+    if (!isAdmin && !isSuperAdmin) return;
+
+    // Set up realtime subscription for activity logs
+    const channel = supabase
+      .channel('activity_logs_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'activity_logs'
+        },
+        (payload) => {
+          console.log('Activity log change received:', payload);
+          // Refresh the logs when there's a change
+          fetchLogs();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [isAdmin, isSuperAdmin]);
+
   const checkAdminStatus = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -167,8 +193,16 @@ export default function ActivityLog() {
           </div>
 
         <Card>
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Legutóbbi tevékenységek</CardTitle>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={fetchLogs}
+              disabled={loading}
+            >
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Frissítés"}
+            </Button>
           </CardHeader>
           <CardContent>
             {logs.length === 0 ? (
