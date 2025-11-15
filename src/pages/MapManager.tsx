@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useRef } from "react";
 import { MapContainer, TileLayer, Polygon, Marker, Popup } from "react-leaflet";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -52,7 +52,7 @@ const MapManager = () => {
   const [poiName, setPoiName] = useState("");
   const [poiDescription, setPoiDescription] = useState("");
   const [poiCoords, setPoiCoords] = useState<[number, number] | null>(null);
-  const [mapInstance, setMapInstance] = useState<L.Map | null>(null);
+  const mapRef = useRef<L.Map | null>(null);
 
   useEffect(() => {
     fetchZones();
@@ -60,7 +60,7 @@ const MapManager = () => {
   }, []);
 
   useEffect(() => {
-    if (!mapInstance) return;
+    if (!mapRef.current) return;
 
     const handleMapClick = (e: L.LeafletMouseEvent) => {
       if (drawingMode) {
@@ -72,12 +72,12 @@ const MapManager = () => {
       }
     };
 
-    mapInstance.on('click', handleMapClick);
+    mapRef.current.on('click', handleMapClick);
 
     return () => {
-      mapInstance.off('click', handleMapClick);
+      mapRef.current?.off('click', handleMapClick);
     };
-  }, [mapInstance, drawingMode, placingPOI]);
+  }, [drawingMode, placingPOI]);
 
   const fetchZones = async () => {
     const { data, error } = await supabase
@@ -274,10 +274,6 @@ const MapManager = () => {
     setPlacingPOI(true);
   };
 
-  const whenCreated = useCallback((map: L.Map) => {
-    setMapInstance(map);
-  }, []);
-
   return (
     <div className="min-h-screen bg-background p-4 md:p-8">
       <div className="mb-8">
@@ -392,7 +388,7 @@ const MapManager = () => {
               zoom={8}
               style={{ height: "100%", width: "100%" }}
               className="rounded-lg"
-              ref={whenCreated}
+              ref={mapRef}
             >
               <TileLayer
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
