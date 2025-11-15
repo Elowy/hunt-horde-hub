@@ -1,17 +1,33 @@
 import { useNavigate } from "react-router-dom";
-import { ArrowRight, Shield, Database, Users, CheckCircle, LogIn, Crown, Mail } from "lucide-react";
+import { ArrowRight, Shield, Database, Users, CheckCircle, LogIn, Crown, Mail, Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import heroImage from "@/assets/hero-forest.jpg";
 
 const Index = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [newsletterEmail, setNewsletterEmail] = useState("");
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    // Check initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setIsLoggedIn(!!session);
+    });
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      setIsLoggedIn(!!session);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   const features = [
     {
@@ -78,8 +94,49 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Navigation Bar */}
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-forest-deep/95 backdrop-blur-sm border-b border-white/10">
+        <div className="container mx-auto px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <h2 className="text-xl font-bold text-white">Vadgondok</h2>
+            </div>
+            
+            <div className="flex items-center gap-4">
+              {isLoggedIn ? (
+                <Button
+                  variant="ghost"
+                  onClick={() => navigate("/dashboard")}
+                  className="text-white hover:bg-white/10"
+                >
+                  <Home className="h-4 w-4 mr-2" />
+                  Dashboard
+                </Button>
+              ) : (
+                <>
+                  <Button
+                    variant="ghost"
+                    onClick={() => navigate("/login")}
+                    className="text-white hover:bg-white/10"
+                  >
+                    <LogIn className="h-4 w-4 mr-2" />
+                    Bejelentkezés
+                  </Button>
+                  <Button
+                    variant="hunting"
+                    onClick={() => navigate("/register")}
+                  >
+                    Regisztráció
+                  </Button>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      </nav>
+
       {/* Hero Section */}
-      <section className="relative h-screen flex items-center justify-center overflow-hidden">
+      <section className="relative h-screen flex items-center justify-center overflow-hidden pt-20">
         <div 
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
           style={{ backgroundImage: `url(${heroImage})` }}
