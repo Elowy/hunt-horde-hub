@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Plus, Edit, Trash2 } from "lucide-react";
+import { Plus, Edit, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
+import { PageHeader } from "@/components/PageHeader";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog,
@@ -42,6 +43,8 @@ const HiredHunters = () => {
   const { toast } = useToast();
   const [hunters, setHunters] = useState<HiredHunter[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [isEditor, setIsEditor] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingHunter, setEditingHunter] = useState<HiredHunter | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -55,8 +58,39 @@ const HiredHunters = () => {
   });
 
   useEffect(() => {
+    checkAuth();
     fetchHunters();
   }, []);
+
+  const checkAuth = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      navigate("/login");
+      return;
+    }
+
+    const { data: adminRole } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", user.id)
+      .eq("role", "admin")
+      .maybeSingle();
+
+    const { data: editorRole } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", user.id)
+      .eq("role", "editor")
+      .maybeSingle();
+
+    setIsAdmin(!!adminRole);
+    setIsEditor(!!editorRole);
+  };
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    navigate("/login");
+  };
 
   const fetchHunters = async () => {
     try {
@@ -193,28 +227,23 @@ const HiredHunters = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted">
-      <div className="bg-gradient-to-r from-forest-deep to-forest-light text-primary-foreground">
-        <div className="container mx-auto px-6 py-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Button
-                variant="ghost"
-                onClick={() => navigate("/dashboard")}
-                className="text-primary-foreground hover:bg-primary-foreground/10"
-              >
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Vissza
-              </Button>
-              <div>
-                <h1 className="text-3xl font-bold mb-2">Bérvadászok</h1>
-                <p className="text-primary-foreground/90">Bérvadászok kezelése</p>
-              </div>
-            </div>
-            <Dialog open={dialogOpen} onOpenChange={handleDialogClose}>
-              <DialogTrigger asChild>
-                <Button>
-                  <Plus className="h-4 w-4 mr-2" />
+    <div className="min-h-screen bg-background">
+      <PageHeader 
+        isAdmin={isAdmin}
+        isEditor={isEditor}
+        onLogout={handleLogout}
+      />
+      
+      <div className="container mx-auto py-6 px-4">
+        <div className="flex justify-between items-center mb-6">
+          <div>
+            <h2 className="text-3xl font-bold text-forest-deep">Bérvadászok</h2>
+            <p className="text-muted-foreground">Bérvadászok kezelése</p>
+          </div>
+          <Dialog open={dialogOpen} onOpenChange={handleDialogClose}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="h-4 w-4 mr-2" />
                   Új bérvadász
                 </Button>
               </DialogTrigger>
@@ -278,9 +307,7 @@ const HiredHunters = () => {
             </Dialog>
           </div>
         </div>
-      </div>
 
-      <div className="container mx-auto px-6 py-8">
         {loading ? (
           <p>Betöltés...</p>
         ) : hunters.length === 0 ? (

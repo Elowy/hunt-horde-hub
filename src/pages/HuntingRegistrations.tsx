@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Plus, Calendar, Clock, MapPin, CheckCircle, XCircle, AlertCircle, Crown, Package, ChevronDown, Trash2 } from "lucide-react";
+import { Plus, Calendar, Clock, MapPin, CheckCircle, XCircle, AlertCircle, Crown, Package, ChevronDown, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useSubscription } from "@/hooks/useSubscription";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { PageHeader } from "@/components/PageHeader";
 import {
   Dialog,
   DialogContent,
@@ -97,6 +98,11 @@ const HuntingRegistrations = () => {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    navigate("/login");
+  };
+
   const getDefaultFormData = () => {
     const now = new Date();
     const endTime = new Date(now.getTime() + 12 * 60 * 60 * 1000); // 12 hours later
@@ -501,26 +507,19 @@ const HuntingRegistrations = () => {
 
   if (!isPro) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted">
-        <div className="bg-gradient-to-r from-forest-deep to-forest-light text-primary-foreground">
-          <div className="container mx-auto px-6 py-6">
-            <div className="flex items-center gap-4">
-              <Button
-                variant="ghost"
-                onClick={() => navigate("/dashboard")}
-                className="text-primary-foreground hover:bg-primary-foreground/10"
-              >
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Vissza
-              </Button>
-              <div>
-                <h1 className="text-3xl font-bold mb-2">Vadászati beiratkozások</h1>
-                <p className="text-primary-foreground/90">Beiratkozások kezelése és új beiratkozás létrehozása</p>
-              </div>
-            </div>
-          </div>
-        </div>
+      <div className="min-h-screen bg-background">
+        <PageHeader 
+          isAdmin={isAdmin}
+          isEditor={isEditor}
+          onLogout={handleLogout}
+        />
         <div className="container mx-auto px-6 py-8">
+          {/* Page Title */}
+          <div className="mb-6">
+            <h2 className="text-3xl font-bold text-forest-deep">Vadászati beiratkozások</h2>
+            <p className="text-muted-foreground">Beiratkozások kezelése és új beiratkozás létrehozása</p>
+          </div>
+          
           <Alert className="border-yellow-500/50 bg-yellow-500/10">
             <Crown className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
             <AlertTitle className="text-yellow-700 dark:text-yellow-300">Pro csomag szükséges</AlertTitle>
@@ -541,32 +540,28 @@ const HuntingRegistrations = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted">
-      <div className="bg-gradient-to-r from-forest-deep to-forest-light text-primary-foreground">
-        <div className="container mx-auto px-6 py-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Button
-                variant="ghost"
-                onClick={() => navigate("/dashboard")}
-                className="text-primary-foreground hover:bg-primary-foreground/10"
-              >
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Vissza
-              </Button>
-              <div>
-                <h1 className="text-3xl font-bold mb-2">Vadászati beiratkozások</h1>
-                <p className="text-primary-foreground/90">Biztonsági körzetek kezelése</p>
-              </div>
-            </div>
-            {isHunter && (
-              <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Új beiratkozás
-                  </Button>
-                </DialogTrigger>
+    <div className="min-h-screen bg-background">
+      <PageHeader 
+        isAdmin={isAdmin}
+        isEditor={isEditor}
+        onLogout={handleLogout}
+      />
+      
+      <div className="container mx-auto px-6 py-8">
+        {/* Page Title */}
+        <div className="flex justify-between items-center mb-6">
+          <div>
+            <h2 className="text-3xl font-bold text-forest-deep">Vadászati beiratkozások</h2>
+            <p className="text-muted-foreground">Biztonsági körzetek kezelése</p>
+          </div>
+          {isHunter && (
+            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+              <DialogTrigger asChild>
+                <Button>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Új beiratkozás
+                </Button>
+              </DialogTrigger>
                 <DialogContent>
                   <DialogHeader>
                     <DialogTitle>Új vadászati beiratkozás</DialogTitle>
@@ -654,10 +649,9 @@ const HuntingRegistrations = () => {
                       Beiratkozás rögzítése
                     </Button>
                   </div>
-                </DialogContent>
-              </Dialog>
-            )}
-          </div>
+              </DialogContent>
+            </Dialog>
+          )}
         </div>
       </div>
 

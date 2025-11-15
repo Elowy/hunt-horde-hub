@@ -1,15 +1,17 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, FileDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { CoolingRevenueReport } from "@/components/CoolingRevenueReport";
 import { HuntingSeasonReport } from "@/components/HuntingSeasonReport";
+import { PageHeader } from "@/components/PageHeader";
 import { supabase } from "@/integrations/supabase/client";
 
 const Reports = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [isEditor, setIsEditor] = useState(false);
 
   useEffect(() => {
     checkAuth();
@@ -19,9 +21,31 @@ const Reports = () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       navigate("/login");
-    } else {
-      setLoading(false);
+      return;
     }
+
+    const { data: adminRole } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", user.id)
+      .eq("role", "admin")
+      .maybeSingle();
+
+    const { data: editorRole } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", user.id)
+      .eq("role", "editor")
+      .maybeSingle();
+
+    setIsAdmin(!!adminRole);
+    setIsEditor(!!editorRole);
+    setLoading(false);
+  };
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    navigate("/login");
   };
 
   if (loading) {
@@ -34,22 +58,17 @@ const Reports = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <PageHeader 
+        isAdmin={isAdmin}
+        isEditor={isEditor}
+        onLogout={handleLogout}
+      />
+      
       <div className="container mx-auto py-6 px-4">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-4">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => navigate("/dashboard")}
-            >
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-            <div>
-              <h1 className="text-3xl font-bold">Riportok</h1>
-              <p className="text-muted-foreground">Statisztikai kimutatások és exportok</p>
-            </div>
-          </div>
+        {/* Page Title */}
+        <div className="mb-6">
+          <h2 className="text-3xl font-bold text-forest-deep">Riportok</h2>
+          <p className="text-muted-foreground">Statisztikai kimutatások és exportok</p>
         </div>
 
         {/* Riportok */}
@@ -57,10 +76,7 @@ const Reports = () => {
           {/* Hűtési díj statisztikák */}
           <Card>
             <CardHeader>
-              <div className="flex items-center gap-2">
-                <FileDown className="h-5 w-5" />
-                <CardTitle>Hűtési díj statisztikák</CardTitle>
-              </div>
+              <CardTitle>Hűtési díj statisztikák</CardTitle>
               <CardDescription>
                 Töltse le a hűtési díj bevételek részletes összesítőjét PDF formátumban (csak elszállított állatok)
               </CardDescription>
@@ -88,10 +104,7 @@ const Reports = () => {
           {/* Vadelejtések összesítő */}
           <Card>
             <CardHeader>
-              <div className="flex items-center gap-2">
-                <FileDown className="h-5 w-5" />
-                <CardTitle>Vadelejtések összesítő</CardTitle>
-              </div>
+              <CardTitle>Vadelejtések összesítő</CardTitle>
               <CardDescription>
                 Töltse le a teljes vadászati idény vadelejtéseit Excel formátumban
               </CardDescription>

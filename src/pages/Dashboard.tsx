@@ -42,6 +42,7 @@ import { ViewAnimalDialog } from "@/components/ViewAnimalDialog";
 import { EditAnimalDialog } from "@/components/EditAnimalDialog";
 import { CreateTransportDialog } from "@/components/CreateTransportDialog";
 import { DashboardMenu } from "@/components/DashboardMenu";
+import { PageHeader } from "@/components/PageHeader";
 import { StorageLocationCarousel } from "@/components/StorageLocationCarousel";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import jsPDF from "jspdf";
@@ -883,35 +884,12 @@ const Dashboard = () => {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <div className="bg-gradient-to-r from-forest-deep to-forest-light text-white py-8">
-        <div className="container mx-auto px-6">
-          <div className="flex justify-between items-center">
-          <div className="flex items-center gap-2">
-            <div>
-              <h1 className="text-3xl font-bold mb-2">Állat Nyilvántartó</h1>
-              <p className="text-primary-foreground/90">Vadászati nyilvántartás és hűtés kezelése</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setViewSettingsOpen(true)}
-              className="text-white hover:bg-white/10"
-            >
-              <Settings className="h-5 w-5 mr-2" />
-              Nézet testreszabása
-            </Button>
-            <DashboardMenu 
-              isAdmin={isAdmin}
-              isEditor={isEditor}
-              onLogout={handleLogout}
-              onPriceUpdated={fetchData}
-            />
-          </div>
-          </div>
-        </div>
-      </div>
+      <PageHeader 
+        isAdmin={isAdmin}
+        isEditor={isEditor}
+        onLogout={handleLogout}
+        onPriceUpdated={fetchData}
+      />
 
       {/* View Settings Dialog */}
       <Dialog open={viewSettingsOpen} onOpenChange={setViewSettingsOpen}>
@@ -967,6 +945,22 @@ const Dashboard = () => {
       </Dialog>
 
       <div className="container mx-auto px-6 py-8">
+        {/* Dashboard specific content header */}
+        <div className="mb-6">
+          <h2 className="text-3xl font-bold text-forest-deep mb-2">Állat Nyilvántartó</h2>
+          <div className="flex items-center justify-between">
+            <p className="text-muted-foreground">Vadászati nyilvántartás és hűtés kezelése</p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setViewSettingsOpen(true)}
+            >
+              <Settings className="h-4 w-4 mr-2" />
+              Nézet testreszabása
+            </Button>
+          </div>
+        </div>
+
         {/* Hűtési helyszínek - csak ha nem vadász */}
         {!isHunter && (
           <Collapsible open={showLocations} onOpenChange={setShowLocations} className="mb-8">

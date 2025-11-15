@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Calendar, Clock, TrendingUp, BarChart3 } from "lucide-react";
+import { Calendar, Clock, TrendingUp, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { PageHeader } from "@/components/PageHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line } from "recharts";
 import { format, startOfWeek, endOfWeek, eachDayOfInterval, eachWeekOfInterval, startOfMonth, endOfMonth } from "date-fns";
@@ -65,6 +66,11 @@ const TimeBasedStatistics = () => {
       });
       navigate("/dashboard");
     }
+  };
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    navigate("/login");
   };
 
   const fetchAnimals = async () => {
@@ -270,31 +276,23 @@ const TimeBasedStatistics = () => {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <div className="bg-gradient-to-r from-forest-deep to-forest-light text-white py-8">
-        <div className="container mx-auto px-6">
-          <div className="flex items-center gap-4">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => navigate("/dashboard")}
-              className="text-white hover:bg-white/10"
-            >
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-            <div>
-              <h1 className="text-3xl font-bold mb-2 flex items-center gap-2">
-                <Clock className="h-8 w-8" />
-                Időalapú statisztikák
-              </h1>
-              <p className="text-primary-foreground/90">
-                Részletes elemzések időbeli bontásban
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
+      <PageHeader 
+        isAdmin={isAdmin}
+        isEditor={isEditor}
+        onLogout={handleLogout}
+      />
 
       <div className="container mx-auto px-6 py-8">
+        {/* Page Title */}
+        <div className="mb-6">
+          <h2 className="text-3xl font-bold text-forest-deep flex items-center gap-2">
+            <Clock className="h-8 w-8" />
+            Időalapú statisztikák
+          </h2>
+          <p className="text-muted-foreground">
+            Részletes elemzések időbeli bontásban
+          </p>
+        </div>
         {/* Filters */}
         <Card className="mb-6">
           <CardHeader>

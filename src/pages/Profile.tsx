@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Save, User, Mail, Crown } from "lucide-react";
+import { Save, User, Mail, Crown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
+import { PageHeader } from "@/components/PageHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { InviteUserDialog } from "@/components/InviteUserDialog";
 import { useSubscription } from "@/hooks/useSubscription";
@@ -39,6 +40,11 @@ const Profile = () => {
     checkAdminStatus();
   }, []);
 
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    navigate("/login");
+  };
+
   const checkAdminStatus = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -55,6 +61,11 @@ const Profile = () => {
     } catch (error) {
       console.error("Error checking admin status:", error);
     }
+  };
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    navigate("/login");
   };
 
   const fetchProfileData = async () => {
