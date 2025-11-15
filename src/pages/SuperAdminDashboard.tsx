@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useIsSuperAdmin } from "@/hooks/useIsSuperAdmin";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -11,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Users, Building2, Package, Truck, FileText, Shield, Edit, Trash2, Eye, Ticket } from "lucide-react";
+import { Loader2, Users, Building2, Package, Truck, FileText, Shield, Edit, Trash2, Eye, Ticket, ChevronDown } from "lucide-react";
 import { TicketManagement } from "@/components/TicketManagement";
 import { useToast } from "@/hooks/use-toast";
 import { CreateSubscriptionCodeDialog } from "@/components/CreateSubscriptionCodeDialog";
@@ -121,6 +122,8 @@ const SuperAdminDashboard = () => {
   const [profileDialogOpen, setProfileDialogOpen] = useState(false);
   const [trialSubscription, setTrialSubscription] = useState<TrialSubscription | null>(null);
   const [lifetimeSubscription, setLifetimeSubscription] = useState<LifetimeSubscription | null>(null);
+  const [detailsOpen, setDetailsOpen] = useState(true);
+  const [ticketsOpen, setTicketsOpen] = useState(true);
   const [editingSubscription, setEditingSubscription] = useState(false);
   const [subscriptionTier, setSubscriptionTier] = useState<string>("pro");
   const [subscriptionExpiresAt, setSubscriptionExpiresAt] = useState<string>("");
@@ -396,22 +399,32 @@ const SuperAdminDashboard = () => {
         </div>
 
         {/* Részletes adatok */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Részletes adatok</CardTitle>
-            <CardDescription>Az összes rendszerbeli adat áttekintése és kezelése</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Tabs defaultValue="users" className="w-full">
-              <TabsList className="grid w-full grid-cols-7">
-                <TabsTrigger value="users">Felhasználók</TabsTrigger>
-                <TabsTrigger value="animals">Állatok</TabsTrigger>
-                <TabsTrigger value="locations">Hűtési helyek</TabsTrigger>
-                <TabsTrigger value="transporters">Szállítók</TabsTrigger>
-                <TabsTrigger value="documents">Szállítólevelek</TabsTrigger>
-                <TabsTrigger value="codes">Kódok</TabsTrigger>
-                <TabsTrigger value="tickets">Ticketek</TabsTrigger>
-              </TabsList>
+        <Collapsible open={detailsOpen} onOpenChange={setDetailsOpen}>
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Részletes adatok</CardTitle>
+                  <CardDescription>Az összes rendszerbeli adat áttekintése és kezelése</CardDescription>
+                </div>
+                <CollapsibleTrigger asChild>
+                  <Button variant="ghost" size="sm">
+                    <ChevronDown className={`h-5 w-5 transition-transform ${detailsOpen ? '' : '-rotate-90'}`} />
+                  </Button>
+                </CollapsibleTrigger>
+              </div>
+            </CardHeader>
+            <CollapsibleContent>
+              <CardContent>
+                <Tabs defaultValue="users" className="w-full">
+                  <TabsList className="grid w-full grid-cols-6">
+                    <TabsTrigger value="users">Felhasználók</TabsTrigger>
+                    <TabsTrigger value="animals">Állatok</TabsTrigger>
+                    <TabsTrigger value="locations">Hűtési helyek</TabsTrigger>
+                    <TabsTrigger value="transporters">Szállítók</TabsTrigger>
+                    <TabsTrigger value="documents">Szállítólevelek</TabsTrigger>
+                    <TabsTrigger value="codes">Kódok</TabsTrigger>
+                  </TabsList>
 
               <TabsContent value="users" className="mt-4">
                 <div className="rounded-md border">
@@ -659,14 +672,36 @@ const SuperAdminDashboard = () => {
                   </Table>
                 </div>
               </TabsContent>
-
-              <TabsContent value="tickets" className="mt-4">
-                <TicketManagement />
-              </TabsContent>
             </Tabs>
           </CardContent>
-        </Card>
-      </div>
+        </CollapsibleContent>
+      </Card>
+    </Collapsible>
+
+    {/* Ticketek kezelése */}
+    <Collapsible open={ticketsOpen} onOpenChange={setTicketsOpen}>
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Támogatási jegyek</CardTitle>
+              <CardDescription>Összes felhasználói ticket kezelése</CardDescription>
+            </div>
+            <CollapsibleTrigger asChild>
+              <Button variant="ghost" size="sm">
+                <ChevronDown className={`h-5 w-5 transition-transform ${ticketsOpen ? '' : '-rotate-90'}`} />
+              </Button>
+            </CollapsibleTrigger>
+          </div>
+        </CardHeader>
+        <CollapsibleContent>
+          <CardContent>
+            <TicketManagement />
+          </CardContent>
+        </CollapsibleContent>
+      </Card>
+    </Collapsible>
+  </div>
 
       {/* Törlés megerősítő dialógus */}
       <AlertDialog open={deleteDialog.open} onOpenChange={(open) => !open && setDeleteDialog({ open: false, type: "", id: "", name: "" })}>
