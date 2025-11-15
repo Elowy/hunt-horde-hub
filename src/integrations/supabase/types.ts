@@ -534,6 +534,8 @@ export type Database = {
         Row: {
           address: string | null
           capacity: number | null
+          cooling_price_per_kg: number | null
+          cooling_vat_rate: number | null
           created_at: string
           id: string
           is_default: boolean | null
@@ -545,6 +547,8 @@ export type Database = {
         Insert: {
           address?: string | null
           capacity?: number | null
+          cooling_price_per_kg?: number | null
+          cooling_vat_rate?: number | null
           created_at?: string
           id?: string
           is_default?: boolean | null
@@ -556,6 +560,8 @@ export type Database = {
         Update: {
           address?: string | null
           capacity?: number | null
+          cooling_price_per_kg?: number | null
+          cooling_vat_rate?: number | null
           created_at?: string
           id?: string
           is_default?: boolean | null

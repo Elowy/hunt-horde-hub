@@ -46,6 +46,8 @@ interface StorageLocation {
   capacity: number | null;
   is_default: boolean;
   notes: string | null;
+  cooling_price_per_kg?: number | null;
+  cooling_vat_rate?: number | null;
 }
 
 interface Animal {
@@ -112,6 +114,7 @@ const Dashboard = () => {
   const [isHunter, setIsHunter] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [showLocations, setShowLocations] = useState(true);
+  const [showStatistics, setShowStatistics] = useState(true);
 
   useEffect(() => {
     checkAuth();
@@ -722,6 +725,43 @@ const Dashboard = () => {
     ];
   };
 
+  const getCoolingRevenue = () => {
+    return animals.reduce((sum, animal) => {
+      if (animal.is_transported || !animal.weight) return sum;
+      
+      const location = locations.find(loc => loc.id === animal.storage_location_id);
+      if (!location || !location.cooling_price_per_kg) return sum;
+      
+      const netRevenue = animal.weight * location.cooling_price_per_kg;
+      const vatRate = location.cooling_vat_rate || 27;
+      const grossRevenue = netRevenue * (1 + vatRate / 100);
+      
+      return sum + grossRevenue;
+    }, 0);
+  };
+
+  const getCurrentMonthCoolingRevenue = () => {
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+    
+    return animals.reduce((sum, animal) => {
+      if (animal.is_transported || !animal.weight || !animal.cooling_date) return sum;
+      
+      const date = new Date(animal.cooling_date);
+      if (date.getMonth() !== currentMonth || date.getFullYear() !== currentYear) return sum;
+      
+      const location = locations.find(loc => loc.id === animal.storage_location_id);
+      if (!location || !location.cooling_price_per_kg) return sum;
+      
+      const netRevenue = animal.weight * location.cooling_price_per_kg;
+      const vatRate = location.cooling_vat_rate || 27;
+      const grossRevenue = netRevenue * (1 + vatRate / 100);
+      
+      return sum + grossRevenue;
+    }, 0);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -787,76 +827,112 @@ const Dashboard = () => {
           </Collapsible>
         )}
 
-        {/* Stats Cards és Statisztika - csak ha nem vadász */}
+        {/* Statisztika - csak ha nem vadász, becsukható */}
         {!isHunter && (
-          <>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    Kapacitás kihasználtság
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-[200px] flex items-center justify-center">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={getCapacityData()}
-                          cx="50%"
-                          cy="50%"
-                          labelLine={false}
-                          label={({ name, value }) => `${name}: ${value}`}
-                          outerRadius={80}
-                          fill="#8884d8"
-                          dataKey="value"
-                        >
-                          {getCapacityData().map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={entry.color} />
-                          ))}
-                        </Pie>
-                        <Tooltip />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    Havi bevétel (aktuális hónap)
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold text-green-600 dark:text-green-400">
-                    {getCurrentMonthRevenue().toLocaleString('hu-HU')} Ft
-                  </div>
-                  <p className="text-sm text-muted-foreground mt-2">
-                    {animals.filter(a => {
-                      if (!a.cooling_date) return false;
-                      const date = new Date(a.cooling_date);
-                      const now = new Date();
-                      return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
-                    }).length} állat hűtve ebben a hónapban
-                  </p>
-                  <div className="mt-4 pt-4 border-t">
-                    <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                      {getCurrentYearRevenue().toLocaleString('hu-HU')} Ft
-                    </div>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Éves bevétel (aktuális év)
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
+          <Collapsible open={showStatistics} onOpenChange={setShowStatistics} className="mb-8">
+            <div className="flex items-center gap-2 mb-4">
+              <CollapsibleTrigger asChild>
+                <Button variant="ghost" size="sm" className="p-0 h-auto hover:bg-transparent">
+                  <ChevronDown className={`h-5 w-5 transition-transform ${showStatistics ? '' : '-rotate-90'}`} />
+                </Button>
+              </CollapsibleTrigger>
+              <h2 className="text-2xl font-bold text-forest-deep">Statisztika</h2>
             </div>
+            
+            <CollapsibleContent className="space-y-6">
+              {/* Stats Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm font-medium text-muted-foreground">
+                      Kapacitás kihasználtság
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-[200px] flex items-center justify-center">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={getCapacityData()}
+                            cx="50%"
+                            cy="50%"
+                            labelLine={false}
+                            label={({ name, value }) => `${name}: ${value}`}
+                            outerRadius={80}
+                            fill="#8884d8"
+                            dataKey="value"
+                          >
+                            {getCapacityData().map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={entry.color} />
+                            ))}
+                          </Pie>
+                          <Tooltip />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm font-medium text-muted-foreground">
+                      Havi bevétel (aktuális hónap)
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-3xl font-bold text-green-600 dark:text-green-400">
+                      {getCurrentMonthRevenue().toLocaleString('hu-HU')} Ft
+                    </div>
+                    <p className="text-sm text-muted-foreground mt-2">
+                      {animals.filter(a => {
+                        if (!a.cooling_date) return false;
+                        const date = new Date(a.cooling_date);
+                        const now = new Date();
+                        return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
+                      }).length} állat hűtve ebben a hónapban
+                    </p>
+                    <div className="mt-4 pt-4 border-t">
+                      <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                        {getCurrentYearRevenue().toLocaleString('hu-HU')} Ft
+                      </div>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Éves bevétel (aktuális év)
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
 
-            <div className="mb-8">
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm font-medium text-muted-foreground">
+                      Hűtési díj bevétel
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-3xl font-bold text-purple-600 dark:text-purple-400">
+                      {getCurrentMonthCoolingRevenue().toLocaleString('hu-HU')} Ft
+                    </div>
+                    <p className="text-sm text-muted-foreground mt-2">
+                      Aktuális hónap hűtési díja
+                    </p>
+                    <div className="mt-4 pt-4 border-t">
+                      <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+                        {getCoolingRevenue().toLocaleString('hu-HU')} Ft
+                      </div>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Összes jelenleg hűtött állat
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Bevételi grafikon */}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <TrendingUp className="h-5 w-5" />
-                    Statisztika
+                    Havi bevételek
                   </CardTitle>
                   <CardDescription>Havi bevételek a hűtött állatok alapján</CardDescription>
                 </CardHeader>
@@ -881,8 +957,8 @@ const Dashboard = () => {
                   </ResponsiveContainer>
                 </CardContent>
               </Card>
-            </div>
-          </>
+            </CollapsibleContent>
+          </Collapsible>
         )}
 
         {/* Állat nyilvántartás */}

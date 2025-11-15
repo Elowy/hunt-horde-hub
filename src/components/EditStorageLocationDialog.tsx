@@ -22,6 +22,8 @@ interface StorageLocation {
   capacity: number | null;
   notes: string | null;
   is_default: boolean;
+  cooling_price_per_kg?: number | null;
+  cooling_vat_rate?: number | null;
 }
 
 interface EditStorageLocationDialogProps {
@@ -38,6 +40,8 @@ export const EditStorageLocationDialog = ({ location, onLocationUpdated }: EditS
     address: location.address || "",
     capacity: location.capacity?.toString() || "",
     notes: location.notes || "",
+    coolingPrice: location.cooling_price_per_kg?.toString() || "",
+    coolingVat: location.cooling_vat_rate?.toString() || "27",
   });
 
   useEffect(() => {
@@ -46,6 +50,8 @@ export const EditStorageLocationDialog = ({ location, onLocationUpdated }: EditS
       address: location.address || "",
       capacity: location.capacity?.toString() || "",
       notes: location.notes || "",
+      coolingPrice: location.cooling_price_per_kg?.toString() || "",
+      coolingVat: location.cooling_vat_rate?.toString() || "27",
     });
   }, [location]);
 
@@ -71,6 +77,8 @@ export const EditStorageLocationDialog = ({ location, onLocationUpdated }: EditS
           address: formData.address || null,
           capacity: formData.capacity ? parseInt(formData.capacity) : null,
           notes: formData.notes || null,
+          cooling_price_per_kg: formData.coolingPrice ? parseFloat(formData.coolingPrice) : 0,
+          cooling_vat_rate: formData.coolingVat ? parseFloat(formData.coolingVat) : 27,
         })
         .eq("id", location.id);
 
@@ -153,6 +161,34 @@ export const EditStorageLocationDialog = ({ location, onLocationUpdated }: EditS
               placeholder="További információk..."
               disabled={loading}
             />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="coolingPrice">Hűtési díj (Ft/kg)</Label>
+              <Input
+                id="coolingPrice"
+                type="number"
+                step="0.01"
+                value={formData.coolingPrice}
+                onChange={(e) => setFormData({ ...formData, coolingPrice: e.target.value })}
+                placeholder="0"
+                disabled={loading}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="coolingVat">ÁFA (%)</Label>
+              <Input
+                id="coolingVat"
+                type="number"
+                step="0.01"
+                value={formData.coolingVat}
+                onChange={(e) => setFormData({ ...formData, coolingVat: e.target.value })}
+                placeholder="27"
+                disabled={loading}
+              />
+            </div>
           </div>
 
           <div className="flex justify-end gap-2">
