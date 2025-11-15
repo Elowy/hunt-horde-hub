@@ -236,23 +236,23 @@ const AddAnimal = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-hunt-dark via-hunt-primary to-hunt-secondary">
+    <div className="min-h-screen bg-gradient-to-br from-forest-deep via-primary to-forest-light">
       <div className="container mx-auto px-4 py-8">
         <div className="flex items-center mb-6">
           <Button
             variant="ghost"
             onClick={() => navigate("/dashboard")}
-            className="text-white hover:bg-white/10 mr-4"
+            className="text-primary-foreground hover:bg-white/10 mr-4"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Vissza az Irányítópulthoz
           </Button>
-          <h1 className="text-3xl font-bold text-white">Új Állat Hozzáadása</h1>
+          <h1 className="text-3xl font-bold text-primary-foreground">Új Állat Hozzáadása</h1>
         </div>
 
-        <Card className="max-w-2xl mx-auto bg-white/95 backdrop-blur-sm">
+        <Card className="max-w-2xl mx-auto bg-card/95 backdrop-blur-sm">
           <CardHeader>
-            <CardTitle className="flex items-center text-hunt-dark">
+            <CardTitle className="flex items-center text-foreground">
               <PlusCircle className="w-6 h-6 mr-2" />
               Alapvető Állat Információk
             </CardTitle>

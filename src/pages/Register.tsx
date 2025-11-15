@@ -141,24 +141,20 @@ const Register = () => {
             .eq("accepted", false);
         }
 
-        // Ha feliratkozott a hírlevélre, létrehozzuk a próbaidőszakot
-        if (formData.newsletterSubscribed) {
-          const expiresAt = new Date();
-          expiresAt.setMonth(expiresAt.getMonth() + 1);
-          
-          await supabase.from("trial_subscriptions").insert({
-            user_id: data.user.id,
-            tier: "pro",
-            expires_at: expiresAt.toISOString(),
-            newsletter_subscribed: true,
-          });
-        }
+        // Minden új felhasználó automatikusan kap 1 hónapos Pro próbaidőszakot
+        const expiresAt = new Date();
+        expiresAt.setMonth(expiresAt.getMonth() + 1);
+        
+        await supabase.from("trial_subscriptions").insert({
+          user_id: data.user.id,
+          tier: "pro",
+          expires_at: expiresAt.toISOString(),
+          newsletter_subscribed: formData.newsletterSubscribed,
+        });
 
         toast({
           title: "Sikeres regisztráció!",
-          description: formData.newsletterSubscribed 
-            ? "Fiókja létrehozva. 1 hónap ingyenes Pro előfizetést kapott!" 
-            : "Fiókja létrehozva. Átirányítás...",
+          description: "Fiókja létrehozva. 1 hónap ingyenes Pro előfizetést kapott!",
         });
         
         setTimeout(() => {

@@ -75,15 +75,15 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-hunt-orange/10 to-hunt-dark/5 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-accent/10 to-muted p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
           <div className="text-center mb-2">
-            <Link to="/" className="text-sm text-hunt-orange hover:underline">
+            <Link to="/" className="text-sm text-accent hover:underline">
               ← Vissza a főoldalra
             </Link>
           </div>
-          <CardTitle className="text-2xl font-bold text-center text-hunt-dark">
+          <CardTitle className="text-2xl font-bold text-center text-foreground">
             Bejelentkezés
           </CardTitle>
           <CardDescription className="text-center">
@@ -139,7 +139,7 @@ const Login = () => {
 
             <div className="text-center text-sm text-muted-foreground">
               Még nincs fiókja?{" "}
-              <Link to="/register" className="text-hunt-orange hover:underline font-medium">
+              <Link to="/register" className="text-accent hover:underline font-medium">
                 Regisztráció
               </Link>
             </div>

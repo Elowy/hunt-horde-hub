@@ -83,7 +83,7 @@ export const ViewAnimalDialog = ({ animal, locationName, price }: ViewAnimalDial
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Becsült ár</p>
-                <p className="font-medium text-hunt-orange">
+                <p className="font-medium text-accent">
                   {price > 0 ? `${Math.round(price).toLocaleString("hu-HU")} Ft` : "-"}
                 </p>
               </div>

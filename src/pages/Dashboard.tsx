@@ -752,14 +752,14 @@ const Dashboard = () => {
               {locations.map((location) => {
                 const stats = getLocationStats(location.id);
                 return (
-                  <Card key={location.id} className={location.is_default ? "border-hunt-orange border-2" : ""}>
+                  <Card key={location.id} className={location.is_default ? "border-accent border-2" : ""}>
                     <CardHeader className="pb-3">
                       <div className="flex items-start justify-between">
                         <div className="flex items-center gap-2">
-                          <MapPin className="h-5 w-5 text-hunt-orange" />
+                          <MapPin className="h-5 w-5 text-accent" />
                           <CardTitle className="text-lg">{location.name}</CardTitle>
                           {location.is_default && (
-                            <Badge variant="outline" className="text-hunt-orange border-hunt-orange">
+                            <Badge variant="outline" className="text-accent border-accent">
                               Alapértelmezett
                             </Badge>
                           )}
@@ -772,7 +772,7 @@ const Dashboard = () => {
                               onClick={() => handleSetDefaultLocation(location.id)}
                               className="h-8 w-8 p-0"
                             >
-                              <Star className="h-4 w-4 text-muted-foreground hover:text-hunt-orange" />
+                              <Star className="h-4 w-4 text-muted-foreground hover:text-accent" />
                             </Button>
                           )}
                           <EditStorageLocationDialog location={location} onLocationUpdated={fetchData} />
@@ -1181,7 +1181,7 @@ const Dashboard = () => {
                             </TableCell>
                             <TableCell>{animal.hunter_name || "-"}</TableCell>
                             <TableCell>
-                              <Badge variant="outline" className="bg-hunt-orange/10 text-hunt-orange border-hunt-orange">
+                              <Badge variant="outline" className="bg-accent/10 text-accent border-accent">
                                 {transportDocuments[animal.id] || "Ismeretlen elszállító"}
                               </Badge>
                             </TableCell>
