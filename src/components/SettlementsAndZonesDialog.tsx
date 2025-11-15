@@ -8,6 +8,7 @@ import { MapPin, Plus, Pencil, Trash2, ChevronDown, ChevronRight, ArrowUp, Arrow
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { HuntingLocationsManager } from "@/components/HuntingLocationsManager";
 
 interface Settlement {
   id: string;
@@ -28,6 +29,7 @@ export function SettlementsAndZonesDialog() {
   const [settlements, setSettlements] = useState<Settlement[]>([]);
   const [zones, setZones] = useState<SecurityZone[]>([]);
   const [openSettlements, setOpenSettlements] = useState<Set<string>>(new Set());
+  const [openZones, setOpenZones] = useState<Set<string>>(new Set());
   
   // Új település
   const [newSettlementName, setNewSettlementName] = useState("");
@@ -79,6 +81,16 @@ export function SettlementsAndZonesDialog() {
       newOpen.add(id);
     }
     setOpenSettlements(newOpen);
+  };
+
+  const toggleZone = (id: string) => {
+    const newOpen = new Set(openZones);
+    if (newOpen.has(id)) {
+      newOpen.delete(id);
+    } else {
+      newOpen.add(id);
+    }
+    setOpenZones(newOpen);
   };
 
   // Település műveletek
@@ -346,53 +358,76 @@ export function SettlementsAndZonesDialog() {
                   </div>
                   
                   {isOpen && (
-                    <div className="pl-12 pr-3 pb-3">
+                    <div className="pl-12 pr-3 pb-3 space-y-2">
                       {settlementZones.length > 0 ? (
-                        settlementZones.map((zone, zoneIndex) => (
-                          <div
-                            key={zone.id}
-                            className="flex items-center gap-2 p-2 bg-muted/30 rounded mb-1"
-                          >
-                            <span className="flex-1 text-sm">{zone.name}</span>
-                            
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => moveZone(zone.id, "up")}
-                              disabled={zoneIndex === 0}
-                            >
-                              <ArrowUp className="h-3 w-3" />
-                            </Button>
-                            
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => moveZone(zone.id, "down")}
-                              disabled={zoneIndex === settlementZones.length - 1}
-                            >
-                              <ArrowDown className="h-3 w-3" />
-                            </Button>
-                            
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {
-                                setEditingZone(zone);
-                                setEditingZoneSettlement(zone.settlement_id || "");
-                              }}
-                            >
-                              <Pencil className="h-3 w-3" />
-                            </Button>
-                            
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => deleteZone(zone.id)}
-                            >
-                              <Trash2 className="h-3 w-3" />
-                            </Button>
-                          </div>
-                        ))
+                        settlementZones.map((zone, zoneIndex) => {
+                          const isZoneOpen = openZones.has(zone.id);
+                          return (
+                            <div key={zone.id} className="bg-muted/30 rounded">
+                              <div className="flex items-center gap-2 p-2">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => toggleZone(zone.id)}
+                                  className="p-0 h-6 w-6"
+                                >
+                                  {isZoneOpen ? (
+                                    <ChevronDown className="h-3 w-3" />
+                                  ) : (
+                                    <ChevronRight className="h-3 w-3" />
+                                  )}
+                                </Button>
+                                <span className="flex-1 text-sm">{zone.name}</span>
+                                
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => moveZone(zone.id, "up")}
+                                  disabled={zoneIndex === 0}
+                                >
+                                  <ArrowUp className="h-3 w-3" />
+                                </Button>
+                                
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => moveZone(zone.id, "down")}
+                                  disabled={zoneIndex === settlementZones.length - 1}
+                                >
+                                  <ArrowDown className="h-3 w-3" />
+                                </Button>
+                                
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => {
+                                    setEditingZone(zone);
+                                    setEditingZoneSettlement(zone.settlement_id || "");
+                                  }}
+                                >
+                                  <Pencil className="h-3 w-3" />
+                                </Button>
+                                
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => deleteZone(zone.id)}
+                                >
+                                  <Trash2 className="h-3 w-3" />
+                                </Button>
+                              </div>
+                              
+                              {isZoneOpen && (
+                                <div className="px-2 pb-2">
+                                  <HuntingLocationsManager
+                                    securityZoneId={zone.id}
+                                    securityZoneName={zone.name}
+                                  />
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })
                       ) : (
                         <div className="text-sm text-muted-foreground">
                           Még nincs beírókörzet

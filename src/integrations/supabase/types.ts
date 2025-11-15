@@ -266,12 +266,60 @@ export type Database = {
         }
         Relationships: []
       }
+      hunting_locations: {
+        Row: {
+          created_at: string
+          display_order: number
+          id: string
+          latitude: number | null
+          longitude: number | null
+          name: string
+          security_zone_id: string
+          type: Database["public"]["Enums"]["hunting_location_type"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          name: string
+          security_zone_id: string
+          type: Database["public"]["Enums"]["hunting_location_type"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          display_order?: number
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          name?: string
+          security_zone_id?: string
+          type?: Database["public"]["Enums"]["hunting_location_type"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hunting_locations_security_zone_id_fkey"
+            columns: ["security_zone_id"]
+            isOneToOne: false
+            referencedRelation: "security_zones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hunting_registrations: {
         Row: {
           admin_note: string | null
           created_at: string
           end_time: string
           hired_hunter_id: string | null
+          hunting_location_id: string | null
           id: string
           requires_admin_approval: boolean
           security_zone_id: string
@@ -285,6 +333,7 @@ export type Database = {
           created_at?: string
           end_time: string
           hired_hunter_id?: string | null
+          hunting_location_id?: string | null
           id?: string
           requires_admin_approval?: boolean
           security_zone_id: string
@@ -298,6 +347,7 @@ export type Database = {
           created_at?: string
           end_time?: string
           hired_hunter_id?: string | null
+          hunting_location_id?: string | null
           id?: string
           requires_admin_approval?: boolean
           security_zone_id?: string
@@ -312,6 +362,13 @@ export type Database = {
             columns: ["hired_hunter_id"]
             isOneToOne: false
             referencedRelation: "hired_hunters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hunting_registrations_hunting_location_id_fkey"
+            columns: ["hunting_location_id"]
+            isOneToOne: false
+            referencedRelation: "hunting_locations"
             referencedColumns: ["id"]
           },
           {
@@ -976,6 +1033,12 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "editor" | "viewer" | "hunter" | "super_admin"
+      hunting_location_type:
+        | "fedett_les"
+        | "nem_fedett_les"
+        | "magan_szoro"
+        | "kozponti_szoro"
+        | "csapda"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1104,6 +1167,13 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "editor", "viewer", "hunter", "super_admin"],
+      hunting_location_type: [
+        "fedett_les",
+        "nem_fedett_les",
+        "magan_szoro",
+        "kozponti_szoro",
+        "csapda",
+      ],
     },
   },
 } as const
