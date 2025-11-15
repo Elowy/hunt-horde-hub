@@ -7,8 +7,19 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Users, Building2, Package, Truck, FileText, MapPin, Shield, AlertCircle } from "lucide-react";
+import { Loader2, Users, Building2, Package, Truck, FileText, Shield, Edit, Trash2, Eye, Ticket } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { CreateSubscriptionCodeDialog } from "@/components/CreateSubscriptionCodeDialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface Profile {
   id: string;
@@ -49,6 +60,18 @@ interface TransportDocument {
   animal_count: number;
 }
 
+interface SubscriptionCode {
+  id: string;
+  code: string;
+  tier: string;
+  duration: string;
+  expires_at: string;
+  redeemed_by: string | null;
+  redeemed_at: string | null;
+  created_at: string;
+  notes: string | null;
+}
+
 const SuperAdminDashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -59,7 +82,14 @@ const SuperAdminDashboard = () => {
   const [storageLocations, setStorageLocations] = useState<StorageLocation[]>([]);
   const [transporters, setTransporters] = useState<Transporter[]>([]);
   const [transportDocuments, setTransportDocuments] = useState<TransportDocument[]>([]);
+  const [subscriptionCodes, setSubscriptionCodes] = useState<SubscriptionCode[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; type: string; id: string; name: string }>({
+    open: false,
+    type: "",
+    id: "",
+    name: "",
+  });
 
   useEffect(() => {
     if (!checkingAdmin && !isSuperAdmin) {
@@ -81,12 +111,13 @@ const SuperAdminDashboard = () => {
   const loadAllData = async () => {
     setLoading(true);
     try {
-      const [profilesData, animalsData, locationsData, transportersData, documentsData] = await Promise.all([
+      const [profilesData, animalsData, locationsData, transportersData, documentsData, codesData] = await Promise.all([
         supabase.from("profiles").select("*"),
         supabase.from("animals").select("*").order("created_at", { ascending: false }).limit(50),
         supabase.from("storage_locations").select("*"),
         supabase.from("transporters").select("*"),
         supabase.from("transport_documents").select("*").order("transport_date", { ascending: false }).limit(50),
+        supabase.from("subscription_codes").select("*").order("created_at", { ascending: false }),
       ]);
 
       if (profilesData.data) setProfiles(profilesData.data);
@@ -94,6 +125,7 @@ const SuperAdminDashboard = () => {
       if (locationsData.data) setStorageLocations(locationsData.data);
       if (transportersData.data) setTransporters(transportersData.data);
       if (documentsData.data) setTransportDocuments(documentsData.data);
+      if (codesData.data) setSubscriptionCodes(codesData.data);
     } catch (error) {
       console.error("Error loading data:", error);
       toast({
@@ -104,6 +136,48 @@ const SuperAdminDashboard = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleDelete = async () => {
+    try {
+      let error;
+      if (deleteDialog.type === "animals") {
+        const result = await supabase.from("animals").delete().eq("id", deleteDialog.id);
+        error = result.error;
+      } else if (deleteDialog.type === "storage_locations") {
+        const result = await supabase.from("storage_locations").delete().eq("id", deleteDialog.id);
+        error = result.error;
+      } else if (deleteDialog.type === "transporters") {
+        const result = await supabase.from("transporters").delete().eq("id", deleteDialog.id);
+        error = result.error;
+      } else if (deleteDialog.type === "transport_documents") {
+        const result = await supabase.from("transport_documents").delete().eq("id", deleteDialog.id);
+        error = result.error;
+      } else if (deleteDialog.type === "subscription_codes") {
+        const result = await supabase.from("subscription_codes").delete().eq("id", deleteDialog.id);
+        error = result.error;
+      }
+
+      if (error) throw error;
+
+      toast({
+        title: "Sikeres törlés",
+        description: `${deleteDialog.name} törölve.`,
+      });
+
+      loadAllData();
+      setDeleteDialog({ open: false, type: "", id: "", name: "" });
+    } catch (error: any) {
+      toast({
+        title: "Hiba",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const openDeleteDialog = (type: string, id: string, name: string) => {
+    setDeleteDialog({ open: true, type, id, name });
   };
 
   if (checkingAdmin || loading) {
@@ -205,12 +279,13 @@ const SuperAdminDashboard = () => {
           </CardHeader>
           <CardContent>
             <Tabs defaultValue="users" className="w-full">
-              <TabsList className="grid w-full grid-cols-5">
+              <TabsList className="grid w-full grid-cols-6">
                 <TabsTrigger value="users">Felhasználók</TabsTrigger>
                 <TabsTrigger value="animals">Állatok</TabsTrigger>
                 <TabsTrigger value="locations">Hűtési helyek</TabsTrigger>
                 <TabsTrigger value="transporters">Szállítók</TabsTrigger>
                 <TabsTrigger value="documents">Szállítólevelek</TabsTrigger>
+                <TabsTrigger value="codes">Kódok</TabsTrigger>
               </TabsList>
 
               <TabsContent value="users" className="mt-4">
@@ -222,6 +297,7 @@ const SuperAdminDashboard = () => {
                         <TableHead>Kapcsolattartó</TableHead>
                         <TableHead>Email</TableHead>
                         <TableHead>Típus</TableHead>
+                        <TableHead className="text-right">Műveletek</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -232,6 +308,17 @@ const SuperAdminDashboard = () => {
                           <TableCell>{profile.contact_email || "-"}</TableCell>
                           <TableCell>
                             <Badge variant="secondary">{profile.user_type || "-"}</Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-2">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => navigate("/profile")}
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -249,6 +336,7 @@ const SuperAdminDashboard = () => {
                         <TableHead>Faj</TableHead>
                         <TableHead>Súly (kg)</TableHead>
                         <TableHead>Hozzáadva</TableHead>
+                        <TableHead className="text-right">Műveletek</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -258,6 +346,17 @@ const SuperAdminDashboard = () => {
                           <TableCell>{animal.species}</TableCell>
                           <TableCell>{animal.weight || "-"}</TableCell>
                           <TableCell>{new Date(animal.created_at).toLocaleDateString('hu-HU')}</TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-2">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => openDeleteDialog("animals", animal.id, animal.animal_id)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -274,6 +373,7 @@ const SuperAdminDashboard = () => {
                         <TableHead>Cím</TableHead>
                         <TableHead>Kapacitás</TableHead>
                         <TableHead>Alapértelmezett</TableHead>
+                        <TableHead className="text-right">Műveletek</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -288,6 +388,17 @@ const SuperAdminDashboard = () => {
                             ) : (
                               <Badge variant="outline">Nem</Badge>
                             )}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-2">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => openDeleteDialog("storage_locations", location.id, location.name)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -304,6 +415,7 @@ const SuperAdminDashboard = () => {
                         <TableHead>Cégnév</TableHead>
                         <TableHead>Kapcsolattartó</TableHead>
                         <TableHead>Cím</TableHead>
+                        <TableHead className="text-right">Műveletek</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -312,6 +424,17 @@ const SuperAdminDashboard = () => {
                           <TableCell className="font-medium">{transporter.company_name}</TableCell>
                           <TableCell>{transporter.contact_name || "-"}</TableCell>
                           <TableCell>{transporter.address || "-"}</TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-2">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => openDeleteDialog("transporters", transporter.id, transporter.company_name)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -328,6 +451,7 @@ const SuperAdminDashboard = () => {
                         <TableHead>Dátum</TableHead>
                         <TableHead>Össz súly (kg)</TableHead>
                         <TableHead>Állatok száma</TableHead>
+                        <TableHead className="text-right">Műveletek</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -337,6 +461,73 @@ const SuperAdminDashboard = () => {
                           <TableCell>{new Date(doc.transport_date).toLocaleDateString('hu-HU')}</TableCell>
                           <TableCell>{doc.total_weight}</TableCell>
                           <TableCell>{doc.animal_count}</TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-2">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => openDeleteDialog("transport_documents", doc.id, doc.document_number)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="codes" className="mt-4">
+                <div className="flex justify-end mb-4">
+                  <CreateSubscriptionCodeDialog onCodeCreated={loadAllData} />
+                </div>
+                <div className="rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Kód</TableHead>
+                        <TableHead>Csomag</TableHead>
+                        <TableHead>Időtartam</TableHead>
+                        <TableHead>Lejár</TableHead>
+                        <TableHead>Státusz</TableHead>
+                        <TableHead>Megjegyzés</TableHead>
+                        <TableHead className="text-right">Műveletek</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {subscriptionCodes.map((code) => (
+                        <TableRow key={code.id}>
+                          <TableCell className="font-mono font-medium">{code.code}</TableCell>
+                          <TableCell>
+                            <Badge variant="secondary">{code.tier.toUpperCase()}</Badge>
+                          </TableCell>
+                          <TableCell>{code.duration === 'monthly' ? 'Havi' : 'Éves'}</TableCell>
+                          <TableCell>
+                            {new Date(code.expires_at).toLocaleDateString('hu-HU')}
+                          </TableCell>
+                          <TableCell>
+                            {code.redeemed_by ? (
+                              <Badge variant="outline">Beváltva</Badge>
+                            ) : new Date(code.expires_at) < new Date() ? (
+                              <Badge variant="destructive">Lejárt</Badge>
+                            ) : (
+                              <Badge variant="default">Aktív</Badge>
+                            )}
+                          </TableCell>
+                          <TableCell>{code.notes || "-"}</TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-2">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => openDeleteDialog("subscription_codes", code.id, code.code)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -347,6 +538,24 @@ const SuperAdminDashboard = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Törlés megerősítő dialógus */}
+      <AlertDialog open={deleteDialog.open} onOpenChange={(open) => !open && setDeleteDialog({ open: false, type: "", id: "", name: "" })}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Biztosan törölni szeretné?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Ez a művelet nem vonható vissza. Ez véglegesen törli a következőt: <strong>{deleteDialog.name}</strong>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Mégse</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Törlés
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

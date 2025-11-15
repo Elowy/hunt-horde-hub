@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Crown, Check, Loader2, ArrowLeft } from "lucide-react";
+import { RedeemCodeDialog } from "@/components/RedeemCodeDialog";
 
 const SUBSCRIPTION_TIERS = {
   free: {
@@ -218,6 +219,7 @@ const Subscriptions = () => {
             <ArrowLeft className="h-4 w-4" />
             Vissza a Dashboard-hoz
           </Button>
+          <RedeemCodeDialog onCodeRedeemed={checkSubscription} />
         </div>
 
         {/* Jelenlegi előfizetési státusz */}

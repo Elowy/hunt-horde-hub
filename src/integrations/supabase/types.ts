@@ -481,6 +481,45 @@ export type Database = {
         }
         Relationships: []
       }
+      subscription_codes: {
+        Row: {
+          code: string
+          created_at: string
+          created_by: string
+          duration: string
+          expires_at: string
+          id: string
+          notes: string | null
+          redeemed_at: string | null
+          redeemed_by: string | null
+          tier: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          created_by: string
+          duration: string
+          expires_at: string
+          id?: string
+          notes?: string | null
+          redeemed_at?: string | null
+          redeemed_by?: string | null
+          tier: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          created_by?: string
+          duration?: string
+          expires_at?: string
+          id?: string
+          notes?: string | null
+          redeemed_at?: string | null
+          redeemed_by?: string | null
+          tier?: string
+        }
+        Relationships: []
+      }
       transport_document_items: {
         Row: {
           animal_id: string
