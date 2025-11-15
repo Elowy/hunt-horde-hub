@@ -45,6 +45,7 @@ import { CreateTransportDialog } from "@/components/CreateTransportDialog";
 import { DashboardMenu } from "@/components/DashboardMenu";
 import { PageHeader } from "@/components/PageHeader";
 import { StorageLocationCarousel } from "@/components/StorageLocationCarousel";
+import { AddAnimalDialog } from "@/components/AddAnimalDialog";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import jsPDF from "jspdf";
 import * as XLSX from "xlsx";
@@ -1230,13 +1231,7 @@ const Dashboard = () => {
         {/* Mobil nézet gyorsgombok - csak admin, super admin, és szerkesztő számára */}
         {isMobile && (isAdmin || isEditor) && (
           <div className="flex gap-2 mb-6">
-            <Button 
-              onClick={() => navigate("/add-animal")}
-              className="flex-1"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Állat hozzáadása
-            </Button>
+            <AddAnimalDialog onAnimalAdded={fetchData} />
             <Button 
               onClick={() => navigate("/hunting-registrations")}
               variant="secondary"
@@ -1555,10 +1550,7 @@ const Dashboard = () => {
               </CollapsibleTrigger>
               <h2 className="text-2xl font-bold text-forest-deep">Állat nyilvántartás</h2>
             </div>
-            <Button onClick={() => navigate("/add-animal")}>
-              <Plus className="h-4 w-4 mr-2" />
-              Állat hozzáadása
-            </Button>
+            <AddAnimalDialog onAnimalAdded={fetchData} />
           </div>
           
           <CollapsibleContent>
