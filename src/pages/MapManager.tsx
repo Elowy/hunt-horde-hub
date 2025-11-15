@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { MapContainer, TileLayer, Polygon, Marker, Popup, useMapEvents } from "react-leaflet";
+import { useEffect, useState, useCallback } from "react";
+import { MapContainer, TileLayer, Polygon, Marker, Popup } from "react-leaflet";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,19 +38,6 @@ interface MapPOI {
   user_id: string;
 }
 
-function MapClickHandler({ 
-  onMapClick 
-}: { 
-  onMapClick: (lat: number, lng: number) => void 
-}) {
-  useMapEvents({
-    click: (e) => {
-      onMapClick(e.latlng.lat, e.latlng.lng);
-    },
-  });
-  return null;
-}
-
 const MapManager = () => {
   const { toast } = useToast();
   const [zones, setZones] = useState<MapZone[]>([]);
@@ -65,11 +52,32 @@ const MapManager = () => {
   const [poiName, setPoiName] = useState("");
   const [poiDescription, setPoiDescription] = useState("");
   const [poiCoords, setPoiCoords] = useState<[number, number] | null>(null);
+  const [mapInstance, setMapInstance] = useState<L.Map | null>(null);
 
   useEffect(() => {
     fetchZones();
     fetchPOIs();
   }, []);
+
+  useEffect(() => {
+    if (!mapInstance) return;
+
+    const handleMapClick = (e: L.LeafletMouseEvent) => {
+      if (drawingMode) {
+        setCurrentPolygon(prev => [...prev, [e.latlng.lat, e.latlng.lng]]);
+      } else if (placingPOI) {
+        setPoiCoords([e.latlng.lat, e.latlng.lng]);
+        setShowPOIDialog(true);
+        setPlacingPOI(false);
+      }
+    };
+
+    mapInstance.on('click', handleMapClick);
+
+    return () => {
+      mapInstance.off('click', handleMapClick);
+    };
+  }, [mapInstance, drawingMode, placingPOI]);
 
   const fetchZones = async () => {
     const { data, error } = await supabase
@@ -102,16 +110,6 @@ const MapManager = () => {
       });
     } else {
       setPois(data || []);
-    }
-  };
-
-  const handleMapClick = (lat: number, lng: number) => {
-    if (drawingMode) {
-      setCurrentPolygon([...currentPolygon, [lat, lng]]);
-    } else if (placingPOI) {
-      setPoiCoords([lat, lng]);
-      setShowPOIDialog(true);
-      setPlacingPOI(false);
     }
   };
 
@@ -276,6 +274,10 @@ const MapManager = () => {
     setPlacingPOI(true);
   };
 
+  const whenCreated = useCallback((map: L.Map) => {
+    setMapInstance(map);
+  }, []);
+
   return (
     <div className="min-h-screen bg-background p-4 md:p-8">
       <div className="mb-8">
@@ -390,12 +392,12 @@ const MapManager = () => {
               zoom={8}
               style={{ height: "100%", width: "100%" }}
               className="rounded-lg"
+              ref={whenCreated}
             >
               <TileLayer
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
               />
-              <MapClickHandler onMapClick={handleMapClick} />
               
               {currentPolygon.length > 0 && (
                 <Polygon positions={currentPolygon} color="blue" />
