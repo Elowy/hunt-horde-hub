@@ -237,6 +237,72 @@ export type Database = {
         }
         Relationships: []
       }
+      notification_logs: {
+        Row: {
+          created_at: string | null
+          email_data: Json | null
+          email_sent: boolean | null
+          id: string
+          ip_address: string | null
+          notification_type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          email_data?: Json | null
+          email_sent?: boolean | null
+          id?: string
+          ip_address?: string | null
+          notification_type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          email_data?: Json | null
+          email_sent?: boolean | null
+          id?: string
+          ip_address?: string | null
+          notification_type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      notification_settings: {
+        Row: {
+          created_at: string | null
+          id: string
+          notify_on_animal_add: boolean | null
+          notify_on_animal_delete: boolean | null
+          notify_on_animal_update: boolean | null
+          notify_on_storage_full: boolean | null
+          notify_on_transport: boolean | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          notify_on_animal_add?: boolean | null
+          notify_on_animal_delete?: boolean | null
+          notify_on_animal_update?: boolean | null
+          notify_on_storage_full?: boolean | null
+          notify_on_transport?: boolean | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          notify_on_animal_add?: boolean | null
+          notify_on_animal_delete?: boolean | null
+          notify_on_animal_update?: boolean | null
+          notify_on_storage_full?: boolean | null
+          notify_on_transport?: boolean | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       price_settings: {
         Row: {
           class: string
