@@ -30,8 +30,6 @@ export const StorageLocationDialog = ({ onLocationAdded }: StorageLocationDialog
     capacity: "",
     notes: "",
     isDefault: false,
-    coolingPrice: "",
-    coolingVat: "27",
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -57,8 +55,6 @@ export const StorageLocationDialog = ({ onLocationAdded }: StorageLocationDialog
         capacity: formData.capacity ? parseInt(formData.capacity) : null,
         notes: formData.notes,
         is_default: formData.isDefault,
-        cooling_price_per_kg: formData.coolingPrice ? parseFloat(formData.coolingPrice) : 0,
-        cooling_vat_rate: formData.coolingVat ? parseFloat(formData.coolingVat) : 27,
       });
 
       if (error) throw error;
@@ -68,7 +64,7 @@ export const StorageLocationDialog = ({ onLocationAdded }: StorageLocationDialog
         description: "Hűtési helyszín sikeresen hozzáadva!",
       });
 
-      setFormData({ name: "", address: "", capacity: "", notes: "", isDefault: false, coolingPrice: "", coolingVat: "27" });
+      setFormData({ name: "", address: "", capacity: "", notes: "", isDefault: false });
       setOpen(false);
       onLocationAdded();
     } catch (error: any) {
@@ -141,32 +137,6 @@ export const StorageLocationDialog = ({ onLocationAdded }: StorageLocationDialog
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="coolingPrice">Hűtési díj (Ft/kg)</Label>
-              <Input
-                id="coolingPrice"
-                type="number"
-                step="0.01"
-                value={formData.coolingPrice}
-                onChange={(e) => setFormData({ ...formData, coolingPrice: e.target.value })}
-                placeholder="0"
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="coolingVat">ÁFA (%)</Label>
-              <Input
-                id="coolingVat"
-                type="number"
-                step="0.01"
-                value={formData.coolingVat}
-                onChange={(e) => setFormData({ ...formData, coolingVat: e.target.value })}
-                placeholder="27"
-              />
-            </div>
-          </div>
-
           <div className="flex items-center space-x-2">
             <Checkbox
               id="isDefault"
@@ -177,6 +147,10 @@ export const StorageLocationDialog = ({ onLocationAdded }: StorageLocationDialog
               Beállítás alapértelmezett helyszínként
             </Label>
           </div>
+
+          <p className="text-sm text-muted-foreground">
+            💡 Hűtési árakat a helyszín létrehozása után az Edit ikonnal tudja hozzáadni.
+          </p>
 
           <div className="flex gap-3 justify-end">
             <Button

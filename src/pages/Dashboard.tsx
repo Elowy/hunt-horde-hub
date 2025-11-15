@@ -89,6 +89,8 @@ interface Animal {
   vet_sample_id: string | null;
   vet_doctor_name: string | null;
   vet_result: string | null;
+  transport_cooling_price?: number | null;
+  transport_cooling_vat_rate?: number | null;
 }
 
 interface TransportDocument {
@@ -580,6 +582,24 @@ const Dashboard = () => {
     };
   };
 
+  const getCoolingRevenue = (animal: Animal): { net: number; gross: number } => {
+    if (!animal.weight) return { net: 0, gross: 0 };
+    
+    // If transported, use the stored transport cooling price
+    if (animal.is_transported && animal.transport_cooling_price) {
+      const netRevenue = animal.weight * animal.transport_cooling_price;
+      const vatRate = animal.transport_cooling_vat_rate || 27;
+      const grossRevenue = netRevenue * (1 + vatRate / 100);
+      return {
+        net: Math.round(netRevenue),
+        gross: Math.round(grossRevenue)
+      };
+    }
+    
+    // For non-transported animals, don't calculate cooling revenue
+    return { net: 0, gross: 0 };
+  };
+
   const handleCreateTransport = () => {
     if (selectedAnimals.size === 0) {
       toast({
@@ -596,19 +616,49 @@ const Dashboard = () => {
 
     const selectedAnimalsList = animals.filter(a => selectedAnimals.has(a.id));
     
-    // Számítások
-    let totalWeight = 0;
-    let totalPrice = 0;
-    
-    selectedAnimalsList.forEach((animal) => {
-      const price = getAnimalPrice(animal);
-      totalWeight += animal.weight || 0;
-      totalPrice += price.gross;
-    });
-
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
+
+      // Fetch current cooling prices for each storage location
+      const storageLocationIds = [...new Set(selectedAnimalsList.map(a => a.storage_location_id))];
+      const { data: currentPrices } = await supabase
+        .from("cooling_prices")
+        .select("*")
+        .in("storage_location_id", storageLocationIds)
+        .is("valid_to", null)
+        .eq("is_archived", false);
+
+      const priceMap = new Map(
+        currentPrices?.map(price => [price.storage_location_id, price]) || []
+      );
+
+      // Calculate totals and update animals with transport prices
+      let totalWeight = 0;
+      let totalPrice = 0;
+      
+      for (const animal of selectedAnimalsList) {
+        const weight = animal.weight || 0;
+        totalWeight += weight;
+        
+        // Get current cooling price for this animal's storage location
+        const currentPrice = priceMap.get(animal.storage_location_id);
+        if (currentPrice && weight > 0) {
+          const netRevenue = weight * currentPrice.cooling_price_per_kg;
+          const vatRate = currentPrice.cooling_vat_rate || 27;
+          const grossRevenue = netRevenue * (1 + vatRate / 100);
+          totalPrice += grossRevenue;
+          
+          // Update animal with transport cooling price
+          await supabase
+            .from("animals")
+            .update({
+              transport_cooling_price: currentPrice.cooling_price_per_kg,
+              transport_cooling_vat_rate: currentPrice.cooling_vat_rate,
+            })
+            .eq("id", animal.id);
+        }
+      }
 
       // Elszállító adatainak lekérése
       const { data: transporterData, error: transporterError } = await supabase
@@ -1044,7 +1094,7 @@ const Dashboard = () => {
     return `${monthNames[parseInt(month) - 1]} ${year}`;
   };
 
-  const getCoolingRevenue = () => {
+  const getTotalCoolingRevenue = () => {
     return animals.reduce((sum, animal) => {
       if (animal.is_transported || !animal.weight) return sum;
       
@@ -1343,7 +1393,7 @@ const Dashboard = () => {
                     </p>
                     <div className="mt-4 pt-4 border-t">
                       <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-                        {getCoolingRevenue().toLocaleString('hu-HU')} Ft
+                        {getTotalCoolingRevenue().toLocaleString('hu-HU')} Ft
                       </div>
                       <p className="text-sm text-muted-foreground mt-1">
                         Összes jelenleg hűtött állat

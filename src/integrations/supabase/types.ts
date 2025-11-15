@@ -37,6 +37,8 @@ export type Database = {
           security_zone_id: string | null
           species: string
           storage_location_id: string
+          transport_cooling_price: number | null
+          transport_cooling_vat_rate: number | null
           transported_at: string | null
           updated_at: string
           user_id: string
@@ -69,6 +71,8 @@ export type Database = {
           security_zone_id?: string | null
           species: string
           storage_location_id: string
+          transport_cooling_price?: number | null
+          transport_cooling_vat_rate?: number | null
           transported_at?: string | null
           updated_at?: string
           user_id: string
@@ -101,6 +105,8 @@ export type Database = {
           security_zone_id?: string | null
           species?: string
           storage_location_id?: string
+          transport_cooling_price?: number | null
+          transport_cooling_vat_rate?: number | null
           transported_at?: string | null
           updated_at?: string
           user_id?: string
@@ -170,6 +176,53 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      cooling_prices: {
+        Row: {
+          cooling_price_per_kg: number
+          cooling_vat_rate: number
+          created_at: string
+          id: string
+          is_archived: boolean
+          storage_location_id: string
+          updated_at: string
+          user_id: string
+          valid_from: string
+          valid_to: string | null
+        }
+        Insert: {
+          cooling_price_per_kg?: number
+          cooling_vat_rate?: number
+          created_at?: string
+          id?: string
+          is_archived?: boolean
+          storage_location_id: string
+          updated_at?: string
+          user_id: string
+          valid_from?: string
+          valid_to?: string | null
+        }
+        Update: {
+          cooling_price_per_kg?: number
+          cooling_vat_rate?: number
+          created_at?: string
+          id?: string
+          is_archived?: boolean
+          storage_location_id?: string
+          updated_at?: string
+          user_id?: string
+          valid_from?: string
+          valid_to?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cooling_prices_storage_location_id_fkey"
+            columns: ["storage_location_id"]
+            isOneToOne: false
+            referencedRelation: "storage_locations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       hired_hunters: {
         Row: {
