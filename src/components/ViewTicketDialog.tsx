@@ -106,6 +106,32 @@ export const ViewTicketDialog = ({ ticket, open, onOpenChange, isSuperAdmin, onT
 
       if (error) throw error;
 
+      // Get commenter's name
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("contact_name, company_name")
+        .eq("id", user.id)
+        .single();
+
+      const commenterName = profile?.contact_name || profile?.company_name || "Támogatási csapat";
+
+      // Send notification email if this is not the ticket owner commenting
+      if (user.id !== ticket.user_id) {
+        try {
+          await supabase.functions.invoke("send-ticket-notification", {
+            body: {
+              ticketId: ticket.id,
+              type: "comment",
+              commentText: newComment.trim(),
+              commenterName: commenterName,
+            },
+          });
+        } catch (emailError) {
+          console.error("Error sending notification:", emailError);
+          // Don't fail the comment addition if email fails
+        }
+      }
+
       toast({
         title: "Hozzászólás elküldve!",
         description: "Hozzászólás sikeresen hozzáadva!",
@@ -138,6 +164,20 @@ export const ViewTicketDialog = ({ ticket, open, onOpenChange, isSuperAdmin, onT
         .eq("id", ticket.id);
 
       if (error) throw error;
+
+      // Send notification email about status change
+      try {
+        await supabase.functions.invoke("send-ticket-notification", {
+          body: {
+            ticketId: ticket.id,
+            type: "status_change",
+            newStatus: newStatus,
+          },
+        });
+      } catch (emailError) {
+        console.error("Error sending notification:", emailError);
+        // Don't fail the status update if email fails
+      }
 
       setStatus(newStatus as "open" | "in_progress" | "closed");
       toast({
