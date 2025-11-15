@@ -109,6 +109,7 @@ const Dashboard = () => {
   const [showTransportDialog, setShowTransportDialog] = useState(false);
   const [transportDocuments, setTransportDocuments] = useState<Record<string, string>>({});
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isHunter, setIsHunter] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [showLocations, setShowLocations] = useState(true);
 
@@ -125,14 +126,24 @@ const Dashboard = () => {
     }
 
     // Check if user is admin
-    const { data: roles } = await supabase
+    const { data: adminRole } = await supabase
       .from("user_roles")
       .select("role")
       .eq("user_id", user.id)
       .eq("role", "admin")
       .maybeSingle();
 
-    setIsAdmin(!!roles);
+    setIsAdmin(!!adminRole);
+
+    // Check if user is hunter
+    const { data: hunterRole } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", user.id)
+      .eq("role", "hunter")
+      .maybeSingle();
+
+    setIsHunter(!!hunterRole);
   };
 
   const fetchData = async () => {
@@ -741,133 +752,138 @@ const Dashboard = () => {
       </div>
 
       <div className="container mx-auto px-6 py-8">
-        {/* Hűtési helyszínek */}
-        <Collapsible open={showLocations} onOpenChange={setShowLocations} className="mb-8">
-          <div className="flex justify-between items-center mb-4">
-            <div className="flex items-center gap-2">
-              <CollapsibleTrigger asChild>
-                <Button variant="ghost" size="sm" className="p-0 h-auto hover:bg-transparent">
-                  <ChevronDown className={`h-5 w-5 transition-transform ${showLocations ? '' : '-rotate-90'}`} />
-                </Button>
-              </CollapsibleTrigger>
-              <h2 className="text-2xl font-bold text-forest-deep">Hűtési helyszínek</h2>
+        {/* Hűtési helyszínek - csak ha nem vadász */}
+        {!isHunter && (
+          <Collapsible open={showLocations} onOpenChange={setShowLocations} className="mb-8">
+            <div className="flex justify-between items-center mb-4">
+              <div className="flex items-center gap-2">
+                <CollapsibleTrigger asChild>
+                  <Button variant="ghost" size="sm" className="p-0 h-auto hover:bg-transparent">
+                    <ChevronDown className={`h-5 w-5 transition-transform ${showLocations ? '' : '-rotate-90'}`} />
+                  </Button>
+                </CollapsibleTrigger>
+                <h2 className="text-2xl font-bold text-forest-deep">Hűtési helyszínek</h2>
+              </div>
+              <StorageLocationDialog onLocationAdded={fetchData} />
             </div>
-            <StorageLocationDialog onLocationAdded={fetchData} />
-          </div>
-          
-          <CollapsibleContent>
-            {locations.length === 0 ? (
+            
+            <CollapsibleContent>
+              {locations.length === 0 ? (
+                <Card>
+                  <CardContent className="py-8 text-center text-muted-foreground">
+                    Még nincs hűtési helyszín. Adjon hozzá egyet a kezdéshez!
+                  </CardContent>
+                </Card>
+              ) : (
+                <StorageLocationCarousel
+                  locations={locations}
+                  getLocationStats={getLocationStats}
+                  onSetDefault={handleSetDefaultLocation}
+                  onDelete={handleDeleteLocation}
+                  onLocationUpdated={fetchData}
+                />
+              )}
+            </CollapsibleContent>
+          </Collapsible>
+        )}
+
+        {/* Stats Cards és Statisztika - csak ha nem vadász */}
+        {!isHunter && (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
               <Card>
-                <CardContent className="py-8 text-center text-muted-foreground">
-                  Még nincs hűtési helyszín. Adjon hozzá egyet a kezdéshez!
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">
+                    Kapacitás kihasználtság
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-[200px] flex items-center justify-center">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={getCapacityData()}
+                          cx="50%"
+                          cy="50%"
+                          labelLine={false}
+                          label={({ name, value }) => `${name}: ${value}`}
+                          outerRadius={80}
+                          fill="#8884d8"
+                          dataKey="value"
+                        >
+                          {getCapacityData().map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} />
+                          ))}
+                        </Pie>
+                        <Tooltip />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
                 </CardContent>
               </Card>
-            ) : (
-              <StorageLocationCarousel
-                locations={locations}
-                getLocationStats={getLocationStats}
-                onSetDefault={handleSetDefaultLocation}
-                onDelete={handleDeleteLocation}
-                onLocationUpdated={fetchData}
-              />
-            )}
-          </CollapsibleContent>
-        </Collapsible>
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">
+                    Havi bevétel (aktuális hónap)
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold text-green-600 dark:text-green-400">
+                    {getCurrentMonthRevenue().toLocaleString('hu-HU')} Ft
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    {animals.filter(a => {
+                      if (!a.cooling_date) return false;
+                      const date = new Date(a.cooling_date);
+                      const now = new Date();
+                      return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
+                    }).length} állat hűtve ebben a hónapban
+                  </p>
+                  <div className="mt-4 pt-4 border-t">
+                    <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                      {getCurrentYearRevenue().toLocaleString('hu-HU')} Ft
+                    </div>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Éves bevétel (aktuális év)
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Kapacitás kihasználtság
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="h-[200px] flex items-center justify-center">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={getCapacityData()}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={({ name, value }) => `${name}: ${value}`}
-                      outerRadius={80}
-                      fill="#8884d8"
-                      dataKey="value"
-                    >
-                      {getCapacityData().map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Havi bevétel (aktuális hónap)
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-green-600 dark:text-green-400">
-                {getCurrentMonthRevenue().toLocaleString('hu-HU')} Ft
-              </div>
-              <p className="text-sm text-muted-foreground mt-2">
-                {animals.filter(a => {
-                  if (!a.cooling_date) return false;
-                  const date = new Date(a.cooling_date);
-                  const now = new Date();
-                  return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
-                }).length} állat hűtve ebben a hónapban
-              </p>
-              <div className="mt-4 pt-4 border-t">
-                <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                  {getCurrentYearRevenue().toLocaleString('hu-HU')} Ft
-                </div>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Éves bevétel (aktuális év)
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Statisztika */}
-        <div className="mb-8">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <TrendingUp className="h-5 w-5" />
-                Statisztika
-              </CardTitle>
-              <CardDescription>Havi bevételek a hűtött állatok alapján</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={getMonthlyRevenueData()}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="month" />
-                  <YAxis />
-                  <Tooltip 
-                    formatter={(value: number) => `${value.toLocaleString('hu-HU')} Ft`}
-                    labelStyle={{ color: '#000' }}
-                  />
-                  <Legend />
-                  <Bar 
-                    dataKey="revenue" 
-                    name="Bevétel (Ft)" 
-                    fill="hsl(var(--primary))" 
-                    radius={[8, 8, 0, 0]}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-        </div>
+            <div className="mb-8">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <TrendingUp className="h-5 w-5" />
+                    Statisztika
+                  </CardTitle>
+                  <CardDescription>Havi bevételek a hűtött állatok alapján</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={getMonthlyRevenueData()}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="month" />
+                      <YAxis />
+                      <Tooltip 
+                        formatter={(value: number) => `${value.toLocaleString('hu-HU')} Ft`}
+                        labelStyle={{ color: '#000' }}
+                      />
+                      <Legend />
+                      <Bar 
+                        dataKey="revenue" 
+                        name="Bevétel (Ft)" 
+                        fill="hsl(var(--primary))" 
+                        radius={[8, 8, 0, 0]}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+            </div>
+          </>
+        )}
 
         {/* Állat nyilvántartás */}
         <div>
@@ -1000,14 +1016,22 @@ const Dashboard = () => {
             </Card>
           ) : (
             <Tabs defaultValue="cooled" className="w-full">
-              <TabsList className="grid w-full max-w-md grid-cols-2">
-                <TabsTrigger value="cooled">
-                  Jelenleg hűtött állatok ({cooledAnimals.length})
-                </TabsTrigger>
-                <TabsTrigger value="transported">
-                  Már elszállított állatok ({transportedAnimals.length})
-                </TabsTrigger>
-              </TabsList>
+              {!isHunter ? (
+                <TabsList className="grid w-full max-w-md grid-cols-2">
+                  <TabsTrigger value="cooled">
+                    Jelenleg hűtött állatok ({cooledAnimals.length})
+                  </TabsTrigger>
+                  <TabsTrigger value="transported">
+                    Már elszállított állatok ({transportedAnimals.length})
+                  </TabsTrigger>
+                </TabsList>
+              ) : (
+                <TabsList className="grid w-full max-w-md grid-cols-1">
+                  <TabsTrigger value="cooled">
+                    Jelenleg hűtött állatok ({cooledAnimals.length})
+                  </TabsTrigger>
+                </TabsList>
+              )}
 
               <TabsContent value="cooled">
                 {/* Elszállító gomb */}
@@ -1030,8 +1054,8 @@ const Dashboard = () => {
                         <TableHead>Faj</TableHead>
                         <TableHead>Súly (kg)</TableHead>
                         <TableHead>Osztály</TableHead>
-                        <TableHead>Nettó ár (Ft)</TableHead>
-                        <TableHead>Bruttó ár (Ft)</TableHead>
+                        {!isHunter && <TableHead>Nettó ár (Ft)</TableHead>}
+                        {!isHunter && <TableHead>Bruttó ár (Ft)</TableHead>}
                         <TableHead>Vadász</TableHead>
                         <TableHead>Helyszín</TableHead>
                         <TableHead>Dátum</TableHead>
@@ -1053,12 +1077,16 @@ const Dashboard = () => {
                             <TableCell>{animal.species}</TableCell>
                             <TableCell>{animal.weight || "-"}</TableCell>
                             <TableCell>{animal.class || "-"}</TableCell>
-                            <TableCell className="font-bold">
-                              {price.net > 0 ? price.net.toLocaleString("hu-HU") : "-"}
-                            </TableCell>
-                            <TableCell className="font-semibold">
-                              {price.gross > 0 ? price.gross.toLocaleString("hu-HU") : "-"}
-                            </TableCell>
+                            {!isHunter && (
+                              <TableCell className="font-bold">
+                                {price.net > 0 ? price.net.toLocaleString("hu-HU") : "-"}
+                              </TableCell>
+                            )}
+                            {!isHunter && (
+                              <TableCell className="font-semibold">
+                                {price.gross > 0 ? price.gross.toLocaleString("hu-HU") : "-"}
+                              </TableCell>
+                            )}
                             <TableCell>{animal.hunter_name || "-"}</TableCell>
                             <TableCell>
                               <Badge variant="outline">
@@ -1099,77 +1127,79 @@ const Dashboard = () => {
                 </Card>
               </TabsContent>
 
-              <TabsContent value="transported">
-                <Card>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Azonosító</TableHead>
-                        <TableHead>Faj</TableHead>
-                        <TableHead>Súly (kg)</TableHead>
-                        <TableHead>Osztály</TableHead>
-                        <TableHead>Nettó ár (Ft)</TableHead>
-                        <TableHead>Bruttó ár (Ft)</TableHead>
-                        <TableHead>Vadász</TableHead>
-                        <TableHead>Helyszín</TableHead>
-                        <TableHead>Elszállítva</TableHead>
-                        <TableHead className="text-right">Műveletek</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {transportedAnimals.map((animal) => {
-                        const price = getAnimalPrice(animal);
-                        return (
-                          <TableRow key={animal.id}>
-                            <TableCell className="font-medium">{animal.animal_id}</TableCell>
-                            <TableCell>{animal.species}</TableCell>
-                            <TableCell>{animal.weight || "-"}</TableCell>
-                            <TableCell>{animal.class || "-"}</TableCell>
-                            <TableCell className="font-bold">
-                              {price.net > 0 ? price.net.toLocaleString("hu-HU") : "-"}
-                            </TableCell>
-                            <TableCell className="font-semibold">
-                              {price.gross > 0 ? price.gross.toLocaleString("hu-HU") : "-"}
-                            </TableCell>
-                            <TableCell>{animal.hunter_name || "-"}</TableCell>
-                            <TableCell>
-                              <Badge variant="outline" className="bg-accent/10 text-accent border-accent">
-                                {transportDocuments[animal.id] || "Ismeretlen elszállító"}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>
-                              {animal.transported_at
-                                ? new Date(animal.transported_at).toLocaleDateString("hu-HU")
-                                : "-"}
-                            </TableCell>
-                            <TableCell className="text-right">
-                              <div className="flex justify-end gap-2">
-                                <ViewAnimalDialog 
-                                  animal={animal} 
-                                  locationName={transportDocuments[animal.id] || "Ismeretlen elszállító"}
-                                  price={price.gross}
-                                />
-                                <EditAnimalDialog 
-                                  animal={animal} 
-                                  locations={locations}
-                                  onAnimalUpdated={fetchData}
-                                />
-                                <Button 
-                                  variant="ghost" 
-                                  size="sm"
-                                  onClick={() => handleDeleteAnimal(animal)}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
-                </Card>
-              </TabsContent>
+              {!isHunter && (
+                <TabsContent value="transported">
+                  <Card>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Azonosító</TableHead>
+                          <TableHead>Faj</TableHead>
+                          <TableHead>Súly (kg)</TableHead>
+                          <TableHead>Osztály</TableHead>
+                          <TableHead>Nettó ár (Ft)</TableHead>
+                          <TableHead>Bruttó ár (Ft)</TableHead>
+                          <TableHead>Vadász</TableHead>
+                          <TableHead>Helyszín</TableHead>
+                          <TableHead>Elszállítva</TableHead>
+                          <TableHead className="text-right">Műveletek</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {transportedAnimals.map((animal) => {
+                          const price = getAnimalPrice(animal);
+                          return (
+                            <TableRow key={animal.id}>
+                              <TableCell className="font-medium">{animal.animal_id}</TableCell>
+                              <TableCell>{animal.species}</TableCell>
+                              <TableCell>{animal.weight || "-"}</TableCell>
+                              <TableCell>{animal.class || "-"}</TableCell>
+                              <TableCell className="font-bold">
+                                {price.net > 0 ? price.net.toLocaleString("hu-HU") : "-"}
+                              </TableCell>
+                              <TableCell className="font-semibold">
+                                {price.gross > 0 ? price.gross.toLocaleString("hu-HU") : "-"}
+                              </TableCell>
+                              <TableCell>{animal.hunter_name || "-"}</TableCell>
+                              <TableCell>
+                                <Badge variant="outline" className="bg-accent/10 text-accent border-accent">
+                                  {transportDocuments[animal.id] || "Ismeretlen elszállító"}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>
+                                {animal.transported_at
+                                  ? new Date(animal.transported_at).toLocaleDateString("hu-HU")
+                                  : "-"}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <div className="flex justify-end gap-2">
+                                  <ViewAnimalDialog 
+                                    animal={animal} 
+                                    locationName={transportDocuments[animal.id] || "Ismeretlen elszállító"}
+                                    price={price.gross}
+                                  />
+                                  <EditAnimalDialog 
+                                    animal={animal} 
+                                    locations={locations}
+                                    onAnimalUpdated={fetchData}
+                                  />
+                                  <Button 
+                                    variant="ghost" 
+                                    size="sm"
+                                    onClick={() => handleDeleteAnimal(animal)}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </Card>
+                </TabsContent>
+              )}
             </Tabs>
           )}
         </div>
