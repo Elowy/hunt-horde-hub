@@ -17,11 +17,12 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface DashboardMenuProps {
   isAdmin: boolean;
+  isEditor: boolean;
   onLogout: () => void;
   onPriceUpdated: () => void;
 }
 
-export const DashboardMenu = ({ isAdmin, onLogout, onPriceUpdated }: DashboardMenuProps) => {
+export const DashboardMenu = ({ isAdmin, isEditor, onLogout, onPriceUpdated }: DashboardMenuProps) => {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const { isPro, loading: subscriptionLoading } = useSubscription();
@@ -139,14 +140,26 @@ export const DashboardMenu = ({ isAdmin, onLogout, onPriceUpdated }: DashboardMe
               {subscriptionLoading ? (
                 <p className="text-xs text-muted-foreground px-2">Betöltés...</p>
               ) : isPro ? (
-                <Button
-                  variant="ghost"
-                  className="w-full justify-start"
-                  onClick={() => handleNavigation("/hunting-registrations")}
-                >
-                  <CalendarCheck className="mr-2 h-4 w-4" />
-                  Vadászati beiratkozások
-                </Button>
+                <>
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-start"
+                    onClick={() => handleNavigation("/hunting-registrations")}
+                  >
+                    <CalendarCheck className="mr-2 h-4 w-4" />
+                    Vadászati beiratkozások
+                  </Button>
+                  {(isAdmin || isEditor) && (
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-start"
+                      onClick={() => handleNavigation("/hired-hunters")}
+                    >
+                      <Users className="mr-2 h-4 w-4" />
+                      Bérvadászok
+                    </Button>
+                  )}
+                </>
               ) : (
                 <Alert className="border-yellow-500/50 bg-yellow-500/10 py-2 mx-2">
                   <AlertDescription className="text-xs flex items-center gap-2">
