@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, Users, Building2, Package, Truck, FileText, Shield, Edit, Trash2, Eye, Ticket } from "lucide-react";
+import { TicketManagement } from "@/components/TicketManagement";
 import { useToast } from "@/hooks/use-toast";
 import { CreateSubscriptionCodeDialog } from "@/components/CreateSubscriptionCodeDialog";
 import {
@@ -402,13 +403,14 @@ const SuperAdminDashboard = () => {
           </CardHeader>
           <CardContent>
             <Tabs defaultValue="users" className="w-full">
-              <TabsList className="grid w-full grid-cols-6">
+              <TabsList className="grid w-full grid-cols-7">
                 <TabsTrigger value="users">Felhasználók</TabsTrigger>
                 <TabsTrigger value="animals">Állatok</TabsTrigger>
                 <TabsTrigger value="locations">Hűtési helyek</TabsTrigger>
                 <TabsTrigger value="transporters">Szállítók</TabsTrigger>
                 <TabsTrigger value="documents">Szállítólevelek</TabsTrigger>
                 <TabsTrigger value="codes">Kódok</TabsTrigger>
+                <TabsTrigger value="tickets">Ticketek</TabsTrigger>
               </TabsList>
 
               <TabsContent value="users" className="mt-4">
@@ -656,6 +658,10 @@ const SuperAdminDashboard = () => {
                     </TableBody>
                   </Table>
                 </div>
+              </TabsContent>
+
+              <TabsContent value="tickets" className="mt-4">
+                <TicketManagement />
               </TabsContent>
             </Tabs>
           </CardContent>
