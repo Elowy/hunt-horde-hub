@@ -169,6 +169,8 @@ export default function GuestRegistration() {
       </div>
     );
   }
+
+  if (submitted) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-b from-background to-muted">
         <Card className="max-w-md w-full">
