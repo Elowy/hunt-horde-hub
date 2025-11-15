@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { DashboardMenu } from "@/components/DashboardMenu";
-import deerLogo from "@/assets/deer-logo.png";
+import deerLogo from "@/assets/deer-logo-white.png";
 
 interface PageHeaderProps {
   isAdmin?: boolean;
