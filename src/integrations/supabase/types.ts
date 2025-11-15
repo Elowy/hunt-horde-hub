@@ -785,6 +785,33 @@ export type Database = {
           },
         ]
       }
+      quick_actions_settings: {
+        Row: {
+          action_1: string
+          action_2: string
+          created_at: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          action_1?: string
+          action_2?: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          action_1?: string
+          action_2?: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       security_zone_closures: {
         Row: {
           created_at: string
