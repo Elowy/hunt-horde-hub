@@ -8,6 +8,7 @@ import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import heroImage from "@/assets/hero-forest.jpg";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -104,7 +105,9 @@ const Index = () => {
             <div className="flex items-center gap-2">
               <h2 className="text-xl font-bold text-white">Vadgondok</h2>
             </div>
-            
+            <div className="flex items-center gap-2">
+              <ThemeToggle />
+            </div>
             <div className="flex items-center gap-4">
               {isLoggedIn ? (
                 <Button
