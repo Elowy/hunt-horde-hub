@@ -18,6 +18,7 @@ export type Database = {
         Row: {
           age: string | null
           animal_id: string
+          average_tusk_length: number | null
           class: string | null
           condition: string | null
           cooling_date: string | null
@@ -29,6 +30,7 @@ export type Database = {
           hunting_registration_id: string | null
           id: string
           is_transported: boolean | null
+          judgement_number: string | null
           notes: string | null
           sample_date: string | null
           sample_id: string | null
@@ -48,6 +50,7 @@ export type Database = {
         Insert: {
           age?: string | null
           animal_id: string
+          average_tusk_length?: number | null
           class?: string | null
           condition?: string | null
           cooling_date?: string | null
@@ -59,6 +62,7 @@ export type Database = {
           hunting_registration_id?: string | null
           id?: string
           is_transported?: boolean | null
+          judgement_number?: string | null
           notes?: string | null
           sample_date?: string | null
           sample_id?: string | null
@@ -78,6 +82,7 @@ export type Database = {
         Update: {
           age?: string | null
           animal_id?: string
+          average_tusk_length?: number | null
           class?: string | null
           condition?: string | null
           cooling_date?: string | null
@@ -89,6 +94,7 @@ export type Database = {
           hunting_registration_id?: string | null
           id?: string
           is_transported?: boolean | null
+          judgement_number?: string | null
           notes?: string | null
           sample_date?: string | null
           sample_id?: string | null
