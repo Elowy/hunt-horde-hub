@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
-import { Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DashboardMenu } from "@/components/DashboardMenu";
+import deerLogo from "@/assets/deer-logo.png";
 
 interface PageHeaderProps {
   isAdmin?: boolean;
@@ -29,14 +29,14 @@ export const PageHeader = ({
             <h1 className="text-2xl font-bold">Vadgondok</h1>
           </div>
 
-          {/* Center Dashboard Button with Deer in Sunglasses */}
+          {/* Center Dashboard Button with Deer Logo */}
           <Button
             variant="ghost"
             size="sm"
             onClick={() => navigate("/dashboard")}
-            className="text-white hover:bg-white/10 flex items-center gap-2"
+            className="text-white hover:bg-white/10 flex items-center gap-2 p-2"
           >
-            <Home className="h-4 w-4" />
+            <img src={deerLogo} alt="Vadgondok logo" className="h-8 w-8" />
           </Button>
 
           {/* Menu */}
