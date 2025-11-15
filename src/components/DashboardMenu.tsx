@@ -165,6 +165,14 @@ export const DashboardMenu = ({ isAdmin, onLogout, onPriceUpdated }: DashboardMe
           {/* Beállítások */}
           <div className="space-y-2">
             <p className="text-sm font-medium text-muted-foreground px-2">Beállítások</p>
+            <Button
+              variant="ghost"
+              className="w-full justify-start"
+              onClick={() => handleNavigation("/settings")}
+            >
+              <Settings className="mr-2 h-4 w-4" />
+              Értesítések
+            </Button>
             <div className="flex items-center justify-between px-2">
               <span className="text-sm">Téma</span>
               <ThemeToggle />

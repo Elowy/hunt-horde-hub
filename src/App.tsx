@@ -14,6 +14,7 @@ import Users from "./pages/Users";
 import Subscriptions from "./pages/Subscriptions";
 import HuntingRegistrations from "./pages/HuntingRegistrations";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard";
+import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -36,6 +37,7 @@ const App = () => (
             <Route path="/subscriptions" element={<Subscriptions />} />
             <Route path="/hunting-registrations" element={<HuntingRegistrations />} />
             <Route path="/super-admin" element={<SuperAdminDashboard />} />
+            <Route path="/settings" element={<Settings />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
