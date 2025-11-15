@@ -4,6 +4,7 @@ import { Menu, X, User, Users, FileText, Truck, Settings, LogOut, UserPlus, Crow
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { ViewportToggle } from "@/components/ViewportToggle";
 import { TransportDocumentsDialog } from "@/components/TransportDocumentsDialog";
 import { TransporterDialog } from "@/components/TransporterDialog";
 import { PriceSettingsDialog } from "@/components/PriceSettingsDialog";
@@ -190,6 +191,17 @@ export const DashboardMenu = ({ isAdmin, onLogout, onPriceUpdated }: DashboardMe
             <Crown className="mr-2 h-4 w-4" />
             Előfizetések
           </Button>
+
+          <Separator />
+
+          {/* Nézet beállítások */}
+          <div className="space-y-2">
+            <p className="text-sm font-medium text-muted-foreground px-2">Megjelenés</p>
+            <div className="flex gap-2 px-2">
+              <ViewportToggle />
+              <ThemeToggle />
+            </div>
+          </div>
 
           <Separator />
 
