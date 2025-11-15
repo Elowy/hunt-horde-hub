@@ -29,6 +29,14 @@ interface SecurityZone {
   description: string | null;
 }
 
+interface HunterUser {
+  id: string;
+  profiles: {
+    contact_name: string | null;
+    hunter_license_number: string | null;
+  };
+}
+
 interface HuntingRegistration {
   id: string;
   user_id: string;
@@ -54,6 +62,7 @@ const HuntingRegistrations = () => {
   const { isPro, loading: subscriptionLoading } = useSubscription();
   const [registrations, setRegistrations] = useState<HuntingRegistration[]>([]);
   const [zones, setZones] = useState<SecurityZone[]>([]);
+  const [hunters, setHunters] = useState<HunterUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [isHunter, setIsHunter] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -65,11 +74,13 @@ const HuntingRegistrations = () => {
     start_time: "",
     end_date: "",
     end_time: "",
+    selected_user_id: "",
   });
 
   useEffect(() => {
     checkUserRole();
     fetchZones();
+    fetchHunters();
     fetchRegistrations();
   }, []);
 
@@ -105,6 +116,45 @@ const HuntingRegistrations = () => {
 
       if (error) throw error;
       setZones(data || []);
+    } catch (error: any) {
+      toast({
+        title: "Hiba",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const fetchHunters = async () => {
+    try {
+      // Get all users with hunter or admin role
+      const { data: userRoles, error: rolesError } = await supabase
+        .from("user_roles")
+        .select("user_id, role")
+        .in("role", ["hunter", "admin"]);
+
+      if (rolesError) throw rolesError;
+
+      const userIds = [...new Set(userRoles?.map(r => r.user_id) || [])];
+
+      if (userIds.length > 0) {
+        const { data: profiles, error: profilesError } = await supabase
+          .from("profiles")
+          .select("id, contact_name, hunter_license_number")
+          .in("id", userIds);
+
+        if (profilesError) throw profilesError;
+
+        const huntersList = profiles?.map(p => ({
+          id: p.id,
+          profiles: {
+            contact_name: p.contact_name,
+            hunter_license_number: p.hunter_license_number,
+          }
+        })) || [];
+
+        setHunters(huntersList);
+      }
     } catch (error: any) {
       toast({
         title: "Hiba",
@@ -221,6 +271,7 @@ const HuntingRegistrations = () => {
         start_time: "",
         end_date: "",
         end_time: "",
+        selected_user_id: "",
       });
       setDialogOpen(false);
       fetchRegistrations();
@@ -409,10 +460,28 @@ const HuntingRegistrations = () => {
                   <DialogHeader>
                     <DialogTitle>Új vadászati beiratkozás</DialogTitle>
                     <DialogDescription>
-                      Minimum 3 óra, maximum 24 óra vadászati idő. Átfedés esetén admin jóváhagyás kell.
+                      Minimum 3 óra, maximum 24 óra vadászati idő. Maximum 3 nappal előre foglalható. Átfedés esetén admin jóváhagyás kell.
                     </DialogDescription>
                   </DialogHeader>
                   <div className="space-y-4">
+                    {isAdmin && (
+                      <div className="space-y-2">
+                        <Label>Vadász kiválasztása *</Label>
+                        <Select value={formData.selected_user_id} onValueChange={(value) => setFormData({ ...formData, selected_user_id: value })}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Válasszon vadászt" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {hunters.map((hunter) => (
+                              <SelectItem key={hunter.id} value={hunter.id}>
+                                {hunter.profiles.contact_name || "Név nélkül"} 
+                                {hunter.profiles.hunter_license_number && ` (${hunter.profiles.hunter_license_number})`}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
                     <div className="space-y-2">
                       <Label>Biztonsági körzet *</Label>
                       <Select value={formData.security_zone_id} onValueChange={(value) => setFormData({ ...formData, security_zone_id: value })}>
