@@ -46,6 +46,7 @@ import { DashboardMenu } from "@/components/DashboardMenu";
 import { PageHeader } from "@/components/PageHeader";
 import { StorageLocationCarousel } from "@/components/StorageLocationCarousel";
 import { AddAnimalDialog } from "@/components/AddAnimalDialog";
+import { AnnouncementBanner } from "@/components/AnnouncementBanner";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import jsPDF from "jspdf";
 import * as XLSX from "xlsx";
@@ -1212,6 +1213,8 @@ const Dashboard = () => {
       </Dialog>
 
       <div className="container mx-auto px-6 py-8">
+        {/* Announcement Banner */}
+        <AnnouncementBanner isAdmin={isAdmin} isEditor={isEditor} />
         {/* Dashboard specific content header */}
         <div className="mb-6">
           <h2 className="text-3xl font-bold text-forest-deep mb-2">Vadgondnok</h2>
