@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Menu, X, User, Users, FileText, Truck, Settings, LogOut, UserPlus, Crown, MapPin, CalendarCheck, Shield, BarChart, Trophy, Clock, Archive, Package } from "lucide-react";
+import { Menu, X, User, Users, FileText, Truck, Settings, LogOut, UserPlus, Crown, MapPin, CalendarCheck, Shield, BarChart, Trophy, Clock, Archive, Package, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -267,6 +267,18 @@ export const DashboardMenu = ({ isAdmin, isEditor, isHunter, onLogout, onPriceUp
                   <ThemeToggle />
                 </div>
               </div>
+
+              <Separator />
+
+              {/* Támogatás */}
+              <Button
+                variant="ghost"
+                className="w-full justify-start"
+                onClick={() => handleNavigation("/tickets")}
+              >
+                <MessageSquare className="mr-2 h-4 w-4" />
+                Támogatási jegyek
+              </Button>
 
               <Separator />
 
