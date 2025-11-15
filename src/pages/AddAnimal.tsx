@@ -532,12 +532,14 @@ const AddAnimal = () => {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="age">Életkor</Label>
+                      <Label htmlFor="age">
+                        {formData.type === "Vaddisznó" ? "Életkor (hónapban)" : "Életkor (évben)"}
+                      </Label>
                       <Input
                         id="age"
                         value={formData.age}
                         onChange={(e) => handleInputChange("age", e.target.value)}
-                        placeholder="pl. 3 év"
+                        placeholder={formData.type === "Vaddisznó" ? "pl. 6 hónap" : "pl. 3 év"}
                       />
                     </div>
 
