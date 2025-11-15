@@ -263,6 +263,8 @@ const HiredHunters = () => {
       </div>
     );
   }
+
+  return (
     <div className="min-h-screen bg-background">
       <PageHeader 
         isAdmin={isAdmin}
