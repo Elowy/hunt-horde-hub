@@ -303,9 +303,8 @@ const HiredHunters = () => {
                     {editingHunter ? "Módosítás" : "Hozzáadás"}
                   </Button>
                 </div>
-              </DialogContent>
-            </Dialog>
-          </div>
+            </DialogContent>
+          </Dialog>
         </div>
 
         {loading ? (
@@ -370,7 +369,6 @@ const HiredHunters = () => {
             ))}
           </div>
         )}
-      </div>
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
@@ -386,6 +384,7 @@ const HiredHunters = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      </div>
     </div>
   );
 };

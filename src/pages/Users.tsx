@@ -79,6 +79,11 @@ const Users = () => {
     checkAdminAndFetchData();
   }, []);
 
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    navigate("/login");
+  };
+
   const checkAdminAndFetchData = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -318,27 +323,11 @@ const Users = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted">
-      {/* Hero Header */}
-      <div className="bg-gradient-to-r from-forest-deep to-forest-light text-primary-foreground">
-        <div className="container mx-auto px-6 py-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Button
-                variant="ghost"
-                onClick={() => navigate("/dashboard")}
-                className="text-primary-foreground hover:bg-primary-foreground/10"
-              >
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Vissza
-              </Button>
-              <div>
-                <h1 className="text-3xl font-bold mb-2">Felhasználók kezelése</h1>
-                <p className="text-primary-foreground/90">Felhasználók és meghívók kezelése</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      <PageHeader 
+        isAdmin={isAdmin}
+        isEditor={false}
+        onLogout={handleLogout}
+      />
 
       <div className="container mx-auto px-6 py-8 max-w-6xl">
         <div className="grid gap-6">
