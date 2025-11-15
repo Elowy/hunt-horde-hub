@@ -63,10 +63,19 @@ const Tickets = () => {
   const fetchTickets = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      let query = supabase
         .from("tickets")
-        .select("*")
-        .order("created_at", { ascending: false });
+        .select("*");
+
+      // Super adminok minden ticketet látnak, mások csak a sajátjukat
+      if (!isSuperAdmin) {
+        query = query.eq("user_id", user.id);
+      }
+
+      const { data, error } = await query.order("created_at", { ascending: false });
 
       if (error) throw error;
       setTickets(data || []);
