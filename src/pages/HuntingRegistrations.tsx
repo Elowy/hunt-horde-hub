@@ -36,6 +36,12 @@ interface SecurityZone {
   } | null;
 }
 
+interface HuntingLocation {
+  id: string;
+  name: string;
+  type: string;
+}
+
 interface HunterUser {
   id: string;
   profiles: {
@@ -89,6 +95,7 @@ const HuntingRegistrations = () => {
   const { isPro, loading: subscriptionLoading } = useSubscription();
   const [registrations, setRegistrations] = useState<HuntingRegistration[]>([]);
   const [zones, setZones] = useState<SecurityZone[]>([]);
+  const [locations, setLocations] = useState<HuntingLocation[]>([]);
   const [hunters, setHunters] = useState<HunterUser[]>([]);
   const [hiredHunters, setHiredHunters] = useState<HiredHunter[]>([]);
   const [loading, setLoading] = useState(true);
@@ -110,6 +117,7 @@ const HuntingRegistrations = () => {
     
     return {
       security_zone_id: "",
+      hunting_location_id: "",
       start_date: format(now, "yyyy-MM-dd"),
       start_time: format(now, "HH:mm"),
       end_date: format(endTime, "yyyy-MM-dd"),
@@ -162,6 +170,25 @@ const HuntingRegistrations = () => {
 
       if (error) throw error;
       setZones(data || []);
+    } catch (error: any) {
+      toast({
+        title: "Hiba",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const fetchLocations = async (securityZoneId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from("hunting_locations")
+        .select("id, name, type")
+        .eq("security_zone_id", securityZoneId)
+        .order("display_order");
+
+      if (error) throw error;
+      setLocations(data || []);
     } catch (error: any) {
       toast({
         title: "Hiba",
@@ -329,6 +356,7 @@ const HuntingRegistrations = () => {
       // Determine which ID to use based on admin selection
       let insertData: any = {
         security_zone_id: formData.security_zone_id,
+        hunting_location_id: formData.hunting_location_id || null,
         start_time: startTime.toISOString(),
         end_time: endTime.toISOString(),
       };
@@ -598,7 +626,13 @@ const HuntingRegistrations = () => {
                     )}
                     <div className="space-y-2">
                       <Label>Biztonsági körzet *</Label>
-                      <Select value={formData.security_zone_id} onValueChange={(value) => setFormData({ ...formData, security_zone_id: value })}>
+                      <Select 
+                        value={formData.security_zone_id} 
+                        onValueChange={(value) => {
+                          setFormData({ ...formData, security_zone_id: value, hunting_location_id: "" });
+                          fetchLocations(value);
+                        }}
+                      >
                         <SelectTrigger>
                           <SelectValue placeholder="Válasszon körzetet" />
                         </SelectTrigger>
@@ -611,6 +645,28 @@ const HuntingRegistrations = () => {
                         </SelectContent>
                       </Select>
                     </div>
+                    
+                    {formData.security_zone_id && locations.length > 0 && (
+                      <div className="space-y-2">
+                        <Label>Pontos helyszín (opcionális)</Label>
+                        <Select 
+                          value={formData.hunting_location_id} 
+                          onValueChange={(value) => setFormData({ ...formData, hunting_location_id: value })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Válasszon helyszínt" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="">Nincs kiválasztva</SelectItem>
+                            {locations.map((location) => (
+                              <SelectItem key={location.id} value={location.id}>
+                                {location.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label>Kezdés dátuma *</Label>
