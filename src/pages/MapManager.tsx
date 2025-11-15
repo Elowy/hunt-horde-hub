@@ -7,8 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Plus, Trash2, MapPin } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Plus, Trash2, MapPin, Save, X } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 
@@ -38,13 +38,26 @@ interface MapPOI {
   user_id: string;
 }
 
+function MapClickHandler({ 
+  onMapClick 
+}: { 
+  onMapClick: (lat: number, lng: number) => void 
+}) {
+  useMapEvents({
+    click: (e) => {
+      onMapClick(e.latlng.lat, e.latlng.lng);
+    },
+  });
+  return null;
+}
+
 const MapManager = () => {
   const { toast } = useToast();
   const [zones, setZones] = useState<MapZone[]>([]);
   const [pois, setPois] = useState<MapPOI[]>([]);
   const [drawingMode, setDrawingMode] = useState(false);
+  const [placingPOI, setPlacingPOI] = useState(false);
   const [currentPolygon, setCurrentPolygon] = useState<[number, number][]>([]);
-  const [selectedZone, setSelectedZone] = useState<MapZone | null>(null);
   const [zoneName, setZoneName] = useState("");
   const [zoneDescription, setZoneDescription] = useState("");
   const [showZoneDialog, setShowZoneDialog] = useState(false);
@@ -92,6 +105,16 @@ const MapManager = () => {
     }
   };
 
+  const handleMapClick = (lat: number, lng: number) => {
+    if (drawingMode) {
+      setCurrentPolygon([...currentPolygon, [lat, lng]]);
+    } else if (placingPOI) {
+      setPoiCoords([lat, lng]);
+      setShowPOIDialog(true);
+      setPlacingPOI(false);
+    }
+  };
+
   const saveZone = async () => {
     if (!zoneName || currentPolygon.length < 3) {
       toast({
@@ -117,58 +140,31 @@ const MapManager = () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    if (selectedZone) {
-      const { error } = await supabase
-        .from("map_zones")
-        .update({
-          name: zoneName,
-          description: zoneDescription,
-          geojson,
-        })
-        .eq("id", selectedZone.id);
+    const { error } = await supabase.from("map_zones").insert({
+      name: zoneName,
+      description: zoneDescription,
+      geojson,
+      user_id: user.id,
+    });
 
-      if (error) {
-        toast({
-          title: "Hiba",
-          description: "Nem sikerült frissíteni a körzetet.",
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Siker",
-          description: "Körzet sikeresen frissítve!",
-        });
-        fetchZones();
-      }
-    } else {
-      const { error } = await supabase.from("map_zones").insert({
-        name: zoneName,
-        description: zoneDescription,
-        geojson,
-        user_id: user.id,
+    if (error) {
+      toast({
+        title: "Hiba",
+        description: "Nem sikerült menteni a körzetet.",
+        variant: "destructive",
       });
-
-      if (error) {
-        toast({
-          title: "Hiba",
-          description: "Nem sikerült menteni a körzetet.",
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Siker",
-          description: "Körzet sikeresen mentve!",
-        });
-        fetchZones();
-      }
+    } else {
+      toast({
+        title: "Siker",
+        description: "Körzet sikeresen mentve!",
+      });
+      fetchZones();
+      setCurrentPolygon([]);
+      setZoneName("");
+      setZoneDescription("");
+      setDrawingMode(false);
+      setShowZoneDialog(false);
     }
-
-    setCurrentPolygon([]);
-    setZoneName("");
-    setZoneDescription("");
-    setSelectedZone(null);
-    setDrawingMode(false);
-    setShowZoneDialog(false);
   };
 
   const deleteZone = async (zoneId: string) => {
@@ -228,6 +224,7 @@ const MapManager = () => {
       setPoiName("");
       setPoiDescription("");
       setPoiCoords(null);
+      setPlacingPOI(false);
       setShowPOIDialog(false);
     }
   };
@@ -253,23 +250,30 @@ const MapManager = () => {
     }
   };
 
-  const MapClickHandler = () => {
-    useMapEvents({
-      click: (e) => {
-        if (drawingMode) {
-          setCurrentPolygon([...currentPolygon, [e.latlng.lat, e.latlng.lng]]);
-        } else if (showPOIDialog) {
-          setPoiCoords([e.latlng.lat, e.latlng.lng]);
-        }
-      },
-    });
-    return null;
-  };
-
   const startDrawing = () => {
     setDrawingMode(true);
     setCurrentPolygon([]);
-    setShowZoneDialog(true);
+  };
+
+  const finishDrawing = () => {
+    if (currentPolygon.length >= 3) {
+      setShowZoneDialog(true);
+    } else {
+      toast({
+        title: "Hiba",
+        description: "Legalább 3 pontot rajzolj a térképen!",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const cancelDrawing = () => {
+    setDrawingMode(false);
+    setCurrentPolygon([]);
+  };
+
+  const startPlacingPOI = () => {
+    setPlacingPOI(true);
   };
 
   return (
@@ -284,106 +288,41 @@ const MapManager = () => {
           <Card className="p-4">
             <h3 className="font-semibold mb-4">Műveletek</h3>
             <div className="space-y-2">
-              <Dialog open={showZoneDialog} onOpenChange={setShowZoneDialog}>
-                <DialogTrigger asChild>
+              {!drawingMode && !placingPOI && (
+                <>
                   <Button className="w-full" onClick={startDrawing}>
                     <Plus className="h-4 w-4 mr-2" />
                     Körzet rajzolása
                   </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Körzet mentése</DialogTitle>
-                  </DialogHeader>
-                  <div className="space-y-4">
-                    <div>
-                      <Label>Körzet neve</Label>
-                      <Input
-                        value={zoneName}
-                        onChange={(e) => setZoneName(e.target.value)}
-                        placeholder="Körzet neve"
-                      />
-                    </div>
-                    <div>
-                      <Label>Leírás</Label>
-                      <Textarea
-                        value={zoneDescription}
-                        onChange={(e) => setZoneDescription(e.target.value)}
-                        placeholder="Leírás"
-                      />
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                      Pontok: {currentPolygon.length}
-                    </div>
-                    <div className="flex gap-2">
-                      <Button onClick={saveZone} className="flex-1">
-                        Mentés
-                      </Button>
-                      <Button
-                        variant="outline"
-                        onClick={() => {
-                          setCurrentPolygon([]);
-                          setDrawingMode(false);
-                          setShowZoneDialog(false);
-                        }}
-                      >
-                        Mégse
-                      </Button>
-                    </div>
-                  </div>
-                </DialogContent>
-              </Dialog>
-
-              <Dialog open={showPOIDialog} onOpenChange={setShowPOIDialog}>
-                <DialogTrigger asChild>
-                  <Button variant="outline" className="w-full">
+                  <Button variant="outline" className="w-full" onClick={startPlacingPOI}>
                     <MapPin className="h-4 w-4 mr-2" />
                     POI hozzáadása
                   </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>POI hozzáadása</DialogTitle>
-                  </DialogHeader>
-                  <div className="space-y-4">
-                    <div>
-                      <Label>POI neve</Label>
-                      <Input
-                        value={poiName}
-                        onChange={(e) => setPoiName(e.target.value)}
-                        placeholder="POI neve"
-                      />
-                    </div>
-                    <div>
-                      <Label>Leírás</Label>
-                      <Textarea
-                        value={poiDescription}
-                        onChange={(e) => setPoiDescription(e.target.value)}
-                        placeholder="Leírás"
-                      />
-                    </div>
-                    {poiCoords && (
-                      <div className="text-sm text-muted-foreground">
-                        Koordináták: {poiCoords[0].toFixed(6)}, {poiCoords[1].toFixed(6)}
-                      </div>
-                    )}
-                    <div className="flex gap-2">
-                      <Button onClick={savePOI} className="flex-1">
-                        Mentés
-                      </Button>
-                      <Button
-                        variant="outline"
-                        onClick={() => {
-                          setPoiCoords(null);
-                          setShowPOIDialog(false);
-                        }}
-                      >
-                        Mégse
-                      </Button>
-                    </div>
+                </>
+              )}
+              {drawingMode && (
+                <>
+                  <div className="text-sm text-muted-foreground mb-2">
+                    Kattints a térképre pontok hozzáadásához (minimum 3)
                   </div>
-                </DialogContent>
-              </Dialog>
+                  <div className="text-sm font-medium mb-2">
+                    Pontok: {currentPolygon.length}
+                  </div>
+                  <Button className="w-full" onClick={finishDrawing}>
+                    <Save className="h-4 w-4 mr-2" />
+                    Mentés
+                  </Button>
+                  <Button variant="outline" className="w-full" onClick={cancelDrawing}>
+                    <X className="h-4 w-4 mr-2" />
+                    Mégse
+                  </Button>
+                </>
+              )}
+              {placingPOI && (
+                <div className="text-sm text-muted-foreground">
+                  Kattints a térképre a POI helyének kijelöléséhez
+                </div>
+              )}
             </div>
           </Card>
 
@@ -403,15 +342,13 @@ const MapManager = () => {
                       </p>
                     )}
                   </div>
-                  <div className="flex gap-1 ml-2">
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      onClick={() => deleteZone(zone.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={() => deleteZone(zone.id)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
                 </div>
               ))}
             </div>
@@ -458,14 +395,12 @@ const MapManager = () => {
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
               />
-              <MapClickHandler />
+              <MapClickHandler onMapClick={handleMapClick} />
               
-              {/* Draw current polygon */}
               {currentPolygon.length > 0 && (
                 <Polygon positions={currentPolygon} color="blue" />
               )}
 
-              {/* Display saved zones */}
               {zones.map((zone) => {
                 const coords = zone.geojson.geometry.coordinates[0].map(
                   (coord: [number, number]) => [coord[1], coord[0]]
@@ -482,7 +417,6 @@ const MapManager = () => {
                 );
               })}
 
-              {/* Display POIs */}
               {pois.map((poi) => (
                 <Marker key={poi.id} position={[poi.latitude, poi.longitude]}>
                   <Popup>
@@ -497,6 +431,98 @@ const MapManager = () => {
           </Card>
         </div>
       </div>
+
+      <Dialog open={showZoneDialog} onOpenChange={setShowZoneDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Körzet mentése</DialogTitle>
+            <DialogDescription>
+              Add meg a körzet nevét és opcionálisan egy leírást.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Körzet neve</Label>
+              <Input
+                value={zoneName}
+                onChange={(e) => setZoneName(e.target.value)}
+                placeholder="Körzet neve"
+              />
+            </div>
+            <div>
+              <Label>Leírás</Label>
+              <Textarea
+                value={zoneDescription}
+                onChange={(e) => setZoneDescription(e.target.value)}
+                placeholder="Leírás"
+              />
+            </div>
+            <div className="flex gap-2">
+              <Button onClick={saveZone} className="flex-1">
+                Mentés
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowZoneDialog(false);
+                  setDrawingMode(false);
+                  setCurrentPolygon([]);
+                }}
+              >
+                Mégse
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showPOIDialog} onOpenChange={setShowPOIDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>POI hozzáadása</DialogTitle>
+            <DialogDescription>
+              Add meg a POI nevét és opcionálisan egy leírást.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>POI neve</Label>
+              <Input
+                value={poiName}
+                onChange={(e) => setPoiName(e.target.value)}
+                placeholder="POI neve"
+              />
+            </div>
+            <div>
+              <Label>Leírás</Label>
+              <Textarea
+                value={poiDescription}
+                onChange={(e) => setPoiDescription(e.target.value)}
+                placeholder="Leírás"
+              />
+            </div>
+            {poiCoords && (
+              <div className="text-sm text-muted-foreground">
+                Koordináták: {poiCoords[0].toFixed(6)}, {poiCoords[1].toFixed(6)}
+              </div>
+            )}
+            <div className="flex gap-2">
+              <Button onClick={savePOI} className="flex-1">
+                Mentés
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setPoiCoords(null);
+                  setShowPOIDialog(false);
+                }}
+              >
+                Mégse
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
