@@ -189,9 +189,10 @@ export const CoolingRevenueReport = () => {
 
       // Elszállítók szerinti csoportosítás
       const transporterGroups: Record<string, {
-        animals: Animal[];
+        animals: Array<Animal & { netRevenue: number; grossRevenue: number; location: string }>;
         totalWeight: number;
-        totalRevenue: number;
+        totalNetRevenue: number;
+        totalGrossRevenue: number;
       }> = {};
 
       transportedAnimals.forEach(animal => {
@@ -203,23 +204,31 @@ export const CoolingRevenueReport = () => {
           transporterGroups[transporterName] = {
             animals: [],
             totalWeight: 0,
-            totalRevenue: 0,
+            totalNetRevenue: 0,
+            totalGrossRevenue: 0,
           };
         }
 
         const location = locations?.find(loc => loc.id === animal.storage_location_id);
         const weight = animal.weight || 0;
-        let revenue = 0;
+        let netRevenue = 0;
+        let grossRevenue = 0;
 
         if (location && location.cooling_price_per_kg && weight > 0) {
-          const netRevenue = weight * location.cooling_price_per_kg;
+          netRevenue = weight * location.cooling_price_per_kg;
           const vatRate = location.cooling_vat_rate || 27;
-          revenue = netRevenue * (1 + vatRate / 100);
+          grossRevenue = netRevenue * (1 + vatRate / 100);
         }
 
-        transporterGroups[transporterName].animals.push(animal);
+        transporterGroups[transporterName].animals.push({
+          ...animal,
+          netRevenue,
+          grossRevenue,
+          location: location?.name || "Ismeretlen"
+        });
         transporterGroups[transporterName].totalWeight += weight;
-        transporterGroups[transporterName].totalRevenue += revenue;
+        transporterGroups[transporterName].totalNetRevenue += netRevenue;
+        transporterGroups[transporterName].totalGrossRevenue += grossRevenue;
       });
 
       // PDF generálás
@@ -230,7 +239,7 @@ export const CoolingRevenueReport = () => {
       const dateStr = `${year} ${monthName}`;
 
       doc.setFontSize(18);
-      doc.text("Hutesi Dij Bevetek Osszesitoje", 105, 20, { align: "center" });
+      doc.text("Hutesi Dij Bevetelek Osszesitoje", 105, 20, { align: "center" });
       
       doc.setFontSize(12);
       doc.text(`Idoszak: ${dateStr}`, 105, 30, { align: "center" });
@@ -247,14 +256,16 @@ export const CoolingRevenueReport = () => {
       doc.setFontSize(10);
       doc.setFont(undefined, 'bold');
       doc.text("Elszallito", 20, yPos);
-      doc.text("Allatok szama", 90, yPos);
-      doc.text("Osszes suly (kg)", 130, yPos);
-      doc.text("Bevetel (Ft)", 170, yPos);
+      doc.text("Allatok", 85, yPos);
+      doc.text("Suly (kg)", 115, yPos);
+      doc.text("Netto (Ft)", 145, yPos);
+      doc.text("Brutto (Ft)", 175, yPos);
       doc.setFont(undefined, 'normal');
       yPos += 7;
 
       let grandTotalWeight = 0;
-      let grandTotalRevenue = 0;
+      let grandTotalNetRevenue = 0;
+      let grandTotalGrossRevenue = 0;
       let grandTotalAnimals = 0;
 
       Object.entries(transporterGroups).forEach(([transporter, data]) => {
@@ -263,13 +274,15 @@ export const CoolingRevenueReport = () => {
           yPos = 20;
         }
 
-        doc.text(transporter.substring(0, 30), 20, yPos);
-        doc.text(data.animals.length.toString(), 100, yPos);
-        doc.text(data.totalWeight.toFixed(2), 140, yPos);
-        doc.text(Math.round(data.totalRevenue).toLocaleString("hu-HU"), 175, yPos);
+        doc.text(transporter.substring(0, 25), 20, yPos);
+        doc.text(data.animals.length.toString(), 90, yPos);
+        doc.text(data.totalWeight.toFixed(1), 120, yPos);
+        doc.text(Math.round(data.totalNetRevenue).toLocaleString("hu-HU"), 150, yPos);
+        doc.text(Math.round(data.totalGrossRevenue).toLocaleString("hu-HU"), 180, yPos);
         
         grandTotalWeight += data.totalWeight;
-        grandTotalRevenue += data.totalRevenue;
+        grandTotalNetRevenue += data.totalNetRevenue;
+        grandTotalGrossRevenue += data.totalGrossRevenue;
         grandTotalAnimals += data.animals.length;
         
         yPos += 7;
@@ -279,9 +292,10 @@ export const CoolingRevenueReport = () => {
       yPos += 3;
       doc.setFont(undefined, 'bold');
       doc.text("OSSZES:", 20, yPos);
-      doc.text(grandTotalAnimals.toString(), 100, yPos);
-      doc.text(grandTotalWeight.toFixed(2), 140, yPos);
-      doc.text(Math.round(grandTotalRevenue).toLocaleString("hu-HU"), 175, yPos);
+      doc.text(grandTotalAnimals.toString(), 90, yPos);
+      doc.text(grandTotalWeight.toFixed(1), 120, yPos);
+      doc.text(Math.round(grandTotalNetRevenue).toLocaleString("hu-HU"), 150, yPos);
+      doc.text(Math.round(grandTotalGrossRevenue).toLocaleString("hu-HU"), 180, yPos);
       doc.setFont(undefined, 'normal');
 
       // Részletes lista új oldalon
@@ -304,13 +318,14 @@ export const CoolingRevenueReport = () => {
         doc.text(`Elszallito: ${transporter}`, 20, yPos);
         yPos += 7;
 
-        doc.setFontSize(9);
-        doc.text("Azonosito", 20, yPos);
-        doc.text("Faj", 60, yPos);
-        doc.text("Osztaly", 90, yPos);
-        doc.text("Suly", 120, yPos);
-        doc.text("Hutesi dij", 150, yPos);
-        doc.text("Elszallitva", 180, yPos);
+        doc.setFontSize(8);
+        doc.text("Allat ID", 20, yPos);
+        doc.text("Faj", 50, yPos);
+        doc.text("Suly", 80, yPos);
+        doc.text("Helyszin", 100, yPos);
+        doc.text("Netto", 135, yPos);
+        doc.text("Brutto", 160, yPos);
+        doc.text("Elszallitva", 185, yPos);
         doc.setFont(undefined, 'normal');
         yPos += 5;
 
@@ -320,22 +335,13 @@ export const CoolingRevenueReport = () => {
             yPos = 20;
           }
 
-          const location = locations?.find(loc => loc.id === animal.storage_location_id);
-          const weight = animal.weight || 0;
-          let revenue = 0;
-
-          if (location && location.cooling_price_per_kg && weight > 0) {
-            const netRevenue = weight * location.cooling_price_per_kg;
-            const vatRate = location.cooling_vat_rate || 27;
-            revenue = netRevenue * (1 + vatRate / 100);
-          }
-
           doc.text(animal.animal_id, 20, yPos);
-          doc.text(animal.species, 60, yPos);
-          doc.text(animal.class || "-", 90, yPos);
-          doc.text(weight.toFixed(2), 120, yPos);
-          doc.text(Math.round(revenue).toLocaleString("hu-HU"), 150, yPos);
-          doc.text(animal.transported_at ? new Date(animal.transported_at).toLocaleDateString("hu-HU") : "-", 180, yPos);
+          doc.text(animal.species.substring(0, 15), 50, yPos);
+          doc.text((animal.weight || 0).toFixed(1), 80, yPos);
+          doc.text(animal.location.substring(0, 20), 100, yPos);
+          doc.text(Math.round(animal.netRevenue).toLocaleString("hu-HU"), 135, yPos);
+          doc.text(Math.round(animal.grossRevenue).toLocaleString("hu-HU"), 160, yPos);
+          doc.text(animal.transported_at ? new Date(animal.transported_at).toLocaleDateString("hu-HU") : "-", 185, yPos);
           
           yPos += 5;
         });
