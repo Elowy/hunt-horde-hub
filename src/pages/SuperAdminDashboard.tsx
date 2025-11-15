@@ -8,6 +8,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, Users, Building2, Package, Truck, FileText, Shield, Edit, Trash2, Eye, Ticket } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { CreateSubscriptionCodeDialog } from "@/components/CreateSubscriptionCodeDialog";
@@ -80,6 +83,21 @@ interface SubscriptionCode {
   notes: string | null;
 }
 
+interface TrialSubscription {
+  id: string;
+  user_id: string;
+  tier: string;
+  expires_at: string;
+  started_at: string;
+}
+
+interface LifetimeSubscription {
+  id: string;
+  user_id: string;
+  tier: string;
+  notes: string | null;
+}
+
 const SuperAdminDashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -100,6 +118,12 @@ const SuperAdminDashboard = () => {
   });
   const [selectedProfile, setSelectedProfile] = useState<Profile | null>(null);
   const [profileDialogOpen, setProfileDialogOpen] = useState(false);
+  const [trialSubscription, setTrialSubscription] = useState<TrialSubscription | null>(null);
+  const [lifetimeSubscription, setLifetimeSubscription] = useState<LifetimeSubscription | null>(null);
+  const [editingSubscription, setEditingSubscription] = useState(false);
+  const [subscriptionTier, setSubscriptionTier] = useState<string>("pro");
+  const [subscriptionExpiresAt, setSubscriptionExpiresAt] = useState<string>("");
+  const [savingSubscription, setSavingSubscription] = useState(false);
 
   useEffect(() => {
     if (!checkingAdmin && !isSuperAdmin) {
@@ -188,6 +212,95 @@ const SuperAdminDashboard = () => {
 
   const openDeleteDialog = (type: string, id: string, name: string) => {
     setDeleteDialog({ open: true, type, id, name });
+  };
+
+  const loadSubscriptionData = async (userId: string) => {
+    try {
+      const [trialData, lifetimeData] = await Promise.all([
+        supabase.from("trial_subscriptions").select("*").eq("user_id", userId).maybeSingle(),
+        supabase.from("lifetime_subscriptions").select("*").eq("user_id", userId).maybeSingle(),
+      ]);
+
+      setTrialSubscription(trialData.data);
+      setLifetimeSubscription(lifetimeData.data);
+      
+      // Set initial form values
+      if (lifetimeData.data) {
+        setSubscriptionTier(lifetimeData.data.tier);
+        setSubscriptionExpiresAt("");
+      } else if (trialData.data) {
+        setSubscriptionTier(trialData.data.tier);
+        setSubscriptionExpiresAt(trialData.data.expires_at.split('T')[0]);
+      } else {
+        setSubscriptionTier("pro");
+        setSubscriptionExpiresAt("");
+      }
+    } catch (error) {
+      console.error("Error loading subscription:", error);
+    }
+  };
+
+  const handleSaveSubscription = async () => {
+    if (!selectedProfile) return;
+    
+    setSavingSubscription(true);
+    try {
+      // If there's a lifetime subscription, delete it first
+      if (lifetimeSubscription) {
+        await supabase.from("lifetime_subscriptions").delete().eq("id", lifetimeSubscription.id);
+      }
+      
+      // If there's a trial subscription, delete it
+      if (trialSubscription) {
+        await supabase.from("trial_subscriptions").delete().eq("id", trialSubscription.id);
+      }
+
+      // Check if this should be a lifetime or trial subscription
+      if (!subscriptionExpiresAt) {
+        // Create lifetime subscription
+        const { error } = await supabase.from("lifetime_subscriptions").insert({
+          user_id: selectedProfile.id,
+          tier: subscriptionTier,
+          notes: "Hozzáadva super admin által"
+        });
+        
+        if (error) throw error;
+      } else {
+        // Create trial subscription
+        const { error } = await supabase.from("trial_subscriptions").insert({
+          user_id: selectedProfile.id,
+          tier: subscriptionTier,
+          expires_at: subscriptionExpiresAt,
+          started_at: new Date().toISOString(),
+        });
+        
+        if (error) throw error;
+      }
+
+      toast({
+        title: "Sikeres mentés",
+        description: "Az előfizetés sikeresen frissítve.",
+      });
+      
+      setEditingSubscription(false);
+      await loadSubscriptionData(selectedProfile.id);
+    } catch (error) {
+      console.error("Error saving subscription:", error);
+      toast({
+        title: "Hiba",
+        description: "Nem sikerült menteni az előfizetést",
+        variant: "destructive",
+      });
+    } finally {
+      setSavingSubscription(false);
+    }
+  };
+
+  const handleViewProfile = async (profile: Profile) => {
+    setSelectedProfile(profile);
+    setEditingSubscription(false);
+    await loadSubscriptionData(profile.id);
+    setProfileDialogOpen(true);
   };
 
   if (checkingAdmin || loading) {
@@ -324,10 +437,7 @@ const SuperAdminDashboard = () => {
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => {
-                                  setSelectedProfile(profile);
-                                  setProfileDialogOpen(true);
-                                }}
+                                onClick={() => handleViewProfile(profile)}
                               >
                                 <Eye className="h-4 w-4" />
                               </Button>
@@ -647,6 +757,114 @@ const SuperAdminDashboard = () => {
                   <h3 className="text-sm font-medium text-muted-foreground mb-1">Felhasználó ID</h3>
                   <p className="text-sm font-mono text-xs">{selectedProfile.id}</p>
                 </div>
+              </div>
+              
+              {/* Előfizetés kezelés */}
+              <div className="border-t pt-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold">Előfizetés</h3>
+                  {!editingSubscription && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setEditingSubscription(true)}
+                    >
+                      <Edit className="h-4 w-4 mr-2" />
+                      Szerkesztés
+                    </Button>
+                  )}
+                </div>
+
+                {!editingSubscription ? (
+                  <div className="space-y-3">
+                    <div>
+                      <h4 className="text-sm font-medium text-muted-foreground mb-1">Előfizetés típusa</h4>
+                      {lifetimeSubscription ? (
+                        <Badge variant="default" className="text-sm">Örökös - {lifetimeSubscription.tier.toUpperCase()}</Badge>
+                      ) : trialSubscription ? (
+                        <Badge variant="secondary" className="text-sm">Próba - {trialSubscription.tier.toUpperCase()}</Badge>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">Nincs aktív előfizetés</p>
+                      )}
+                    </div>
+                    
+                    {trialSubscription && (
+                      <div>
+                        <h4 className="text-sm font-medium text-muted-foreground mb-1">Lejárat</h4>
+                        <p className="text-sm">
+                          {new Date(trialSubscription.expires_at).toLocaleDateString('hu-HU')}
+                        </p>
+                      </div>
+                    )}
+                    
+                    {lifetimeSubscription?.notes && (
+                      <div>
+                        <h4 className="text-sm font-medium text-muted-foreground mb-1">Megjegyzés</h4>
+                        <p className="text-sm">{lifetimeSubscription.notes}</p>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="subscription-tier">Előfizetés szintje</Label>
+                      <Select
+                        value={subscriptionTier}
+                        onValueChange={setSubscriptionTier}
+                      >
+                        <SelectTrigger id="subscription-tier">
+                          <SelectValue placeholder="Válassz szintet" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="pro">Pro</SelectItem>
+                          <SelectItem value="basic">Basic</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="subscription-expires">Lejárati dátum</Label>
+                      <Input
+                        id="subscription-expires"
+                        type="date"
+                        value={subscriptionExpiresAt}
+                        onChange={(e) => setSubscriptionExpiresAt(e.target.value)}
+                        placeholder="Üresen hagyva örökös előfizetés lesz"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Ha üresen hagyod, örökös előfizetés lesz
+                      </p>
+                    </div>
+
+                    <div className="flex gap-2 pt-2">
+                      <Button
+                        onClick={handleSaveSubscription}
+                        disabled={savingSubscription}
+                      >
+                        {savingSubscription ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Mentés...
+                          </>
+                        ) : (
+                          "Mentés"
+                        )}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          setEditingSubscription(false);
+                          if (selectedProfile) {
+                            loadSubscriptionData(selectedProfile.id);
+                          }
+                        }}
+                        disabled={savingSubscription}
+                      >
+                        Mégse
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}
