@@ -393,7 +393,6 @@ export type Database = {
           hunting_location_id: string | null
           id: string
           is_guest: boolean | null
-          map_zone_id: string | null
           requires_admin_approval: boolean
           security_zone_id: string
           start_time: string
@@ -414,7 +413,6 @@ export type Database = {
           hunting_location_id?: string | null
           id?: string
           is_guest?: boolean | null
-          map_zone_id?: string | null
           requires_admin_approval?: boolean
           security_zone_id: string
           start_time: string
@@ -435,7 +433,6 @@ export type Database = {
           hunting_location_id?: string | null
           id?: string
           is_guest?: boolean | null
-          map_zone_id?: string | null
           requires_admin_approval?: boolean
           security_zone_id?: string
           start_time?: string
@@ -456,13 +453,6 @@ export type Database = {
             columns: ["hunting_location_id"]
             isOneToOne: false
             referencedRelation: "hunting_locations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "hunting_registrations_map_zone_id_fkey"
-            columns: ["map_zone_id"]
-            isOneToOne: false
-            referencedRelation: "map_zones"
             referencedColumns: ["id"]
           },
           {
@@ -524,80 +514,6 @@ export type Database = {
           id?: string
           notes?: string | null
           tier?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      map_pois: {
-        Row: {
-          created_at: string | null
-          description: string | null
-          id: string
-          latitude: number
-          longitude: number
-          name: string
-          updated_at: string | null
-          user_id: string
-          zone_id: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          description?: string | null
-          id?: string
-          latitude: number
-          longitude: number
-          name: string
-          updated_at?: string | null
-          user_id: string
-          zone_id?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          description?: string | null
-          id?: string
-          latitude?: number
-          longitude?: number
-          name?: string
-          updated_at?: string | null
-          user_id?: string
-          zone_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "map_pois_zone_id_fkey"
-            columns: ["zone_id"]
-            isOneToOne: false
-            referencedRelation: "map_zones"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      map_zones: {
-        Row: {
-          created_at: string | null
-          description: string | null
-          geojson: Json
-          id: string
-          name: string
-          updated_at: string | null
-          user_id: string
-        }
-        Insert: {
-          created_at?: string | null
-          description?: string | null
-          geojson: Json
-          id?: string
-          name: string
-          updated_at?: string | null
-          user_id: string
-        }
-        Update: {
-          created_at?: string | null
-          description?: string | null
-          geojson?: Json
-          id?: string
-          name?: string
-          updated_at?: string | null
           user_id?: string
         }
         Relationships: []
@@ -1384,10 +1300,6 @@ export type Database = {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
-        Returns: boolean
-      }
-      point_in_polygon: {
-        Args: { lat: number; lng: number; polygon: Json }
         Returns: boolean
       }
     }
