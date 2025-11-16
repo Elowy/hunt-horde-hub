@@ -904,6 +904,9 @@ const HuntingRegistrations = () => {
                             {format(new Date(reg.end_time), "yyyy. MM. dd. HH:mm", { locale: hu })}
                           </span>
                         </div>
+                        <div className="text-sm">
+                          <strong>Helyszín:</strong> {reg.hunting_locations ? reg.hunting_locations.name : "Egész terület"}
+                        </div>
                             <div className="text-sm space-y-1 mt-2">
                               <div><strong>Vadász:</strong> {reg.hired_hunter_id ? reg.hired_hunters?.name : reg.profiles.contact_name || "Névtelen"}</div>
                               {reg.hired_hunter_id && reg.hired_hunters?.license_number && (
@@ -1030,6 +1033,9 @@ const HuntingRegistrations = () => {
                                 {format(new Date(reg.end_time), "yyyy. MM. dd. HH:mm", { locale: hu })}
                               </span>
                             </div>
+                            <div className="text-sm">
+                              <strong>Helyszín:</strong> {reg.hunting_locations ? reg.hunting_locations.name : "Egész terület"}
+                            </div>
                           <div className="text-sm space-y-1 mt-2">
                             <div><strong>Vadász:</strong> {reg.hired_hunter_id ? reg.hired_hunters?.name : reg.profiles.contact_name || "Névtelen"}</div>
                             {reg.hired_hunter_id && reg.hired_hunters?.license_number && (
@@ -1123,6 +1129,9 @@ const HuntingRegistrations = () => {
                             <span>
                               {format(new Date(reg.end_time), "yyyy. MM. dd. HH:mm", { locale: hu })}
                             </span>
+                          </div>
+                          <div className="text-sm">
+                            <strong>Helyszín:</strong> {reg.hunting_locations ? reg.hunting_locations.name : "Egész terület"}
                           </div>
                             <div className="text-sm space-y-1 mt-2">
                               <div><strong>Vadász:</strong> {reg.hired_hunter_id ? reg.hired_hunters?.name : reg.profiles.contact_name || "Névtelen"}</div>
