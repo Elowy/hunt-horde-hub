@@ -593,6 +593,25 @@ const HuntingRegistrations = () => {
     }
   };
 
+  const handleDetachAnimal = async (animalId: string) => {
+    try {
+      const { error } = await supabase
+        .from("animals")
+        .update({ hunting_registration_id: null })
+        .eq("id", animalId);
+
+      if (error) throw error;
+      toast({ title: "Siker!", description: "Állat leválasztva a beiratkozásról!" });
+      fetchRegistrations();
+    } catch (error: any) {
+      toast({
+        title: "Hiba",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
   const getRegistrationStatus = (registration: HuntingRegistration) => {
     const now = new Date();
     const startTime = new Date(registration.start_time);
@@ -991,10 +1010,22 @@ const HuntingRegistrations = () => {
                       <CollapsibleContent className="pt-2">
                         <div className="grid gap-2 pl-6">
                           {reg.animals.map((animal) => (
-                            <div key={animal.id} className="text-sm bg-muted/50 p-2 rounded">
-                              <div><strong>Azonosító:</strong> {animal.animal_id}</div>
-                              <div><strong>Faj:</strong> {animal.species}</div>
-                              {animal.weight && <div><strong>Súly:</strong> {animal.weight} kg</div>}
+                            <div key={animal.id} className="text-sm bg-muted/50 p-2 rounded flex items-start justify-between">
+                              <div className="flex-1">
+                                <div><strong>Azonosító:</strong> {animal.animal_id}</div>
+                                <div><strong>Faj:</strong> {animal.species}</div>
+                                {animal.weight && <div><strong>Súly:</strong> {animal.weight} kg</div>}
+                              </div>
+                              {(isAdmin || isEditor || isSuperAdmin) && (
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => handleDetachAnimal(animal.id)}
+                                  className="h-8"
+                                >
+                                  <XCircle className="h-4 w-4" />
+                                </Button>
+                              )}
                             </div>
                           ))}
                         </div>
@@ -1327,10 +1358,22 @@ const HuntingRegistrations = () => {
                         <CollapsibleContent className="pt-2">
                           <div className="grid gap-2 pl-6">
                             {reg.animals.map((animal) => (
-                              <div key={animal.id} className="text-sm bg-muted/50 p-2 rounded">
-                                <div><strong>Azonosító:</strong> {animal.animal_id}</div>
-                                <div><strong>Faj:</strong> {animal.species}</div>
-                                {animal.weight && <div><strong>Súly:</strong> {animal.weight} kg</div>}
+                              <div key={animal.id} className="text-sm bg-muted/50 p-2 rounded flex items-start justify-between">
+                                <div className="flex-1">
+                                  <div><strong>Azonosító:</strong> {animal.animal_id}</div>
+                                  <div><strong>Faj:</strong> {animal.species}</div>
+                                  {animal.weight && <div><strong>Súly:</strong> {animal.weight} kg</div>}
+                                </div>
+                                {(isAdmin || isEditor || isSuperAdmin) && (
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => handleDetachAnimal(animal.id)}
+                                    className="h-8"
+                                  >
+                                    <XCircle className="h-4 w-4" />
+                                  </Button>
+                                )}
                               </div>
                             ))}
                           </div>
