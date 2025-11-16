@@ -394,7 +394,7 @@ export const AddAnimalDialog = ({ onAnimalAdded }: AddAnimalDialogProps) => {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="hunting" size="sm" className="w-full justify-start">
+        <Button variant="hunting" size="sm">
           <FileText className="mr-2 h-4 w-4" />
           Vad felvétele
         </Button>
