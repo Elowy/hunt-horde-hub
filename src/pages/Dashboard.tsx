@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Search, Filter, Eye, Edit, Trash2, MapPin, LogOut, Star, Truck, FileDown, Download, TrendingUp, User, Users as UsersIcon, ChevronDown, Settings, CalendarCheck, List, Ticket, FileText, UserCog } from "lucide-react";
+import { Plus, Search, Filter, Eye, Edit, Trash2, MapPin, LogOut, Star, Truck, FileDown, Download, TrendingUp, User, Users as UsersIcon, ChevronDown, Settings, CalendarCheck, List, Ticket, FileText, UserCog, CheckSquare, FileSpreadsheet, MoreVertical } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,6 +32,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { StorageLocationDialog } from "@/components/StorageLocationDialog";
@@ -413,6 +419,46 @@ const Dashboard = () => {
         description: "Állat törölve!",
       });
 
+      fetchData();
+    } catch (error: any) {
+      toast({
+        title: "Hiba",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedAnimals.size === 0) {
+      toast({
+        title: "Nincs kiválasztott állat",
+        description: "Kérjük, válasszon ki legalább egy állatot a törléshez.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Biztos törli a kiválasztott ${selectedAnimals.size} darab állatot? Ez a művelet nem vonható vissza!`
+    );
+
+    if (!confirmed) return;
+
+    try {
+      const { error } = await supabase
+        .from("animals")
+        .delete()
+        .in("id", Array.from(selectedAnimals));
+
+      if (error) throw error;
+
+      toast({
+        title: "Sikeres törlés",
+        description: `${selectedAnimals.size} állat sikeresen törölve.`,
+      });
+
+      setSelectedAnimals(new Set());
       fetchData();
     } catch (error: any) {
       toast({
@@ -1840,13 +1886,32 @@ const Dashboard = () => {
               )}
 
               <TabsContent value="cooled">
-                {/* Elszállító gomb */}
+                {/* Elszállító, Excel export és csoportos műveletek gombok */}
                 {selectedAnimals.size > 0 && (
-                  <div className="mb-4 flex justify-end">
+                  <div className="mb-4 flex flex-wrap gap-2 justify-end">
                     <Button onClick={handleCreateTransport} variant="default">
                       <FileDown className="h-4 w-4 mr-2" />
                       Elszállító készítése ({selectedAnimals.size} állat)
                     </Button>
+                    <Button onClick={exportSelectedToExcel} variant="outline">
+                      <FileSpreadsheet className="h-4 w-4 mr-2" />
+                      Excel export
+                    </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="outline">
+                          <MoreVertical className="h-4 w-4 mr-2" />
+                          Csoportos műveletek
+                          <ChevronDown className="h-4 w-4 ml-2" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="bg-background border border-border z-50">
+                        <DropdownMenuItem onClick={handleBulkDelete} className="text-destructive hover:bg-destructive/10 cursor-pointer">
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Kijelöltek törlése
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 )}
                 <Card>
@@ -1854,7 +1919,7 @@ const Dashboard = () => {
                     <TableHeader>
                       <TableRow>
                         <TableHead className="w-[50px]">
-                          <Truck className="h-4 w-4" />
+                          <CheckSquare className="h-4 w-4" />
                         </TableHead>
                         <TableHead>Azonosító</TableHead>
                         <TableHead>Faj</TableHead>
