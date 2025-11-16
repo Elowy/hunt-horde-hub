@@ -98,6 +98,7 @@ interface Animal {
   sample_date: string | null;
   expiry_date: string | null;
   vet_check: boolean | null;
+  archived: boolean | null;
   vet_notes: string | null;
   notes: string | null;
   is_transported: boolean;
@@ -710,6 +711,35 @@ const Dashboard = () => {
     }
   };
 
+  const handleArchiveAnimals = async (animalIds: string[]) => {
+    if (!animalIds.length) return;
+
+    if (!confirm(`Biztosan archiválja a kiválasztott ${animalIds.length} állatot?`)) return;
+
+    try {
+      const { error } = await supabase
+        .from("animals")
+        .update({ archived: true })
+        .in("id", animalIds);
+
+      if (error) throw error;
+
+      toast({
+        title: "Siker!",
+        description: `${animalIds.length} állat archiválva!`,
+      });
+
+      setSelectedAnimals(new Set());
+      fetchData();
+    } catch (error: any) {
+      toast({
+        title: "Hiba",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
   const getAnimalPrice = (animal: Animal): { net: number; gross: number } => {
     if (!animal.weight || !animal.species || !animal.class) return { net: 0, gross: 0 };
     
@@ -1072,9 +1102,10 @@ const Dashboard = () => {
     return matchesSearch && matchesLocation && matchesSpecies && matchesClass && matchesGender && matchesVetCheck && matchesDateFrom && matchesDateTo && matchesTransportStatus;
   });
 
-  // Szétválasztás hűtött és elszállított állatokra
-  const cooledAnimals = filteredAnimals.filter(animal => !animal.is_transported);
-  const transportedAnimals = filteredAnimals.filter(animal => animal.is_transported);
+  // Szétválasztás hűtött, elszállított és archivált állatokra
+  const cooledAnimals = filteredAnimals.filter(animal => !animal.is_transported && !animal.archived);
+  const transportedAnimals = filteredAnimals.filter(animal => animal.is_transported && !animal.archived);
+  const archivedAnimals = filteredAnimals.filter(animal => animal.archived);
 
   const getLocationName = (locationId: string) => {
     const location = locations.find(l => l.id === locationId);
@@ -2035,12 +2066,15 @@ const Dashboard = () => {
           ) : (
             <Tabs defaultValue="cooled" className="w-full">
               {!isHunter ? (
-                <TabsList className="grid w-full max-w-md grid-cols-2">
+                <TabsList className="grid w-full max-w-3xl grid-cols-3">
                   <TabsTrigger value="cooled">
                     Jelenleg hűtött állatok ({cooledAnimals.length})
                   </TabsTrigger>
                   <TabsTrigger value="transported">
                     Már elszállított állatok ({transportedAnimals.length})
+                  </TabsTrigger>
+                  <TabsTrigger value="archived">
+                    Archivált állatok ({archivedAnimals.length})
                   </TabsTrigger>
                 </TabsList>
               ) : (
@@ -2186,10 +2220,44 @@ const Dashboard = () => {
 
               {!isHunter && (
                 <TabsContent value="transported">
+                  {/* Archiválás gomb kiválasztott állatokhoz */}
+                  {selectedAnimals.size > 0 && (isEditor || isAdmin) && (
+                    <div className="mb-4 flex justify-end">
+                      <Button 
+                        onClick={() => handleArchiveAnimals(Array.from(selectedAnimals))}
+                        variant="outline"
+                      >
+                        <FileText className="h-4 w-4 mr-2" />
+                        Archiválás ({selectedAnimals.size})
+                      </Button>
+                    </div>
+                  )}
+                  
                   <Card>
                     <Table>
                       <TableHeader>
                         <TableRow>
+                          {(isEditor || isAdmin) && (
+                            <TableHead className="w-12">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 w-8 p-0"
+                                onClick={() => {
+                                  const transportedAnimalIds = transportedAnimals.map(a => a.id);
+                                  const allSelected = transportedAnimalIds.every(id => selectedAnimals.has(id));
+                                  if (allSelected) {
+                                    setSelectedAnimals(new Set());
+                                  } else {
+                                    setSelectedAnimals(new Set(transportedAnimalIds));
+                                  }
+                                }}
+                                title={transportedAnimals.every(a => selectedAnimals.has(a.id)) ? "Kijelölés törlése" : "Összes kijelölése"}
+                              >
+                                <CheckSquare className="h-4 w-4" />
+                              </Button>
+                            </TableHead>
+                          )}
                           <TableHead>Azonosító</TableHead>
                           <TableHead>Faj</TableHead>
                           <TableHead>Súly (kg)</TableHead>
@@ -2207,6 +2275,14 @@ const Dashboard = () => {
                           const price = getAnimalPrice(animal);
                           return (
                             <TableRow key={animal.id}>
+                              {(isEditor || isAdmin) && (
+                                <TableCell>
+                                  <Checkbox
+                                    checked={selectedAnimals.has(animal.id)}
+                                    onCheckedChange={() => toggleAnimalSelection(animal.id)}
+                                  />
+                                </TableCell>
+                              )}
                               <TableCell className="font-medium">{animal.animal_id}</TableCell>
                               <TableCell>{animal.species}</TableCell>
                               <TableCell>{animal.weight || "-"}</TableCell>
@@ -2240,13 +2316,88 @@ const Dashboard = () => {
                                     locations={locations}
                                     onAnimalUpdated={fetchData}
                                   />
-                                  <Button 
-                                    variant="ghost" 
-                                    size="sm"
-                                    onClick={() => handleDeleteAnimal(animal)}
-                                  >
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
+                                  {(isEditor || isAdmin) && (
+                                    <>
+                                      <Button 
+                                        variant="ghost" 
+                                        size="sm"
+                                        onClick={() => handleArchiveAnimals([animal.id])}
+                                        title="Archiválás"
+                                      >
+                                        <FileText className="h-4 w-4" />
+                                      </Button>
+                                      <Button 
+                                        variant="ghost" 
+                                        size="sm"
+                                        onClick={() => handleDeleteAnimal(animal)}
+                                      >
+                                        <Trash2 className="h-4 w-4" />
+                                      </Button>
+                                    </>
+                                  )}
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </Card>
+                </TabsContent>
+              )}
+
+              {/* Archivált állatok fül - csak editor, admin, super admin láthatja */}
+              {!isHunter && (isEditor || isAdmin) && (
+                <TabsContent value="archived">
+                  <Card>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Azonosító</TableHead>
+                          <TableHead>Faj</TableHead>
+                          <TableHead>Súly (kg)</TableHead>
+                          <TableHead>Osztály</TableHead>
+                          <TableHead>Nettó ár (Ft)</TableHead>
+                          <TableHead>Bruttó ár (Ft)</TableHead>
+                          <TableHead>Vadász</TableHead>
+                          <TableHead>Helyszín</TableHead>
+                          <TableHead>Elszállítva</TableHead>
+                          <TableHead className="text-right">Műveletek</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {archivedAnimals.map((animal) => {
+                          const price = getAnimalPrice(animal);
+                          return (
+                            <TableRow key={animal.id}>
+                              <TableCell className="font-medium">{animal.animal_id}</TableCell>
+                              <TableCell>{animal.species}</TableCell>
+                              <TableCell>{animal.weight || "-"}</TableCell>
+                              <TableCell>{animal.class || "-"}</TableCell>
+                              <TableCell className="font-bold">
+                                {price.net > 0 ? price.net.toLocaleString("hu-HU") : "-"}
+                              </TableCell>
+                              <TableCell className="font-semibold">
+                                {price.gross > 0 ? price.gross.toLocaleString("hu-HU") : "-"}
+                              </TableCell>
+                              <TableCell>{animal.hunter_name || "-"}</TableCell>
+                              <TableCell>
+                                <Badge variant="outline">
+                                  {transportDocuments[animal.id] || getLocationName(animal.storage_location_id)}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>
+                                {animal.transported_at
+                                  ? new Date(animal.transported_at).toLocaleDateString("hu-HU")
+                                  : "-"}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <div className="flex justify-end gap-2">
+                                  <ViewAnimalDialog 
+                                    animal={animal} 
+                                    locationName={transportDocuments[animal.id] || getLocationName(animal.storage_location_id)}
+                                    price={price.gross}
+                                  />
                                 </div>
                               </TableCell>
                             </TableRow>

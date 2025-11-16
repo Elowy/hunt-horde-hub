@@ -51,6 +51,7 @@ export type Database = {
         Row: {
           age: string | null
           animal_id: string
+          archived: boolean | null
           average_tusk_length: number | null
           class: string | null
           condition: string | null
@@ -87,6 +88,7 @@ export type Database = {
         Insert: {
           age?: string | null
           animal_id: string
+          archived?: boolean | null
           average_tusk_length?: number | null
           class?: string | null
           condition?: string | null
@@ -123,6 +125,7 @@ export type Database = {
         Update: {
           age?: string | null
           animal_id?: string
+          archived?: boolean | null
           average_tusk_length?: number | null
           class?: string | null
           condition?: string | null
