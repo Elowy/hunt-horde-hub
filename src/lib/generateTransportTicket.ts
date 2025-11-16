@@ -1,4 +1,5 @@
 import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 interface Animal {
   id: string;
@@ -44,163 +45,168 @@ export const generateTransportTicket = async (
   pdf.setFont("helvetica", "bold");
   pdf.text("Vadkisero jegy", 105, 20, { align: "center" });
   
-  // Add section number (could be dynamic)
+  // Add section number
   pdf.setFontSize(14);
   pdf.text(`${new Date().getFullYear()}/${animal.animal_id}`, 105, 30, { align: "center" });
   
-  // Create table-like structure
-  pdf.setFontSize(10);
-  pdf.setFont("helvetica", "normal");
-  
-  let yPos = 45;
-  const leftCol = 20;
-  const rightCol = 110;
-  const lineHeight = 8;
-  
-  // Left column - Elejtés adatai
-  pdf.setFont("helvetica", "bold");
-  pdf.text("Megye NUTS kodja:", leftCol, yPos);
-  pdf.setFont("helvetica", "normal");
-  pdf.text("-", leftCol + 50, yPos);
-  
-  yPos += lineHeight;
-  pdf.setFont("helvetica", "bold");
-  pdf.text("Azonosito jel szama:", leftCol, yPos);
-  pdf.setFont("helvetica", "normal");
-  pdf.text(animal.animal_id, leftCol + 50, yPos);
-  
-  yPos += lineHeight;
-  pdf.setFont("helvetica", "bold");
-  pdf.text("Elejtes helye*:", leftCol, yPos);
-  pdf.setFont("helvetica", "normal");
   const location = securityZone?.settlements?.name || securityZone?.name || "-";
-  pdf.text(location, leftCol + 50, yPos);
-  
-  yPos += lineHeight;
-  pdf.setFont("helvetica", "bold");
-  pdf.text("Elejtes ideje:", leftCol, yPos);
-  pdf.setFont("helvetica", "normal");
   const coolingDate = animal.cooling_date 
     ? new Date(animal.cooling_date).toLocaleString("hu-HU")
     : "-";
-  pdf.text(coolingDate, leftCol + 50, yPos);
-  
-  yPos += lineHeight;
-  pdf.setFont("helvetica", "bold");
-  pdf.text("Vad faja, kora:", leftCol, yPos);
-  pdf.setFont("helvetica", "normal");
   const speciesAge = `${animal.species}, ${animal.age || "-"}`;
-  pdf.text(speciesAge, leftCol + 50, yPos);
   
-  // Right column - Vizsgálat adatai
-  yPos = 45;
+  // Main information table
+  autoTable(pdf, {
+    startY: 40,
+    head: [['Elejtési adatok', 'Vizsgálati adatok']],
+    body: [
+      ['Megye NUTS kódja: -', 'Észlelt elváltozások (test, zsiger):'],
+      [`Azonosító jel száma: ${animal.animal_id}`, animal.vet_notes || "-"],
+      [`Elejtés helye*: ${location}`, ''],
+      [`Elejtés ideje: ${coolingDate}`, 'Elejtés előtt tapasztalt:'],
+      [`Vad faja, kora: ${speciesAge}`, animal.notes || "-"],
+    ],
+    theme: 'grid',
+    styles: {
+      fontSize: 9,
+      cellPadding: 3,
+      lineColor: [0, 0, 0],
+      lineWidth: 0.5,
+    },
+    headStyles: {
+      fillColor: [240, 240, 240],
+      textColor: [0, 0, 0],
+      fontStyle: 'bold',
+      halign: 'center',
+    },
+    columnStyles: {
+      0: { cellWidth: 95 },
+      1: { cellWidth: 95 },
+    },
+  });
+  
+  // Hunting permit table
+  autoTable(pdf, {
+    startY: (pdf as any).lastAutoTable.finalY + 5,
+    body: [
+      ['Vadászatra jogosult kódszáma: -'],
+    ],
+    theme: 'grid',
+    styles: {
+      fontSize: 9,
+      cellPadding: 3,
+      lineColor: [0, 0, 0],
+      lineWidth: 0.5,
+    },
+  });
+  
+  // Examination details table
+  autoTable(pdf, {
+    startY: (pdf as any).lastAutoTable.finalY + 5,
+    body: [
+      ['A vizsgálat helye, ideje:', coolingDate],
+      ['A vizsgáló nyilvántartási száma:', animal.vet_doctor_name || "-"],
+    ],
+    theme: 'grid',
+    styles: {
+      fontSize: 9,
+      cellPadding: 3,
+      lineColor: [0, 0, 0],
+      lineWidth: 0.5,
+    },
+    columnStyles: {
+      0: { cellWidth: 95, fontStyle: 'bold' },
+      1: { cellWidth: 95 },
+    },
+  });
+  
+  // Examination result
+  let yPos = (pdf as any).lastAutoTable.finalY + 10;
+  pdf.setFontSize(10);
   pdf.setFont("helvetica", "bold");
-  pdf.text("Eszlelt elvaltozasok (test, zsiger):", rightCol, yPos);
-  pdf.setFont("helvetica", "normal");
-  const splitNotes = pdf.splitTextToSize(animal.vet_notes || "-", 70);
-  pdf.text(splitNotes, rightCol, yPos + lineHeight);
+  pdf.text("Aláhúzandólag jelölni a vizsgálat eredménye szerint:", 20, yPos);
   
-  yPos += lineHeight * (splitNotes.length + 1);
-  pdf.setFont("helvetica", "bold");
-  pdf.text("Elejtes elott tapasztalt:", rightCol, yPos);
-  pdf.setFont("helvetica", "normal");
-  const splitPreNotes = pdf.splitTextToSize(animal.notes || "-", 70);
-  pdf.text(splitPreNotes, rightCol, yPos + lineHeight);
-  
-  // Add more space for next section
-  yPos = Math.max(yPos + lineHeight * (splitPreNotes.length + 2), 100);
-  
-  // Vadászatra jogosult section
-  pdf.setFont("helvetica", "bold");
-  pdf.text("Vadaszatra jogosult kodszama:", leftCol, yPos);
-  pdf.setFont("helvetica", "normal");
-  pdf.text("-", leftCol + 60, yPos);
-  
-  yPos += lineHeight * 2;
-  
-  // Vizsgálat section
-  pdf.setFont("helvetica", "bold");
-  pdf.text("A vizsgalat helye, ideje:", rightCol, yPos);
-  pdf.setFont("helvetica", "normal");
-  pdf.text(coolingDate, rightCol, yPos + lineHeight);
-  
-  yPos += lineHeight * 2;
-  pdf.setFont("helvetica", "bold");
-  pdf.text("A vizsgalo nyilvantartasi szama:", leftCol, yPos);
-  pdf.setFont("helvetica", "normal");
-  pdf.text(animal.vet_doctor_name || "-", leftCol + 60, yPos);
-  
-  yPos += lineHeight * 3;
-  
-  // Vizsgálat eredménye
-  pdf.setFont("helvetica", "bold");
-  pdf.text("Alahuznandolag jelolni a vizsgalat eredmenye szerint:", leftCol, yPos);
-  
-  yPos += lineHeight;
+  yPos += 8;
   pdf.setFont("helvetica", "normal");
   const isApproved = animal.vet_check && animal.vet_result !== "kifogasolt";
   
-  // Kifogásmentes / Kifogásolt checkboxes
-  pdf.rect(leftCol, yPos, 4, 4);
-  if (isApproved) pdf.text("X", leftCol + 0.5, yPos + 3);
-  pdf.text("Kifogasmentes", leftCol + 7, yPos + 3);
+  // Result checkboxes in a table
+  autoTable(pdf, {
+    startY: yPos,
+    body: [
+      [
+        isApproved ? '☑ Kifogásmentes' : '☐ Kifogásmentes',
+        !isApproved ? '☑ Kifogásolt' : '☐ Kifogásolt'
+      ],
+      ['hatósági húsvizsgálatra', 'hatósági húsvizsgálatra'],
+    ],
+    theme: 'grid',
+    styles: {
+      fontSize: 9,
+      cellPadding: 3,
+      lineColor: [0, 0, 0],
+      lineWidth: 0.5,
+      halign: 'center',
+    },
+    columnStyles: {
+      0: { cellWidth: 95 },
+      1: { cellWidth: 95 },
+    },
+  });
   
-  pdf.rect(leftCol + 50, yPos, 4, 4);
-  if (!isApproved) pdf.text("X", leftCol + 50.5, yPos + 3);
-  pdf.text("Kifogasolt", leftCol + 57, yPos + 3);
-  
-  yPos += lineHeight;
-  pdf.text("hatosagi husvizsgalatra", leftCol + 7, yPos + 3);
-  pdf.text("hatosagi husvizsgalatra", leftCol + 57, yPos + 3);
-  
-  yPos += lineHeight * 3;
-  
-  // Signatures section
-  pdf.setFont("helvetica", "bold");
-  pdf.text("Elejto neve:", leftCol, yPos);
-  pdf.setFont("helvetica", "normal");
-  pdf.text(animal.hunter_name || "-", leftCol, yPos + lineHeight);
-  
-  pdf.setFont("helvetica", "bold");
-  pdf.text("Vizsgalo neve:", rightCol, yPos);
-  pdf.setFont("helvetica", "normal");
-  pdf.text(animal.vet_doctor_name || "-", rightCol, yPos + lineHeight);
-  
-  yPos += lineHeight * 3;
-  pdf.setFont("helvetica", "bold");
-  pdf.text("Elejto alairasa:", leftCol, yPos);
-  pdf.text("_________________", leftCol, yPos + 5);
-  
-  pdf.text("Vizsgalo alairasa:", rightCol, yPos);
-  pdf.text("_________________", rightCol, yPos + 5);
-  
-  yPos += lineHeight * 4;
+  // Signatures table
+  autoTable(pdf, {
+    startY: (pdf as any).lastAutoTable.finalY + 10,
+    body: [
+      ['Elejtő neve:', animal.hunter_name || "-", 'Vizsgáló neve:', animal.vet_doctor_name || "-"],
+      ['Elejtő aláírása:', '_________________', 'Vizsgáló aláírása:', '_________________'],
+    ],
+    theme: 'grid',
+    styles: {
+      fontSize: 9,
+      cellPadding: 5,
+      lineColor: [0, 0, 0],
+      lineWidth: 0.5,
+    },
+    columnStyles: {
+      0: { cellWidth: 45, fontStyle: 'bold' },
+      1: { cellWidth: 50 },
+      2: { cellWidth: 45, fontStyle: 'bold' },
+      3: { cellWidth: 50 },
+    },
+  });
   
   // Footer notes
+  yPos = (pdf as any).lastAutoTable.finalY + 10;
   pdf.setFontSize(8);
   pdf.setFont("helvetica", "italic");
-  pdf.text("*A legkozelebbi telepules nevet kell megadni", leftCol, yPos);
+  pdf.text("*A legközelebbi település nevét kell megadni", 20, yPos);
   yPos += 5;
-  pdf.text("**Csak vaddiszno eseten kell megadni korcsoport szerint: 1 ev alatti, felnott", leftCol, yPos);
+  pdf.text("**Csak vaddisznó esetén kell megadni korcsoport szerint: 1 év alatti, felnőtt", 20, yPos);
   
-  // Add transport information at the bottom
-  yPos += lineHeight * 2;
-  pdf.setFontSize(9);
-  pdf.setFont("helvetica", "bold");
-  pdf.text("Szallitasi informaciok:", leftCol, yPos);
-  pdf.setFont("helvetica", "normal");
-  yPos += lineHeight;
-  pdf.text(`Bizonylat szam: ${transportInfo.document_number}`, leftCol + 5, yPos);
-  yPos += lineHeight;
-  pdf.text(`Szallitas datuma: ${new Date(transportInfo.transport_date).toLocaleDateString("hu-HU")}`, leftCol + 5, yPos);
-  if (transportInfo.transporter_name) {
-    yPos += lineHeight;
-    pdf.text(`Elszallito: ${transportInfo.transporter_name}`, leftCol + 5, yPos);
-  }
-  if (transportInfo.vehicle_plate) {
-    yPos += lineHeight;
-    pdf.text(`Rendszam: ${transportInfo.vehicle_plate}`, leftCol + 5, yPos);
-  }
+  // Transport information table
+  autoTable(pdf, {
+    startY: yPos + 5,
+    head: [['Szállítási információk']],
+    body: [
+      [`Bizonylat szám: ${transportInfo.document_number}`],
+      [`Szállítás dátuma: ${new Date(transportInfo.transport_date).toLocaleDateString("hu-HU")}`],
+      ...(transportInfo.transporter_name ? [[`Elszállító: ${transportInfo.transporter_name}`]] : []),
+      ...(transportInfo.vehicle_plate ? [[`Rendszám: ${transportInfo.vehicle_plate}`]] : []),
+    ],
+    theme: 'grid',
+    styles: {
+      fontSize: 9,
+      cellPadding: 3,
+      lineColor: [0, 0, 0],
+      lineWidth: 0.5,
+    },
+    headStyles: {
+      fillColor: [240, 240, 240],
+      textColor: [0, 0, 0],
+      fontStyle: 'bold',
+    },
+  });
   
   return pdf.output("blob");
 };
