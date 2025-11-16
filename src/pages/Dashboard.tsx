@@ -645,6 +645,19 @@ const Dashboard = () => {
     setSelectedAnimals(newSelected);
   };
 
+  const handleToggleSelectAll = () => {
+    const cooledAnimalIds = cooledAnimals.map(animal => animal.id);
+    const allSelected = cooledAnimalIds.every(id => selectedAnimals.has(id));
+    
+    if (allSelected) {
+      // Ha minden ki van jelölve, töröljük az összeset
+      setSelectedAnimals(new Set());
+    } else {
+      // Ha nincs minden kijelölve, kijelöljük az összeset
+      setSelectedAnimals(new Set(cooledAnimalIds));
+    }
+  };
+
   const getAnimalPrice = (animal: Animal): { net: number; gross: number } => {
     if (!animal.weight || !animal.species || !animal.class) return { net: 0, gross: 0 };
     
@@ -1919,7 +1932,15 @@ const Dashboard = () => {
                     <TableHeader>
                       <TableRow>
                         <TableHead className="w-[50px]">
-                          <CheckSquare className="h-4 w-4" />
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-8 w-8 p-0"
+                            onClick={handleToggleSelectAll}
+                            title={cooledAnimals.every(a => selectedAnimals.has(a.id)) ? "Kijelölés törlése" : "Összes kijelölése"}
+                          >
+                            <CheckSquare className="h-4 w-4" />
+                          </Button>
                         </TableHead>
                         <TableHead>Azonosító</TableHead>
                         <TableHead>Faj</TableHead>
