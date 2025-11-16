@@ -762,14 +762,13 @@ const HuntingRegistrations = () => {
                           <SelectTrigger>
                             <SelectValue placeholder="Válasszon helyszínt" />
                           </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="">Nincs kiválasztva</SelectItem>
-                            {locations.map((location) => (
-                              <SelectItem key={location.id} value={location.id}>
-                                {location.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
+                        <SelectContent>
+                          {locations.map((location) => (
+                            <SelectItem key={location.id} value={location.id}>
+                              {location.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
                         </Select>
                       </div>
                     )}
