@@ -703,17 +703,14 @@ const Dashboard = () => {
     const allSelected = cooledAnimalIds.every(id => selectedAnimals.has(id));
     
     if (allSelected) {
-      // Ha minden ki van jelölve, töröljük az összeset
       setSelectedAnimals(new Set());
     } else {
-      // Ha nincs minden kijelölve, kijelöljük az összeset
       setSelectedAnimals(new Set(cooledAnimalIds));
     }
   };
 
   const handleArchiveAnimals = async (animalIds: string[]) => {
     if (!animalIds.length) return;
-
     if (!confirm(`Biztosan archiválja a kiválasztott ${animalIds.length} állatot?`)) return;
 
     try {
@@ -739,6 +736,35 @@ const Dashboard = () => {
       });
     }
   };
+
+  const handleRestoreAnimals = async (animalIds: string[]) => {
+    if (!animalIds.length) return;
+    if (!confirm(`Biztosan visszaállítja a kiválasztott ${animalIds.length} állatot?`)) return;
+
+    try {
+      const { error } = await supabase
+        .from("animals")
+        .update({ archived: false })
+        .in("id", animalIds);
+
+      if (error) throw error;
+
+      toast({
+        title: "Siker!",
+        description: `${animalIds.length} állat visszaállítva!`,
+      });
+
+      setSelectedAnimals(new Set());
+      fetchData();
+    } catch (error: any) {
+      toast({
+        title: "Hiba",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
 
   const getAnimalPrice = (animal: Animal): { net: number; gross: number } => {
     if (!animal.weight || !animal.species || !animal.class) return { net: 0, gross: 0 };
@@ -2064,7 +2090,7 @@ const Dashboard = () => {
               </CardContent>
             </Card>
           ) : (
-            <Tabs defaultValue="cooled" className="w-full">
+            <Tabs defaultValue="cooled" className="w-full" onValueChange={() => setSelectedAnimals(new Set())}>
               {!isHunter ? (
                 <TabsList className="grid w-full max-w-3xl grid-cols-3">
                   <TabsTrigger value="cooled">
@@ -2346,13 +2372,45 @@ const Dashboard = () => {
                 </TabsContent>
               )}
 
-              {/* Archivált állatok fül - csak editor, admin, super admin láthatja */}
+              {/* Archivált állatok fül */}
               {!isHunter && (isEditor || isAdmin) && (
                 <TabsContent value="archived">
+                  {/* Visszaállítás gomb */}
+                  {selectedAnimals.size > 0 && (
+                    <div className="mb-4 flex justify-end">
+                      <Button 
+                        onClick={() => handleRestoreAnimals(Array.from(selectedAnimals))}
+                        variant="outline"
+                      >
+                        <Truck className="h-4 w-4 mr-2" />
+                        Visszaállítás ({selectedAnimals.size})
+                      </Button>
+                    </div>
+                  )}
+
                   <Card>
                     <Table>
                       <TableHeader>
                         <TableRow>
+                          <TableHead className="w-12">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0"
+                              onClick={() => {
+                                const archivedAnimalIds = archivedAnimals.map(a => a.id);
+                                const allSelected = archivedAnimalIds.every(id => selectedAnimals.has(id));
+                                if (allSelected) {
+                                  setSelectedAnimals(new Set());
+                                } else {
+                                  setSelectedAnimals(new Set(archivedAnimalIds));
+                                }
+                              }}
+                              title={archivedAnimals.every(a => selectedAnimals.has(a.id)) ? "Kijelölés törlése" : "Összes kijelölése"}
+                            >
+                              <CheckSquare className="h-4 w-4" />
+                            </Button>
+                          </TableHead>
                           <TableHead>Azonosító</TableHead>
                           <TableHead>Faj</TableHead>
                           <TableHead>Súly (kg)</TableHead>
@@ -2370,6 +2428,12 @@ const Dashboard = () => {
                           const price = getAnimalPrice(animal);
                           return (
                             <TableRow key={animal.id}>
+                              <TableCell>
+                                <Checkbox
+                                  checked={selectedAnimals.has(animal.id)}
+                                  onCheckedChange={() => toggleAnimalSelection(animal.id)}
+                                />
+                              </TableCell>
                               <TableCell className="font-medium">{animal.animal_id}</TableCell>
                               <TableCell>{animal.species}</TableCell>
                               <TableCell>{animal.weight || "-"}</TableCell>
