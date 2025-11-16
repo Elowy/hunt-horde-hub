@@ -135,6 +135,13 @@ const HuntingRegistrations = () => {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   
+  // Archive filters
+  const [archiveFilterZone, setArchiveFilterZone] = useState<string>("");
+  const [archiveFilterHunter, setArchiveFilterHunter] = useState<string>("");
+  const [archiveFilterStartDate, setArchiveFilterStartDate] = useState<string>("");
+  const [archiveFilterEndDate, setArchiveFilterEndDate] = useState<string>("");
+  const [archiveFilterAnimalId, setArchiveFilterAnimalId] = useState<string>("");
+  
   const handleLogout = async () => {
     await supabase.auth.signOut();
     navigate("/login");
@@ -1091,26 +1098,154 @@ const HuntingRegistrations = () => {
 
           {/* Archív beiratkozások */}
           <TabsContent value="archive" className="space-y-4">
+            {/* Archive Filters */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Szűrők</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label>Biztonsági körzet</Label>
+                    <Select value={archiveFilterZone} onValueChange={setArchiveFilterZone}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Összes körzet" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Összes körzet</SelectItem>
+                        {zones.map((zone) => (
+                          <SelectItem key={zone.id} value={zone.id}>
+                            {zone.settlements?.name ? `${zone.settlements.name} - ${zone.name}` : zone.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label>Vadász</Label>
+                    <Select value={archiveFilterHunter} onValueChange={setArchiveFilterHunter}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Összes vadász" />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-[300px]">
+                        <SelectItem value="all">Összes vadász</SelectItem>
+                        {hunters.map((hunter) => (
+                          <SelectItem key={hunter.id} value={hunter.id}>
+                            {hunter.profiles.contact_name || "Név nélkül"}
+                          </SelectItem>
+                        ))}
+                        {hiredHunters.map((hunter) => (
+                          <SelectItem key={`hired-${hunter.id}`} value={`hired-${hunter.id}`}>
+                            Bérvadász - {hunter.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label>Vad azonosító</Label>
+                    <Input
+                      placeholder="Vad azonosító keresése..."
+                      value={archiveFilterAnimalId}
+                      onChange={(e) => setArchiveFilterAnimalId(e.target.value)}
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label>Kezdés dátumától</Label>
+                    <Input
+                      type="date"
+                      value={archiveFilterStartDate}
+                      onChange={(e) => setArchiveFilterStartDate(e.target.value)}
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label>Kezdés dátumáig</Label>
+                    <Input
+                      type="date"
+                      value={archiveFilterEndDate}
+                      onChange={(e) => setArchiveFilterEndDate(e.target.value)}
+                    />
+                  </div>
+                  
+                  <div className="flex items-end">
+                    <Button 
+                      variant="outline" 
+                      onClick={() => {
+                        setArchiveFilterZone("");
+                        setArchiveFilterHunter("");
+                        setArchiveFilterStartDate("");
+                        setArchiveFilterEndDate("");
+                        setArchiveFilterAnimalId("");
+                      }}
+                      className="w-full"
+                    >
+                      Szűrők törlése
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
             {loading ? (
               <p>Betöltés...</p>
-            ) : registrations.filter(reg => {
+            ) : (() => {
               const now = new Date();
-              const endTime = new Date(reg.end_time);
-              const isEnded = now > endTime;
-              return reg.status === "cancelled" || reg.status === "rejected" || isEnded;
-            }).length === 0 ? (
-              <Card>
-                <CardContent className="p-6 text-center text-muted-foreground">
-                  Nincs archivált beiratkozás.
-                </CardContent>
-              </Card>
-            ) : (
-              registrations.filter(reg => {
-                const now = new Date();
+              const archivedRegs = registrations.filter(reg => {
                 const endTime = new Date(reg.end_time);
                 const isEnded = now > endTime;
-                return reg.status === "cancelled" || reg.status === "rejected" || isEnded;
-              }).map((reg) => (
+                const isArchived = reg.status === "cancelled" || reg.status === "rejected" || isEnded;
+                
+                if (!isArchived) return false;
+                
+                // Apply filters
+                if (archiveFilterZone && archiveFilterZone !== "all" && reg.security_zone_id !== archiveFilterZone) {
+                  return false;
+                }
+                
+                if (archiveFilterHunter && archiveFilterHunter !== "all") {
+                  if (archiveFilterHunter.startsWith("hired-")) {
+                    const hiredHunterId = archiveFilterHunter.replace("hired-", "");
+                    if (reg.hired_hunter_id !== hiredHunterId) return false;
+                  } else {
+                    if (reg.user_id !== archiveFilterHunter) return false;
+                  }
+                }
+                
+                if (archiveFilterStartDate) {
+                  const filterStart = new Date(archiveFilterStartDate);
+                  const regStart = new Date(reg.start_time);
+                  if (regStart < filterStart) return false;
+                }
+                
+                if (archiveFilterEndDate) {
+                  const filterEnd = new Date(archiveFilterEndDate);
+                  filterEnd.setHours(23, 59, 59, 999);
+                  const regStart = new Date(reg.start_time);
+                  if (regStart > filterEnd) return false;
+                }
+                
+                if (archiveFilterAnimalId && archiveFilterAnimalId.trim() !== "") {
+                  const hasMatchingAnimal = reg.animals?.some(animal => 
+                    animal.animal_id.toLowerCase().includes(archiveFilterAnimalId.toLowerCase())
+                  );
+                  if (!hasMatchingAnimal) return false;
+                }
+                
+                return true;
+              });
+              
+              return archivedRegs.length === 0 ? (
+                <Card>
+                  <CardContent className="p-6 text-center text-muted-foreground">
+                    Nincs archivált beiratkozás a megadott szűrőkkel.
+                  </CardContent>
+                </Card>
+              ) : (
+                archivedRegs.map((reg) => (
                 <Card key={reg.id} className="opacity-75">
                   <CardHeader>
                     <div className="flex items-start justify-between">
@@ -1204,8 +1339,9 @@ const HuntingRegistrations = () => {
                     )}
                   </CardContent>
                 </Card>
-              ))
-            )}
+                ))
+              );
+            })()}
           </TabsContent>
         </Tabs>
       </div>
