@@ -898,7 +898,7 @@ const HuntingRegistrations = () => {
                     <div className="flex-1">
                       <CardTitle className="flex items-center gap-2">
                         <MapPin className="h-5 w-5" />
-                        {reg.hunting_locations ? `${reg.hunting_locations.name} - ${reg.security_zones.name}` : reg.security_zones.name}
+                        {reg.security_zones.settlements?.name ? `${reg.security_zones.settlements.name} -> ` : ''}{reg.security_zones.name}{reg.hunting_locations ? ` -> ${reg.hunting_locations.name}` : ''}
                       </CardTitle>
                       <CardDescription className="mt-2 space-y-2">
                         <div className="flex items-center gap-4 text-sm">
@@ -1027,7 +1027,7 @@ const HuntingRegistrations = () => {
                         <div className="flex-1">
                           <CardTitle className="flex items-center gap-2">
                             <MapPin className="h-5 w-5" />
-                            {reg.hunting_locations ? `${reg.hunting_locations.name} - ${reg.security_zones.name}` : reg.security_zones.name}
+                            {reg.security_zones.settlements?.name ? `${reg.security_zones.settlements.name} -> ` : ''}{reg.security_zones.name}{reg.hunting_locations ? ` -> ${reg.hunting_locations.name}` : ''}
                           </CardTitle>
                           <CardDescription className="mt-2 space-y-2">
                             <div className="flex items-center gap-4 text-sm">
@@ -1252,7 +1252,7 @@ const HuntingRegistrations = () => {
                       <div className="flex-1">
                         <CardTitle className="flex items-center gap-2">
                           <MapPin className="h-5 w-5" />
-                          {reg.hunting_locations ? `${reg.hunting_locations.name} - ${reg.security_zones.name}` : reg.security_zones.name}
+                          {reg.security_zones.settlements?.name ? `${reg.security_zones.settlements.name} -> ` : ''}{reg.security_zones.name}{reg.hunting_locations ? ` -> ${reg.hunting_locations.name}` : ''}
                         </CardTitle>
                         <CardDescription className="mt-2 space-y-2">
                           <div className="flex items-center gap-4 text-sm">
