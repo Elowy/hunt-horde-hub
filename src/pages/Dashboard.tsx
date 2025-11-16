@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Search, Filter, Eye, Edit, Trash2, MapPin, LogOut, Star, Truck, FileDown, Download, TrendingUp, User, Users as UsersIcon, ChevronDown, Settings, CalendarCheck, List, Ticket, FileText, UserCog, CheckSquare, FileSpreadsheet, MoreVertical } from "lucide-react";
+import { Plus, Search, Filter, Eye, Edit, Trash2, MapPin, LogOut, Star, Truck, FileDown, Download, TrendingUp, User, Users as UsersIcon, ChevronDown, Settings, CalendarCheck, List, Ticket, FileText, UserCog, CheckSquare, FileSpreadsheet, MoreVertical, Calendar as CalendarIcon, X } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,6 +38,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { StorageLocationDialog } from "@/components/StorageLocationDialog";
@@ -61,6 +67,8 @@ import { getActiveRole } from "@/components/RoleSwitcher";
 import { useSubscription } from "@/hooks/useSubscription";
 import { generateTransportTicket } from "@/lib/generateTransportTicket";
 import { addTransportTicketToPage } from "@/lib/addTransportTicketToPage";
+import { format, startOfMonth, endOfMonth, subMonths } from "date-fns";
+import { cn } from "@/lib/utils";
 
 interface StorageLocation {
   id: string;
@@ -129,6 +137,8 @@ const Dashboard = () => {
   const [filterClass, setFilterClass] = useState("all");
   const [filterGender, setFilterGender] = useState("all");
   const [filterVetCheck, setFilterVetCheck] = useState("all");
+  const [dateFrom, setDateFrom] = useState<Date | undefined>(undefined);
+  const [dateTo, setDateTo] = useState<Date | undefined>(undefined);
   const [animals, setAnimals] = useState<Animal[]>([]);
   const [locations, setLocations] = useState<StorageLocation[]>([]);
   const [priceSettings, setPriceSettings] = useState<PriceSetting[]>([]);
@@ -591,6 +601,48 @@ const Dashboard = () => {
     setFilterClass("all");
     setFilterGender("all");
     setFilterVetCheck("all");
+    setDateFrom(undefined);
+    setDateTo(undefined);
+  };
+
+  const setCurrentMonth = () => {
+    const now = new Date();
+    setDateFrom(startOfMonth(now));
+    setDateTo(endOfMonth(now));
+  };
+
+  const setPreviousMonth = () => {
+    const previousMonth = subMonths(new Date(), 1);
+    setDateFrom(startOfMonth(previousMonth));
+    setDateTo(endOfMonth(previousMonth));
+  };
+
+  const setCurrentSeason = () => {
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth(); // 0-11
+    
+    // Ha március (2) vagy később, akkor jelenlegi év március 1 - következő év február vége
+    // Ha január vagy február, akkor előző év március 1 - jelenlegi év február vége
+    if (currentMonth >= 2) {
+      // Március 1-től
+      setDateFrom(new Date(currentYear, 2, 1)); // március 1
+      setDateTo(new Date(currentYear + 1, 1, 28)); // következő év február 28 (vagy 29)
+      // Ha szökőév, akkor február 29
+      const nextFeb = new Date(currentYear + 1, 1, 29);
+      if (nextFeb.getMonth() === 1) {
+        setDateTo(nextFeb);
+      }
+    } else {
+      // Január-február
+      setDateFrom(new Date(currentYear - 1, 2, 1)); // előző év március 1
+      setDateTo(new Date(currentYear, 1, 28)); // jelenlegi év február 28 (vagy 29)
+      // Ha szökőév, akkor február 29
+      const thisFeb = new Date(currentYear, 1, 29);
+      if (thisFeb.getMonth() === 1) {
+        setDateTo(thisFeb);
+      }
+    }
   };
 
   const uniqueSpecies = Array.from(new Set(animals.map(a => a.species))).filter(Boolean);
@@ -1004,10 +1056,20 @@ const Dashboard = () => {
       (filterVetCheck === "checked" && animal.vet_check) ||
       (filterVetCheck === "unchecked" && !animal.vet_check);
     
+    // Date filter - use cooling_date for cooled animals, transported_at for transported
+    const animalDate = animal.is_transported && animal.transported_at 
+      ? new Date(animal.transported_at) 
+      : animal.cooling_date 
+        ? new Date(animal.cooling_date) 
+        : null;
+    
+    const matchesDateFrom = !dateFrom || !animalDate || animalDate >= dateFrom;
+    const matchesDateTo = !dateTo || !animalDate || animalDate <= new Date(dateTo.setHours(23, 59, 59, 999));
+    
     // Hunters should not see transported animals
     const matchesTransportStatus = !isHunter || !animal.is_transported;
     
-    return matchesSearch && matchesLocation && matchesSpecies && matchesClass && matchesGender && matchesVetCheck && matchesTransportStatus;
+    return matchesSearch && matchesLocation && matchesSpecies && matchesClass && matchesGender && matchesVetCheck && matchesDateFrom && matchesDateTo && matchesTransportStatus;
   });
 
   // Szétválasztás hűtött és elszállított állatokra
@@ -1861,12 +1923,103 @@ const Dashboard = () => {
                   </SelectContent>
                 </Select>
 
+                {/* Dátum szűrő - Ettől */}
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "justify-start text-left font-normal",
+                        !dateFrom && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {dateFrom ? format(dateFrom, "yyyy. MM. dd.") : "Dátum-tól"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0 bg-background border border-border z-50" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={dateFrom}
+                      onSelect={setDateFrom}
+                      initialFocus
+                      className="pointer-events-auto"
+                    />
+                  </PopoverContent>
+                </Popover>
+
+                {/* Dátum szűrő - Eddig */}
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "justify-start text-left font-normal",
+                        !dateTo && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {dateTo ? format(dateTo, "yyyy. MM. dd.") : "Dátum-ig"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0 bg-background border border-border z-50" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={dateTo}
+                      onSelect={setDateTo}
+                      initialFocus
+                      className="pointer-events-auto"
+                    />
+                  </PopoverContent>
+                </Popover>
+
+                {/* Dátum gyorsgombok */}
+                <div className="md:col-span-5 flex flex-wrap gap-2">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={setCurrentMonth}
+                  >
+                    <CalendarIcon className="h-4 w-4 mr-2" />
+                    Jelenlegi hónap
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={setPreviousMonth}
+                  >
+                    <CalendarIcon className="h-4 w-4 mr-2" />
+                    Előző hónap
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={setCurrentSeason}
+                  >
+                    <CalendarIcon className="h-4 w-4 mr-2" />
+                    Jelenlegi idény
+                  </Button>
+                  {(dateFrom || dateTo) && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setDateFrom(undefined);
+                        setDateTo(undefined);
+                      }}
+                    >
+                      <X className="h-4 w-4 mr-2" />
+                      Dátum törlése
+                    </Button>
+                  )}
+                </div>
+
                 <Button
                   variant="ghost"
                   onClick={resetFilters}
                   className="md:col-span-5"
                 >
-                  Szűrők törlése
+                  Összes szűrő törlése
                 </Button>
               </div>
             )}
