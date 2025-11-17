@@ -1393,7 +1393,7 @@ const HuntingRegistrations = () => {
                               onAnimalAssigned={fetchRegistrations}
                             />
                           )}
-                          {isAdmin && (
+                          {isSuperAdmin && (
                             <Button
                               size="sm"
                               variant="destructive"
