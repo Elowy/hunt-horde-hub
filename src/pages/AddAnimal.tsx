@@ -8,9 +8,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, PlusCircle, ChevronDown, ChevronUp } from "lucide-react";
+import { ArrowLeft, PlusCircle, ChevronDown, ChevronUp, HandHeart } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useSubscription } from "@/hooks/useSubscription";
+import { AnimalClaimsManager } from "@/components/AnimalClaimsManager";
+import { AvailableAnimalsForClaim } from "@/components/AvailableAnimalsForClaim";
 
 interface StorageLocation {
   id: string;
@@ -52,6 +54,9 @@ const AddAnimal = () => {
   const [calculatedPrice, setCalculatedPrice] = useState<{ net: number; gross: number }>({ net: 0, gross: 0 });
   const [loading, setLoading] = useState(false);
   const [showMore, setShowMore] = useState(false);
+  const [isHunter, setIsHunter] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [isEditor, setIsEditor] = useState(false);
   
   const [formData, setFormData] = useState({
     animalId: "",
@@ -76,12 +81,29 @@ const AddAnimal = () => {
 
   useEffect(() => {
     checkAuth();
+    checkRoles();
     fetchLocations();
     fetchPriceSettings();
     fetchVatRate();
     fetchSecurityZones();
     fetchHunters();
   }, []);
+
+  const checkRoles = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { data: roles } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", user.id);
+
+    if (roles) {
+      setIsHunter(roles.some(r => r.role === "hunter"));
+      setIsAdmin(roles.some(r => r.role === "admin"));
+      setIsEditor(roles.some(r => r.role === "editor"));
+    }
+  };
 
   const checkAuth = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -375,6 +397,20 @@ const AddAnimal = () => {
           </Button>
           <h1 className="text-3xl font-bold text-primary-foreground">Új Állat Hozzáadása</h1>
         </div>
+
+        {/* Animal Claims Manager for admins/editors */}
+        {(isAdmin || isEditor) && (
+          <div className="mb-6 max-w-2xl mx-auto">
+            <AnimalClaimsManager />
+          </div>
+        )}
+
+        {/* Available Animals for hunters */}
+        {isHunter && !isAdmin && !isEditor && (
+          <div className="mb-6 max-w-2xl mx-auto">
+            <AvailableAnimalsForClaim />
+          </div>
+        )}
 
         <Card className="max-w-2xl mx-auto bg-card/95 backdrop-blur-sm">
           <CardHeader>

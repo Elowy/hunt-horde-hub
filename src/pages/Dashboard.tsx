@@ -60,6 +60,7 @@ import { StorageLocationCarousel } from "@/components/StorageLocationCarousel";
 import { AddAnimalDialog } from "@/components/AddAnimalDialog";
 import { AnnouncementBanner } from "@/components/AnnouncementBanner";
 import { QuickActionsSettingsDialog } from "@/components/QuickActionsSettingsDialog";
+import { AnimalClaimsManager } from "@/components/AnimalClaimsManager";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import jsPDF from "jspdf";
 import * as XLSX from "xlsx";
@@ -1566,6 +1567,13 @@ const Dashboard = () => {
 
         {/* Announcement Banner */}
         <AnnouncementBanner isAdmin={isAdmin} isEditor={isEditor} />
+
+        {/* Animal Claims Manager - csak admin, editor, super admin számára */}
+        {(isAdmin || isEditor) && (
+          <div className="mb-8">
+            <AnimalClaimsManager />
+          </div>
+        )}
 
         {/* Hűtési helyszínek - csak ha nem vadász */}
         {!isHunter && (
