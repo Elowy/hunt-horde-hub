@@ -2217,26 +2217,26 @@ const Dashboard = () => {
               )}
 
               <TabsContent value="cooled">
-                {/* Elszállító, Excel export és csoportos műveletek gombok */}
+                {/* Csoportos műveletek */}
                 {!isHunter && selectedAnimals.size > 0 && (
                   <div className="mb-4 flex flex-wrap gap-2 justify-end">
-                    <Button onClick={handleCreateTransport} variant="default">
-                      <FileDown className="h-4 w-4 mr-2" />
-                      Elszállító készítése ({selectedAnimals.size} állat)
-                    </Button>
-                    <Button onClick={exportSelectedToExcel} variant="outline">
-                      <FileSpreadsheet className="h-4 w-4 mr-2" />
-                      Excel export
-                    </Button>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="outline">
                           <MoreVertical className="h-4 w-4 mr-2" />
-                          Csoportos műveletek
+                          Csoportos műveletek ({selectedAnimals.size})
                           <ChevronDown className="h-4 w-4 ml-2" />
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="bg-background border border-border z-50">
+                        <DropdownMenuItem onClick={handleCreateTransport} className="cursor-pointer">
+                          <FileDown className="h-4 w-4 mr-2" />
+                          Elszállító készítése
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={exportSelectedToExcel} className="cursor-pointer">
+                          <FileSpreadsheet className="h-4 w-4 mr-2" />
+                          Excel export
+                        </DropdownMenuItem>
                         <DropdownMenuItem onClick={handleBulkDelete} className="text-destructive hover:bg-destructive/10 cursor-pointer">
                           <Trash2 className="h-4 w-4 mr-2" />
                           Kijelöltek törlése
