@@ -6,6 +6,7 @@ import { hu } from "date-fns/locale";
 import { EditAnnouncementDialog } from "./EditAnnouncementDialog";
 import { CreateAnnouncementDialog } from "./CreateAnnouncementDialog";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { ChevronDown } from "lucide-react";
 import {
   Collapsible,
@@ -21,6 +22,7 @@ interface Announcement {
   created_at: string;
   updated_at: string;
   expires_at: string | null;
+  is_global: boolean;
 }
 
 interface AnnouncementBannerProps {
@@ -52,11 +54,18 @@ export const AnnouncementBanner = ({ isAdmin = false, isEditor = false }: Announ
         .eq("is_archived", false)
         .or(`expires_at.is.null,expires_at.gt.${now}`)
         .order("created_at", { ascending: false })
-        .limit(5);
+        .limit(10);
 
       if (error) throw error;
 
-      setAnnouncements(data || []);
+      // Sort: global announcements first, then by created_at
+      const sortedData = (data || []).sort((a, b) => {
+        if (a.is_global && !b.is_global) return -1;
+        if (!a.is_global && b.is_global) return 1;
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      });
+
+      setAnnouncements(sortedData);
     } catch (error) {
       console.error("Error fetching announcements:", error);
     }
@@ -121,11 +130,25 @@ export const AnnouncementBanner = ({ isAdmin = false, isEditor = false }: Announ
         ) : (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {announcements.map((announcement) => (
-              <Card key={announcement.id} className="p-6 hover:shadow-lg transition-shadow">
+              <Card 
+                key={announcement.id} 
+                className={`p-6 hover:shadow-lg transition-shadow ${
+                  announcement.is_global 
+                    ? 'border-2 border-primary bg-gradient-to-br from-primary/5 to-transparent' 
+                    : ''
+                }`}
+              >
                 <div className="space-y-4">
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
-                      <h3 className="font-semibold text-lg mb-2">{announcement.title}</h3>
+                      <div className="flex items-center gap-2 mb-2">
+                        <h3 className="font-semibold text-lg">{announcement.title}</h3>
+                        {announcement.is_global && (
+                          <Badge variant="default" className="text-xs">
+                            Globális
+                          </Badge>
+                        )}
+                      </div>
                       <p className="text-sm text-muted-foreground mb-4 line-clamp-3">
                         {announcement.content}
                       </p>
@@ -134,8 +157,13 @@ export const AnnouncementBanner = ({ isAdmin = false, isEditor = false }: Announ
                   <div className="flex items-center justify-between pt-4 border-t">
                     <span className="text-xs text-muted-foreground">
                       {format(new Date(announcement.created_at), "yyyy. MM. dd.", { locale: hu })}
+                      {announcement.expires_at && (
+                        <span className="ml-2">
+                          • Lejár: {format(new Date(announcement.expires_at), "yyyy. MM. dd.", { locale: hu })}
+                        </span>
+                      )}
                     </span>
-                    {currentUserId === announcement.user_id && (
+                    {currentUserId === announcement.user_id && !announcement.is_global && (
                       <EditAnnouncementDialog
                         announcement={announcement}
                         onSuccess={fetchAnnouncements}
