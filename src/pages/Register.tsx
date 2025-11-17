@@ -55,7 +55,7 @@ const Register = () => {
       return;
     }
 
-    if (formData.userType === "hunter" && !formData.privacyPolicyAccepted) {
+    if (!formData.privacyPolicyAccepted) {
       toast({
         title: "Hiba",
         description: "El kell fogadnia az adatvédelmi nyilatkozatot!",
@@ -214,7 +214,7 @@ const Register = () => {
                     <Input
                       id="companyName"
                       type="text"
-                      placeholder="Your Hunting Company"
+                      placeholder="Példa Vadásztársaság Kft."
                       value={formData.companyName}
                       onChange={(e) => handleInputChange("companyName", e.target.value)}
                       required
@@ -224,12 +224,12 @@ const Register = () => {
                   <div className="space-y-2">
                     <Label htmlFor="contactName" className="flex items-center gap-2">
                       <User className="h-4 w-4 text-forest-deep" />
-                      Contact Name
+                      Kapcsolattartó neve
                     </Label>
                     <Input
                       id="contactName"
                       type="text"
-                      placeholder="John Doe"
+                      placeholder="Kovács János"
                       value={formData.contactName}
                       onChange={(e) => handleInputChange("contactName", e.target.value)}
                       required
@@ -287,12 +287,12 @@ const Register = () => {
               <div className="space-y-2">
                 <Label htmlFor="email" className="flex items-center gap-2">
                   <Mail className="h-4 w-4 text-forest-deep" />
-                  Email Address
+                  Email cím
                 </Label>
                 <Input
                   id="email"
                   type="email"
-                  placeholder="contact@yourcompany.com"
+                  placeholder="pelda@email.com"
                   value={formData.email}
                   onChange={(e) => handleInputChange("email", e.target.value)}
                   required
@@ -302,12 +302,12 @@ const Register = () => {
               <div className="space-y-2">
                 <Label htmlFor="phone" className="flex items-center gap-2">
                   <Phone className="h-4 w-4 text-forest-deep" />
-                  Phone Number
+                  Telefonszám
                 </Label>
                 <Input
                   id="phone"
                   type="tel"
-                  placeholder="(555) 123-4567"
+                  placeholder="+36 30 123 4567"
                   value={formData.phone}
                   onChange={(e) => handleInputChange("phone", e.target.value)}
                   required
@@ -317,12 +317,12 @@ const Register = () => {
               <div className="space-y-2">
                 <Label htmlFor="address" className="flex items-center gap-2">
                   <MapPin className="h-4 w-4 text-forest-deep" />
-                  Business Address
+                  Cím
                 </Label>
                 <Input
                   id="address"
                   type="text"
-                  placeholder="123 Hunting Lodge Rd, Forest City, ST 12345"
+                  placeholder="1234 Budapest, Példa utca 12."
                   value={formData.address}
                   onChange={(e) => handleInputChange("address", e.target.value)}
                   required
@@ -337,12 +337,12 @@ const Register = () => {
               <div className="space-y-2">
                 <Label htmlFor="password" className="flex items-center gap-2">
                   <Lock className="h-4 w-4 text-forest-deep" />
-                  Password
+                  Jelszó
                 </Label>
                 <Input
                   id="password"
                   type="password"
-                  placeholder="Create a secure password"
+                  placeholder="Adjon meg egy biztonságos jelszót"
                   value={formData.password}
                   onChange={(e) => handleInputChange("password", e.target.value)}
                   required
@@ -352,12 +352,12 @@ const Register = () => {
               <div className="space-y-2">
                 <Label htmlFor="confirmPassword" className="flex items-center gap-2">
                   <Lock className="h-4 w-4 text-forest-deep" />
-                  Confirm Password
+                  Jelszó megerősítése
                 </Label>
                 <Input
                   id="confirmPassword"
                   type="password"
-                  placeholder="Confirm your password"
+                  placeholder="Erősítse meg a jelszavát"
                   value={formData.confirmPassword}
                   onChange={(e) => handleInputChange("confirmPassword", e.target.value)}
                   required
@@ -365,19 +365,20 @@ const Register = () => {
               </div>
             </div>
 
-            {formData.userType === "hunter" && (
-              <div className="flex items-start space-x-2">
-                <Checkbox
-                  id="privacyPolicy"
-                  checked={formData.privacyPolicyAccepted}
-                  onCheckedChange={(checked) => handleInputChange("privacyPolicyAccepted", checked as boolean)}
-                  required
-                />
-                <Label htmlFor="privacyPolicy" className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                  Elfogadom az adatvédelmi nyilatkozatot
-                </Label>
-              </div>
-            )}
+            <div className="flex items-start space-x-2">
+              <Checkbox
+                id="privacyPolicy"
+                checked={formData.privacyPolicyAccepted}
+                onCheckedChange={(checked) => handleInputChange("privacyPolicyAccepted", checked as boolean)}
+                required
+              />
+              <Label htmlFor="privacyPolicy" className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                Elfogadom az{" "}
+                <Link to="/privacy-policy" className="text-forest-deep hover:text-forest-light underline">
+                  adatvédelmi nyilatkozatot
+                </Link>
+              </Label>
+            </div>
 
             <div className="flex items-start space-x-2">
               <Checkbox
@@ -397,7 +398,7 @@ const Register = () => {
               size="lg"
               disabled={loading}
             >
-              {loading ? "Regisztráció folyamatban..." : "Céges regisztráció"}
+              {loading ? "Regisztráció folyamatban..." : "Regisztráció"}
             </Button>
           </form>
 
