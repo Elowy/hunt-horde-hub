@@ -128,6 +128,7 @@ const Register = () => {
             birth_date: formData.userType === "hunter" ? formData.birthDate : null,
             hunter_society_id: formData.userType === "hunter" ? formData.hunterSocietyId : null,
             privacy_policy_accepted: "true",
+            newsletter_subscribed: formData.userType === "hunter_society" ? formData.newsletterSubscribed.toString() : "false",
           },
         },
       });
@@ -449,16 +450,18 @@ const Register = () => {
               </Label>
             </div>
 
-            <div className="flex items-start space-x-2">
-              <Checkbox
-                id="newsletter"
-                checked={formData.newsletterSubscribed}
-                onCheckedChange={(checked) => handleInputChange("newsletterSubscribed", checked as boolean)}
-              />
-              <Label htmlFor="newsletter" className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                Feliratkozom a hírlevélre és kapok 1 hónap ingyenes Pro előfizetést! 🎁
-              </Label>
-            </div>
+            {formData.userType === "hunter_society" && (
+              <div className="flex items-start space-x-2">
+                <Checkbox
+                  id="newsletter"
+                  checked={formData.newsletterSubscribed}
+                  onCheckedChange={(checked) => handleInputChange("newsletterSubscribed", checked as boolean)}
+                />
+                <Label htmlFor="newsletter" className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                  Feliratkozom a hírlevélre és kapok 1 hónap ingyenes Pro előfizetést! 🎁
+                </Label>
+              </div>
+            )}
 
             <Button
               type="submit" 
