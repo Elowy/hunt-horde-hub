@@ -225,6 +225,30 @@ const Dashboard = () => {
     localStorage.setItem('dashboard-show-animals', JSON.stringify(showAnimals));
   }, [showAnimals]);
 
+  // Realtime subscription for animal reservation updates
+  useEffect(() => {
+    const channel = supabase
+      .channel('animals-reservation-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'animals'
+        },
+        (payload) => {
+          console.log('Animal change detected:', payload);
+          // Refetch data when any animal change occurs
+          fetchData();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
   const checkAuth = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
