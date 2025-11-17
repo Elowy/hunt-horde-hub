@@ -65,6 +65,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
 import jsPDF from "jspdf";
 import * as XLSX from "xlsx";
 import { getActiveRole } from "@/components/RoleSwitcher";
+import { getActiveCompany } from "@/components/CompanySwitcher";
 import { useSubscription } from "@/hooks/useSubscription";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Crown } from "lucide-react";
@@ -313,11 +314,26 @@ const Dashboard = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
+      // Check if super admin is filtering by company
+      const activeCompany = getActiveCompany();
+      let userIds = [user.id];
+
+      if (activeCompany) {
+        const { data: companyProfiles } = await supabase
+          .from("profiles")
+          .select("id")
+          .eq("company_name", activeCompany);
+        
+        if (companyProfiles && companyProfiles.length > 0) {
+          userIds = companyProfiles.map(p => p.id);
+        }
+      }
+
       const [locationsResult, animalsResult, pricesResult, transportDocsResult, profileResult] = await Promise.all([
         supabase
           .from("storage_locations")
           .select("*")
-          .eq("user_id", user.id)
+          .in("user_id", userIds)
           .order("created_at", { ascending: false }),
         supabase
           .from("animals")
