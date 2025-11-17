@@ -11,7 +11,6 @@ import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, PlusCircle, ChevronDown, ChevronUp } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useSubscription } from "@/hooks/useSubscription";
-import { getActiveCompany } from "@/components/CompanySwitcher";
 
 interface StorageLocation {
   id: string;
@@ -96,25 +95,9 @@ const AddAnimal = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Check if super admin is filtering by company
-      const activeCompany = getActiveCompany();
-      let userIds = [user.id];
-
-      if (activeCompany) {
-        const { data: companyProfiles } = await supabase
-          .from("profiles")
-          .select("id")
-          .eq("company_name", activeCompany);
-        
-        if (companyProfiles && companyProfiles.length > 0) {
-          userIds = companyProfiles.map(p => p.id);
-        }
-      }
-
       const { data, error } = await supabase
         .from("storage_locations")
         .select("id, name, is_default")
-        .in("user_id", userIds)
         .order("name");
 
       if (error) throw error;

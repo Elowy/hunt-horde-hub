@@ -1414,6 +1414,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_user_company_name: { Args: { _user_id: string }; Returns: string }
       get_user_hunter_society_id: {
         Args: { _user_id: string }
         Returns: string
