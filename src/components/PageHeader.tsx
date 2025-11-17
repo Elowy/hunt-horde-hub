@@ -22,7 +22,7 @@ export const PageHeader = ({
   const navigate = useNavigate();
 
   return (
-    <div className="bg-gradient-to-r from-forest-deep to-forest-light text-white">
+    <div className="sticky top-0 z-50 bg-gradient-to-r from-forest-deep to-forest-light text-white shadow-md">
       <div className="container mx-auto px-6 py-4">
         <div className="flex items-center justify-between">
           {/* Logo/Title */}
