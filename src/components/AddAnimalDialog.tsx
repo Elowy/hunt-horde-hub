@@ -345,6 +345,7 @@ export const AddAnimalDialog = ({ onAnimalAdded }: AddAnimalDialogProps) => {
         average_tusk_length: formData.averageTuskLength ? parseFloat(formData.averageTuskLength) : null,
         judgement_number: formData.judgementNumber || null,
         cooling_date: new Date().toISOString(),
+        reservation_status: formData.type === "Vaddisznó" ? "atev" : "available",
       });
 
       if (error) throw error;
