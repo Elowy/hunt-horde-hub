@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Building2, Mail, Phone, MapPin, User, Lock, FileText, CalendarCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -24,11 +25,30 @@ const Register = () => {
     userType: "hunter_society",
     hunterLicenseNumber: "",
     birthDate: "",
+    hunterSocietyId: "",
     privacyPolicyAccepted: false,
     newsletterSubscribed: false
   });
 
   const [loading, setLoading] = useState(false);
+  const [hunterSocieties, setHunterSocieties] = useState<Array<{ id: string; company_name: string }>>([]);
+
+  // Fetch hunter societies for dropdown
+  useEffect(() => {
+    const fetchHunterSocieties = async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id, company_name")
+        .eq("user_type", "hunter_society")
+        .order("company_name");
+
+      if (!error && data) {
+        setHunterSocieties(data);
+      }
+    };
+
+    fetchHunterSocieties();
+  }, []);
 
   const handleInputChange = (field: string, value: string | boolean) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -64,37 +84,14 @@ const Register = () => {
       return;
     }
 
-    // Vadász típusnál ellenőrizzük a meghívót
-    if (formData.userType === "hunter") {
-      const { data: invitation, error: invitationError } = await supabase
-        .from("invitations")
-        .select("*")
-        .eq("email", formData.email)
-        .eq("role", "hunter")
-        .eq("accepted", false)
-        .single();
-
-      if (invitationError || !invitation) {
-        toast({
-          title: "Meghívó szükséges",
-          description: "Vadász regisztrációhoz érvényes meghívó szükséges. Kérjen meghívót a rendszer adminisztrátorától!",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      // Ellenőrizzük a lejáratot
-      const expiresAt = new Date(invitation.expires_at);
-      const now = new Date();
-      
-      if (expiresAt < now) {
-        toast({
-          title: "Lejárt meghívó",
-          description: "A meghívó lejárt. Kérjen új meghívót a rendszer adminisztrátorától!",
-          variant: "destructive"
-        });
-        return;
-      }
+    // Vadász típusnál ellenőrizzük a vadásztársaság kiválasztását
+    if (formData.userType === "hunter" && !formData.hunterSocietyId) {
+      toast({
+        title: "Hiányzó információ",
+        description: "Kérjük, válasszon vadásztársaságot!",
+        variant: "destructive"
+      });
+      return;
     }
 
     setLoading(true);
@@ -114,7 +111,8 @@ const Register = () => {
             user_type: formData.userType,
             hunter_license_number: formData.userType === "hunter" ? formData.hunterLicenseNumber : null,
             birth_date: formData.userType === "hunter" ? formData.birthDate : null,
-            privacy_policy_accepted: formData.userType === "hunter" ? formData.privacyPolicyAccepted : null,
+            hunter_society_id: formData.userType === "hunter" ? formData.hunterSocietyId : null,
+            privacy_policy_accepted: "true",
           },
         },
       });
@@ -131,16 +129,6 @@ const Register = () => {
       }
 
       if (data.user) {
-        // Ha vadász és van meghívó, megjelöljük elfogadottnak
-        if (formData.userType === "hunter") {
-          await supabase
-            .from("invitations")
-            .update({ accepted: true })
-            .eq("email", formData.email)
-            .eq("role", "hunter")
-            .eq("accepted", false);
-        }
-
         // Minden új felhasználó automatikusan kap 1 hónapos Pro próbaidőszakot
         const expiresAt = new Date();
         expiresAt.setMonth(expiresAt.getMonth() + 1);
@@ -152,14 +140,25 @@ const Register = () => {
           newsletter_subscribed: formData.newsletterSubscribed,
         });
 
-        toast({
-          title: "Sikeres regisztráció!",
-          description: "Fiókja létrehozva. 1 hónap ingyenes Pro előfizetést kapott!",
-        });
-        
-        setTimeout(() => {
-          navigate("/dashboard");
-        }, 1500);
+        if (formData.userType === "hunter") {
+          toast({
+            title: "Regisztráció beküldve!",
+            description: "Regisztrációja beküldésre került. Az adminisztrátor jóváhagyása után léphet be a rendszerbe.",
+          });
+          
+          setTimeout(() => {
+            navigate("/login");
+          }, 2000);
+        } else {
+          toast({
+            title: "Sikeres regisztráció!",
+            description: "Fiókja létrehozva. 1 hónap ingyenes Pro előfizetést kapott!",
+          });
+          
+          setTimeout(() => {
+            navigate("/dashboard");
+          }, 1500);
+        }
       }
     } catch (error: any) {
       toast({
@@ -280,6 +279,29 @@ const Register = () => {
                       onChange={(e) => handleInputChange("birthDate", e.target.value)}
                       required
                     />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="hunterSociety" className="flex items-center gap-2">
+                      <Building2 className="h-4 w-4 text-forest-deep" />
+                      Vadásztársaság
+                    </Label>
+                    <Select
+                      value={formData.hunterSocietyId}
+                      onValueChange={(value) => handleInputChange("hunterSocietyId", value)}
+                      required
+                    >
+                      <SelectTrigger id="hunterSociety">
+                        <SelectValue placeholder="Válasszon vadásztársaságot" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {hunterSocieties.map((society) => (
+                          <SelectItem key={society.id} value={society.id}>
+                            {society.company_name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 </>
               )}
