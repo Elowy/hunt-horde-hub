@@ -305,7 +305,6 @@ export const AnimalReservationDialog = ({
                   <SelectValue placeholder="Válasszon vadászt..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">- Nincs kiválasztva -</SelectItem>
                   {users.map((user) => (
                     <SelectItem key={user.id} value={user.id}>
                       {user.contact_name || user.contact_email || user.id}
