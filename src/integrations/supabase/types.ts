@@ -231,6 +231,72 @@ export type Database = {
         }
         Relationships: []
       }
+      buyer_price_proposals: {
+        Row: {
+          buyer_id: string
+          class: string
+          created_at: string
+          hunter_society_id: string
+          id: string
+          notes: string | null
+          price_per_kg: number
+          reviewed_at: string | null
+          reviewed_by: string | null
+          species: string
+          status: string
+          updated_at: string
+          valid_from: string
+          valid_to: string | null
+        }
+        Insert: {
+          buyer_id: string
+          class: string
+          created_at?: string
+          hunter_society_id: string
+          id?: string
+          notes?: string | null
+          price_per_kg?: number
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          species: string
+          status?: string
+          updated_at?: string
+          valid_from?: string
+          valid_to?: string | null
+        }
+        Update: {
+          buyer_id?: string
+          class?: string
+          created_at?: string
+          hunter_society_id?: string
+          id?: string
+          notes?: string | null
+          price_per_kg?: number
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          species?: string
+          status?: string
+          updated_at?: string
+          valid_from?: string
+          valid_to?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "buyer_price_proposals_buyer_id_fkey"
+            columns: ["buyer_id"]
+            isOneToOne: false
+            referencedRelation: "buyers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "buyer_price_proposals_hunter_society_id_fkey"
+            columns: ["hunter_society_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       buyers: {
         Row: {
           address: string | null
