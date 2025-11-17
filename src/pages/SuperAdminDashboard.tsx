@@ -16,6 +16,7 @@ import { Loader2, Users, Building2, Package, Truck, FileText, Shield, Edit, Tras
 import { TicketManagement } from "@/components/TicketManagement";
 import { useToast } from "@/hooks/use-toast";
 import { CreateSubscriptionCodeDialog } from "@/components/CreateSubscriptionCodeDialog";
+import { InviteSuperAdminDialog } from "@/components/InviteSuperAdminDialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -330,9 +331,12 @@ const SuperAdminDashboard = () => {
             </h1>
             <p className="text-muted-foreground mt-2">Központi adminisztrációs felület</p>
           </div>
-          <Button variant="outline" onClick={() => navigate("/dashboard")}>
-            Vissza a Dashboard-hoz
-          </Button>
+          <div className="flex gap-2">
+            <InviteSuperAdminDialog />
+            <Button variant="outline" onClick={() => navigate("/dashboard")}>
+              Vissza a Dashboard-hoz
+            </Button>
+          </div>
         </div>
 
         {/* Összesítő kártyák */}

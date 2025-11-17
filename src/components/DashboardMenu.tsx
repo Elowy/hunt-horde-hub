@@ -19,6 +19,7 @@ import { useIsSuperAdmin } from "@/hooks/useIsSuperAdmin";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { RoleSwitcher } from "@/components/RoleSwitcher";
 import { SubscriptionTierSwitcher } from "@/components/SubscriptionTierSwitcher";
+import { CompanySwitcher } from "@/components/CompanySwitcher";
 
 interface DashboardMenuProps {
   isAdmin: boolean;
@@ -98,6 +99,7 @@ export const DashboardMenu = ({ isAdmin, isEditor, isHunter, onLogout, onPriceUp
                 </Button>
                 <RoleSwitcher />
                 <SubscriptionTierSwitcher />
+                <CompanySwitcher />
               </div>
               <Separator />
             </>
