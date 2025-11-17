@@ -55,7 +55,13 @@ interface PendingHunter {
   id: string;
   email: string;
   contact_name: string | null;
+  contact_phone: string | null;
+  contact_email: string | null;
+  address: string | null;
+  birth_date: string | null;
+  tax_number: string | null;
   hunter_license_number: string | null;
+  hunter_category: string | null;
   hunter_society_id: string | null;
   hunter_society_name: string | null;
   created_at: string;
@@ -152,7 +158,12 @@ const Users = () => {
           id,
           contact_name,
           contact_email,
+          contact_phone,
+          address,
+          birth_date,
+          tax_number,
           hunter_license_number,
+          hunter_category,
           hunter_society_id,
           created_at,
           user_type
@@ -178,7 +189,13 @@ const Users = () => {
           id: hunter.id,
           email: hunter.contact_email || "",
           contact_name: hunter.contact_name,
+          contact_phone: hunter.contact_phone,
+          contact_email: hunter.contact_email,
+          address: hunter.address,
+          birth_date: hunter.birth_date,
+          tax_number: hunter.tax_number,
           hunter_license_number: hunter.hunter_license_number,
+          hunter_category: hunter.hunter_category,
           hunter_society_id: hunter.hunter_society_id,
           hunter_society_name: societies?.find(s => s.id === hunter.hunter_society_id)?.company_name || null,
           created_at: hunter.created_at,
@@ -261,6 +278,27 @@ const Users = () => {
         .eq("id", hunterId);
 
       if (error) throw error;
+
+      // Get the registration details to send notification
+      const { data: registrations } = await supabase
+        .from("hunting_registrations")
+        .select("id")
+        .eq("user_id", hunterId)
+        .eq("status", "pending")
+        .order("created_at", { ascending: false })
+        .limit(1);
+
+      // Send approval notification email if there's a pending registration
+      if (registrations && registrations.length > 0) {
+        try {
+          await supabase.functions.invoke("send-registration-approval", {
+            body: { registrationId: registrations[0].id },
+          });
+        } catch (emailError) {
+          console.error("Failed to send approval email:", emailError);
+          // Don't fail the whole operation if email fails
+        }
+      }
 
       toast({
         title: "Jóváhagyva!",
@@ -497,49 +535,82 @@ const Users = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Név</TableHead>
-                      <TableHead>Email</TableHead>
-                      <TableHead>Vadászjegyszám</TableHead>
-                      <TableHead>Vadásztársaság</TableHead>
-                      <TableHead>Regisztráció dátuma</TableHead>
-                      <TableHead>Művelet</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {pendingHunters.map((hunter) => (
-                      <TableRow key={hunter.id}>
-                        <TableCell className="font-medium">{hunter.contact_name || "Névtelen"}</TableCell>
-                        <TableCell>{hunter.email}</TableCell>
-                        <TableCell>{hunter.hunter_license_number || "-"}</TableCell>
-                        <TableCell>{hunter.hunter_society_name || "-"}</TableCell>
-                        <TableCell>{new Date(hunter.created_at).toLocaleDateString("hu-HU")}</TableCell>
-                        <TableCell>
-                          <div className="flex gap-2">
-                            <Button
-                              variant="default"
-                              size="sm"
-                              onClick={() => handleApproveHunter(hunter.id)}
-                            >
-                              <CheckCircle className="h-4 w-4 mr-1" />
-                              Jóváhagy
-                            </Button>
-                            <Button
-                              variant="destructive"
-                              size="sm"
-                              onClick={() => handleRejectHunter(hunter.id)}
-                            >
-                              <XCircle className="h-4 w-4 mr-1" />
-                              Elutasít
-                            </Button>
+                <div className="grid gap-4">
+                  {pendingHunters.map((hunter) => (
+                    <Card key={hunter.id} className="border-l-4 border-l-primary">
+                      <CardHeader>
+                        <CardTitle className="text-lg">{hunter.contact_name || "Névtelen"}</CardTitle>
+                        <CardDescription>
+                          Regisztráció: {new Date(hunter.created_at).toLocaleDateString("hu-HU", { 
+                            year: 'numeric', 
+                            month: 'long', 
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                          <div>
+                            <p className="text-sm font-medium text-muted-foreground">Email</p>
+                            <p className="text-sm">{hunter.email || "-"}</p>
                           </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                          <div>
+                            <p className="text-sm font-medium text-muted-foreground">Telefonszám</p>
+                            <p className="text-sm">{hunter.contact_phone || "-"}</p>
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-muted-foreground">Cím</p>
+                            <p className="text-sm">{hunter.address || "-"}</p>
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-muted-foreground">Születési dátum</p>
+                            <p className="text-sm">
+                              {hunter.birth_date 
+                                ? new Date(hunter.birth_date).toLocaleDateString("hu-HU") 
+                                : "-"}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-muted-foreground">Adószám</p>
+                            <p className="text-sm">{hunter.tax_number || "-"}</p>
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-muted-foreground">Vadászjegyszám</p>
+                            <p className="text-sm">{hunter.hunter_license_number || "-"}</p>
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-muted-foreground">Vadász kategória</p>
+                            <p className="text-sm">{getHunterCategoryLabel(hunter.hunter_category)}</p>
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-muted-foreground">Vadásztársaság</p>
+                            <p className="text-sm">{hunter.hunter_society_name || "-"}</p>
+                          </div>
+                        </div>
+                        <div className="flex gap-2 justify-end">
+                          <Button
+                            size="sm"
+                            className="bg-green-600 hover:bg-green-700 text-white"
+                            onClick={() => handleApproveHunter(hunter.id)}
+                          >
+                            <CheckCircle className="h-4 w-4 mr-1" />
+                            Igen
+                          </Button>
+                          <Button
+                            size="sm"
+                            className="bg-red-600 hover:bg-red-700 text-white"
+                            onClick={() => handleRejectHunter(hunter.id)}
+                          >
+                            <XCircle className="h-4 w-4 mr-1" />
+                            Nem
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
               </CardContent>
             </Card>
           )}
