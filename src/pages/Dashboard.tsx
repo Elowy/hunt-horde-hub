@@ -173,7 +173,12 @@ const Dashboard = () => {
   const [showAnimals, setShowAnimals] = useState(() => {
     const saved = localStorage.getItem('dashboard-show-animals');
     if (saved !== null) return JSON.parse(saved);
-    return isMobile ? false : true;
+    return true;
+  });
+  const [showAnnouncements, setShowAnnouncements] = useState(() => {
+    const saved = localStorage.getItem('dashboard-show-announcements');
+    if (saved !== null) return JSON.parse(saved);
+    return true;
   });
   const [viewSettingsOpen, setViewSettingsOpen] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState("");
@@ -227,6 +232,10 @@ const Dashboard = () => {
   useEffect(() => {
     localStorage.setItem('dashboard-show-animals', JSON.stringify(showAnimals));
   }, [showAnimals]);
+
+  useEffect(() => {
+    localStorage.setItem('dashboard-show-announcements', JSON.stringify(showAnnouncements));
+  }, [showAnnouncements]);
 
   // Realtime subscription for animal reservation updates
   useEffect(() => {
@@ -1570,6 +1579,16 @@ const Dashboard = () => {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="show-announcements" className="cursor-pointer">
+                Hírek
+              </Label>
+              <Checkbox
+                id="show-announcements"
+                checked={showAnnouncements}
+                onCheckedChange={setShowAnnouncements}
+              />
+            </div>
             {!isHunter && (
               <>
                 <div className="flex items-center justify-between">
@@ -1649,7 +1668,9 @@ const Dashboard = () => {
 
 
         {/* Announcement Banner */}
-        <AnnouncementBanner isAdmin={isAdmin} isEditor={isEditor} />
+        {showAnnouncements && (
+          <AnnouncementBanner isAdmin={isAdmin} isEditor={isEditor} />
+        )}
 
         {/* Hűtési helyszínek - csak ha nem vadász */}
         {!isHunter && (
