@@ -1329,6 +1329,19 @@ const Dashboard = () => {
     })).sort((a, b) => b.count - a.count);
   };
 
+  const getCoolingPrice = (animal: Animal) => {
+    if (!animal.weight) return 0;
+    
+    const location = locations.find(loc => loc.id === animal.storage_location_id);
+    if (!location || !location.cooling_price_per_kg) return 0;
+    
+    const netCooling = animal.weight * location.cooling_price_per_kg;
+    const vatRate = location.cooling_vat_rate || 27;
+    const grossCooling = netCooling * (1 + vatRate / 100);
+    
+    return grossCooling;
+  };
+
   const formatMonthLabel = (monthKey: string) => {
     const [year, month] = monthKey.split('-');
     const monthNames = ['Január', 'Február', 'Március', 'Április', 'Május', 'Június', 
@@ -2297,6 +2310,9 @@ const Dashboard = () => {
                                   isAdmin={isAdmin}
                                   isEditor={isEditor}
                                   onReservationUpdated={fetchData}
+                                  animalPrice={price.gross}
+                                  coolingPrice={getCoolingPrice(animal)}
+                                  animalWeight={animal.weight || 0}
                                 />
                               </div>
                             </TableCell>
@@ -2440,6 +2456,9 @@ const Dashboard = () => {
                                     isAdmin={isAdmin}
                                     isEditor={isEditor}
                                     onReservationUpdated={fetchData}
+                                    animalPrice={price.gross}
+                                    coolingPrice={getCoolingPrice(animal)}
+                                    animalWeight={animal.weight || 0}
                                   />
                                 </div>
                               </TableCell>
@@ -2557,6 +2576,9 @@ const Dashboard = () => {
                                     isAdmin={isAdmin}
                                     isEditor={isEditor}
                                     onReservationUpdated={fetchData}
+                                    animalPrice={price.gross}
+                                    coolingPrice={getCoolingPrice(animal)}
+                                    animalWeight={animal.weight || 0}
                                   />
                                 </div>
                               </TableCell>
