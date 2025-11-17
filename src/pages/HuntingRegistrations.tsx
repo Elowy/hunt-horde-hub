@@ -466,13 +466,14 @@ const HuntingRegistrations = () => {
         insertData.user_id = user.id;
       }
 
-      // Check if user already has an active registration (pending or approved)
+      // Check if user already has an active registration (pending or approved) that hasn't ended yet
       const targetUserId = insertData.user_id;
       const { data: existingRegistrations, error: checkError } = await supabase
         .from("hunting_registrations")
         .select("id, status, start_time, end_time, security_zones(name)")
         .eq("user_id", targetUserId)
         .in("status", ["pending", "approved"])
+        .gt("end_time", new Date().toISOString())
         .limit(1);
 
       if (checkError) throw checkError;
