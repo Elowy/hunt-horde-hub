@@ -16,19 +16,55 @@ export const CompanySwitcher = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    fetchCompanies();
-    const stored = localStorage.getItem("impersonate_company");
-    if (stored) {
-      setSelectedCompany(stored);
-    }
+    loadCompaniesAndSetDefault();
   }, []);
+
+  const loadCompaniesAndSetDefault = async () => {
+    setLoading(true);
+    try {
+      // First fetch current user's profile
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setLoading(false);
+        return;
+      }
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("company_name")
+        .eq("id", user.id)
+        .single();
+
+      // Fetch all companies
+      await fetchCompanies();
+
+      // Set default company
+      const stored = localStorage.getItem("impersonate_company");
+      if (stored) {
+        setSelectedCompany(stored);
+      } else if (profile?.company_name) {
+        // Set to user's company by default
+        setSelectedCompany(profile.company_name);
+        localStorage.setItem("impersonate_company", profile.company_name);
+      } else {
+        // Default to "all"
+        setSelectedCompany("all");
+        localStorage.setItem("impersonate_company", "all");
+      }
+    } catch (error) {
+      console.error("Error loading companies:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const fetchCompanies = async () => {
     try {
       const { data, error } = await supabase
         .from("profiles")
-        .select("company_name")
+        .select("company_name, user_type")
         .not("company_name", "is", null)
+        .in("user_type", ["hunter_society", "buyer"])
         .order("company_name");
 
       if (error) throw error;
@@ -46,8 +82,6 @@ export const CompanySwitcher = () => {
         description: "Nem sikerült betölteni a cégeket",
         variant: "destructive",
       });
-    } finally {
-      setLoading(false);
     }
   };
 
