@@ -880,7 +880,7 @@ const Dashboard = () => {
     setShowTransportDialog(true);
   };
 
-  const generateTransportPDF = async (transporterId: string, vehiclePlate: string) => {
+  const generateTransportPDF = async (transporterId: string, vehiclePlate: string, buyerId?: string) => {
 
     const selectedAnimalsList = animals.filter(a => selectedAnimals.has(a.id));
     
@@ -952,6 +952,7 @@ const Dashboard = () => {
           animal_count: selectedAnimalsList.length,
           transporter_id: transporterId,
           vehicle_plate: vehiclePlate,
+          buyer_id: buyerId || null,
         })
         .select()
         .single();
@@ -969,6 +970,18 @@ const Dashboard = () => {
         .insert(items);
 
       if (itemsError) throw itemsError;
+
+      // Send notification to buyer if selected
+      if (buyerId) {
+        try {
+          await supabase.functions.invoke("send-transport-notification", {
+            body: { transportDocumentId: transportDoc.id }
+          });
+        } catch (notifError) {
+          console.error("Error sending buyer notification:", notifError);
+          // Continue even if notification fails
+        }
+      }
 
       // Állatok megjelölése elszállítottként
       const { error: updateError } = await supabase
