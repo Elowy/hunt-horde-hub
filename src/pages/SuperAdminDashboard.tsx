@@ -116,6 +116,14 @@ interface LifetimeSubscription {
   notes: string | null;
 }
 
+interface LoginHistory {
+  id: string;
+  user_id: string;
+  ip_address: string | null;
+  user_agent: string | null;
+  created_at: string;
+}
+
 const SuperAdminDashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -139,6 +147,7 @@ const SuperAdminDashboard = () => {
   const [profileDialogOpen, setProfileDialogOpen] = useState(false);
   const [trialSubscription, setTrialSubscription] = useState<TrialSubscription | null>(null);
   const [lifetimeSubscription, setLifetimeSubscription] = useState<LifetimeSubscription | null>(null);
+  const [lastLogin, setLastLogin] = useState<LoginHistory | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(true);
   const [ticketsOpen, setTicketsOpen] = useState(true);
   const [editingSubscription, setEditingSubscription] = useState(false);
@@ -267,27 +276,31 @@ const SuperAdminDashboard = () => {
 
   const loadSubscriptionData = async (userId: string) => {
     try {
-      const [trialData, lifetimeData] = await Promise.all([
+      const [trialData, lifetimeData, loginData] = await Promise.all([
         supabase.from("trial_subscriptions").select("*").eq("user_id", userId).maybeSingle(),
         supabase.from("lifetime_subscriptions").select("*").eq("user_id", userId).maybeSingle(),
+        supabase
+          .from("user_login_history")
+          .select("*")
+          .eq("user_id", userId)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle(),
       ]);
 
       setTrialSubscription(trialData.data);
       setLifetimeSubscription(lifetimeData.data);
-      
-      // Set initial form values
-      if (lifetimeData.data) {
-        setSubscriptionTier(lifetimeData.data.tier);
-        setSubscriptionExpiresAt("");
-      } else if (trialData.data) {
+      setLastLogin(loginData.data);
+
+      if (trialData.data) {
         setSubscriptionTier(trialData.data.tier);
-        setSubscriptionExpiresAt(trialData.data.expires_at.split('T')[0]);
-      } else {
-        setSubscriptionTier("pro");
+        setSubscriptionExpiresAt(trialData.data.expires_at.split("T")[0]);
+      } else if (lifetimeData.data) {
+        setSubscriptionTier(lifetimeData.data.tier);
         setSubscriptionExpiresAt("");
       }
     } catch (error) {
-      console.error("Error loading subscription:", error);
+      console.error("Error loading subscription data:", error);
     }
   };
 
@@ -952,19 +965,44 @@ const SuperAdminDashboard = () => {
             <div className="space-y-6">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <h3 className="text-sm font-medium text-muted-foreground mb-1">Cégnév</h3>
-                  <p className="text-sm">{selectedProfile.company_name || "-"}</p>
+                  <h3 className="text-sm font-medium text-muted-foreground mb-1">
+                    {selectedProfile.user_type === "hunter" ? "Név" : "Cégnév"}
+                  </h3>
+                  <p className="text-sm">
+                    {selectedProfile.user_type === "hunter" 
+                      ? selectedProfile.contact_name 
+                      : selectedProfile.company_name || "-"}
+                  </p>
                 </div>
                 
                 <div>
                   <h3 className="text-sm font-medium text-muted-foreground mb-1">Típus</h3>
-                  <Badge variant="secondary">{selectedProfile.user_type || "-"}</Badge>
+                  <Badge variant="secondary">
+                    {selectedProfile.user_type === "hunter" 
+                      ? "Vadász" 
+                      : selectedProfile.user_type === "hunter_society" 
+                        ? "Vadásztársaság" 
+                        : "Felvásárló"}
+                  </Badge>
                 </div>
                 
-                <div>
-                  <h3 className="text-sm font-medium text-muted-foreground mb-1">Kapcsolattartó neve</h3>
-                  <p className="text-sm">{selectedProfile.contact_name || "-"}</p>
-                </div>
+                {selectedProfile.user_type === "hunter" && (
+                  <>
+                    <div>
+                      <h3 className="text-sm font-medium text-muted-foreground mb-1">Vadász kategória</h3>
+                      <Badge variant="outline">{getHunterCategoryLabel(selectedProfile.hunter_category)}</Badge>
+                    </div>
+                    
+                    <div>
+                      <h3 className="text-sm font-medium text-muted-foreground mb-1">Regisztráció állapota</h3>
+                      {selectedProfile.registration_approved ? (
+                        <Badge variant="default">Jóváhagyva</Badge>
+                      ) : (
+                        <Badge variant="destructive">Jóváhagyásra vár</Badge>
+                      )}
+                    </div>
+                  </>
+                )}
                 
                 <div>
                   <h3 className="text-sm font-medium text-muted-foreground mb-1">Email</h3>
@@ -976,37 +1014,54 @@ const SuperAdminDashboard = () => {
                   <p className="text-sm">{selectedProfile.contact_phone || "-"}</p>
                 </div>
                 
-                <div>
-                  <h3 className="text-sm font-medium text-muted-foreground mb-1">Születési dátum</h3>
-                  <p className="text-sm">
-                    {selectedProfile.birth_date 
-                      ? new Date(selectedProfile.birth_date).toLocaleDateString('hu-HU') 
-                      : "-"}
-                  </p>
-                </div>
+                {selectedProfile.user_type === "hunter" && selectedProfile.birth_date && (
+                  <div>
+                    <h3 className="text-sm font-medium text-muted-foreground mb-1">Születési dátum</h3>
+                    <p className="text-sm">
+                      {new Date(selectedProfile.birth_date).toLocaleDateString('hu-HU')}
+                    </p>
+                  </div>
+                )}
                 
-                <div className="col-span-2">
-                  <h3 className="text-sm font-medium text-muted-foreground mb-1">Cím</h3>
-                  <p className="text-sm">{selectedProfile.address || "-"}</p>
-                </div>
+                {selectedProfile.user_type === "hunter" && selectedProfile.hunter_society_id && (
+                  <div>
+                    <h3 className="text-sm font-medium text-muted-foreground mb-1">Vadásztársaság</h3>
+                    <p className="text-sm">
+                      {profiles.find(p => p.id === selectedProfile.hunter_society_id)?.company_name || "-"}
+                    </p>
+                  </div>
+                )}
+                
+                {selectedProfile.address && (
+                  <div className="col-span-2">
+                    <h3 className="text-sm font-medium text-muted-foreground mb-1">Cím</h3>
+                    <p className="text-sm">{selectedProfile.address}</p>
+                  </div>
+                )}
+                
+                {selectedProfile.tax_number && (
+                  <div>
+                    <h3 className="text-sm font-medium text-muted-foreground mb-1">Adószám</h3>
+                    <p className="text-sm">{selectedProfile.tax_number}</p>
+                  </div>
+                )}
+                
+                {selectedProfile.hunter_license_number && (
+                  <div>
+                    <h3 className="text-sm font-medium text-muted-foreground mb-1">Vadászjegy szám</h3>
+                    <p className="text-sm">{selectedProfile.hunter_license_number}</p>
+                  </div>
+                )}
+                
+                {selectedProfile.vat_rate && (
+                  <div>
+                    <h3 className="text-sm font-medium text-muted-foreground mb-1">ÁFA kulcs</h3>
+                    <p className="text-sm">{selectedProfile.vat_rate}%</p>
+                  </div>
+                )}
                 
                 <div>
-                  <h3 className="text-sm font-medium text-muted-foreground mb-1">Adószám</h3>
-                  <p className="text-sm">{selectedProfile.tax_number || "-"}</p>
-                </div>
-                
-                <div>
-                  <h3 className="text-sm font-medium text-muted-foreground mb-1">Vadászjegy szám</h3>
-                  <p className="text-sm">{selectedProfile.hunter_license_number || "-"}</p>
-                </div>
-                
-                <div>
-                  <h3 className="text-sm font-medium text-muted-foreground mb-1">ÁFA kulcs</h3>
-                  <p className="text-sm">{selectedProfile.vat_rate ? `${selectedProfile.vat_rate}%` : "-"}</p>
-                </div>
-                
-                <div>
-                  <h3 className="text-sm font-medium text-muted-foreground mb-1">Regisztráció</h3>
+                  <h3 className="text-sm font-medium text-muted-foreground mb-1">Regisztráció dátuma</h3>
                   <p className="text-sm">
                     {selectedProfile.created_at 
                       ? new Date(selectedProfile.created_at).toLocaleString('hu-HU') 
@@ -1016,7 +1071,7 @@ const SuperAdminDashboard = () => {
                 
                 <div className="col-span-2">
                   <h3 className="text-sm font-medium text-muted-foreground mb-1">Felhasználó ID</h3>
-                  <p className="text-sm font-mono text-xs">{selectedProfile.id}</p>
+                  <p className="text-sm font-mono text-xs break-all">{selectedProfile.id}</p>
                 </div>
               </div>
               
@@ -1062,6 +1117,30 @@ const SuperAdminDashboard = () => {
                       <div>
                         <h4 className="text-sm font-medium text-muted-foreground mb-1">Megjegyzés</h4>
                         <p className="text-sm">{lifetimeSubscription.notes}</p>
+                      </div>
+                    )}
+                    
+                    {lastLogin && (
+                      <div className="mt-4 pt-4 border-t">
+                        <h4 className="text-sm font-medium text-muted-foreground mb-2">Utolsó bejelentkezés</h4>
+                        <div className="space-y-2">
+                          <div>
+                            <span className="text-xs text-muted-foreground">IP cím: </span>
+                            <span className="text-sm font-mono">{lastLogin.ip_address || "Ismeretlen"}</span>
+                          </div>
+                          <div>
+                            <span className="text-xs text-muted-foreground">Időpont: </span>
+                            <span className="text-sm">
+                              {new Date(lastLogin.created_at).toLocaleString('hu-HU')}
+                            </span>
+                          </div>
+                          {lastLogin.user_agent && (
+                            <div>
+                              <span className="text-xs text-muted-foreground">Eszköz: </span>
+                              <span className="text-xs break-all">{lastLogin.user_agent}</span>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     )}
                   </div>
