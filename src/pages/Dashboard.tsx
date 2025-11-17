@@ -60,7 +60,6 @@ import { StorageLocationCarousel } from "@/components/StorageLocationCarousel";
 import { AddAnimalDialog } from "@/components/AddAnimalDialog";
 import { AnnouncementBanner } from "@/components/AnnouncementBanner";
 import { QuickActionsSettingsDialog } from "@/components/QuickActionsSettingsDialog";
-import { AnimalClaimsManager } from "@/components/AnimalClaimsManager";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import jsPDF from "jspdf";
 import * as XLSX from "xlsx";
@@ -1568,13 +1567,6 @@ const Dashboard = () => {
         {/* Announcement Banner */}
         <AnnouncementBanner isAdmin={isAdmin} isEditor={isEditor} />
 
-        {/* Animal Claims Manager - csak admin, editor, super admin számára */}
-        {(isAdmin || isEditor) && (
-          <div className="mb-8">
-            <AnimalClaimsManager />
-          </div>
-        )}
-
         {/* Hűtési helyszínek - csak ha nem vadász */}
         {!isHunter && (
           <Collapsible open={showLocations} onOpenChange={setShowLocations} className="mb-8">
@@ -1908,7 +1900,7 @@ const Dashboard = () => {
                 <Filter className="h-4 w-4 mr-2" />
                 {showFilters ? "Szűrők elrejtése" : "További szűrők"}
               </Button>
-              {selectedAnimals.size > 0 && (
+              {selectedAnimals.size > 0 && !isHunter && (
                 <Button
                   variant="default"
                   onClick={exportSelectedToExcel}
@@ -2121,7 +2113,7 @@ const Dashboard = () => {
 
               <TabsContent value="cooled">
                 {/* Elszállító, Excel export és csoportos műveletek gombok */}
-                {selectedAnimals.size > 0 && (
+                {selectedAnimals.size > 0 && !isHunter && (
                   <div className="mb-4 flex flex-wrap gap-2 justify-end">
                     <Button onClick={handleCreateTransport} variant="default">
                       <FileDown className="h-4 w-4 mr-2" />
@@ -2152,17 +2144,19 @@ const Dashboard = () => {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead className="w-[50px]">
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            className="h-8 w-8 p-0"
-                            onClick={handleToggleSelectAll}
-                            title={cooledAnimals.every(a => selectedAnimals.has(a.id)) ? "Kijelölés törlése" : "Összes kijelölése"}
-                          >
-                            <CheckSquare className="h-4 w-4" />
-                          </Button>
-                        </TableHead>
+                        {!isHunter && (
+                          <TableHead className="w-[50px]">
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="h-8 w-8 p-0"
+                              onClick={handleToggleSelectAll}
+                              title={cooledAnimals.every(a => selectedAnimals.has(a.id)) ? "Kijelölés törlése" : "Összes kijelölése"}
+                            >
+                              <CheckSquare className="h-4 w-4" />
+                            </Button>
+                          </TableHead>
+                        )}
                         <TableHead>Azonosító</TableHead>
                         <TableHead>Faj</TableHead>
                         <TableHead>Súly (kg)</TableHead>
@@ -2180,12 +2174,14 @@ const Dashboard = () => {
                         const price = getAnimalPrice(animal);
                         return (
                           <TableRow key={animal.id}>
-                            <TableCell>
-                              <Checkbox
-                                checked={selectedAnimals.has(animal.id)}
-                                onCheckedChange={() => toggleAnimalSelection(animal.id)}
-                              />
-                            </TableCell>
+                            {!isHunter && (
+                              <TableCell>
+                                <Checkbox
+                                  checked={selectedAnimals.has(animal.id)}
+                                  onCheckedChange={() => toggleAnimalSelection(animal.id)}
+                                />
+                              </TableCell>
+                            )}
                             <TableCell className="font-medium">{animal.animal_id}</TableCell>
                             <TableCell>{animal.species}</TableCell>
                             <TableCell>{animal.weight || "-"}</TableCell>
