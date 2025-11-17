@@ -61,7 +61,6 @@ import { AddAnimalDialog } from "@/components/AddAnimalDialog";
 import { AnnouncementBanner } from "@/components/AnnouncementBanner";
 import { QuickActionsSettingsDialog } from "@/components/QuickActionsSettingsDialog";
 import { AnimalReservationDialog } from "@/components/AnimalReservationDialog";
-import { PriceProposalsManagement } from "@/components/PriceProposalsManagement";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import jsPDF from "jspdf";
 import * as XLSX from "xlsx";
@@ -1684,13 +1683,6 @@ const Dashboard = () => {
         {/* Announcement Banner */}
         {showAnnouncements && (
           <AnnouncementBanner isAdmin={isAdmin} isEditor={isEditor} />
-        )}
-
-        {/* Árjavaslatok kezelése - csak adminoknak */}
-        {isAdmin && (
-          <div className="mb-8">
-            <PriceProposalsManagement />
-          </div>
         )}
 
         {/* Hűtési helyszínek - csak ha nem vadász */}
