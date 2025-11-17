@@ -12,11 +12,14 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Users, Building2, Package, Truck, FileText, Shield, Edit, Trash2, Eye, Ticket, ChevronDown, UserCheck, CheckCircle, XCircle } from "lucide-react";
+import { Loader2, Users, Building2, Package, Truck, FileText, Shield, Edit, Trash2, Eye, Ticket, ChevronDown, UserCheck, CheckCircle, XCircle, Megaphone } from "lucide-react";
 import { TicketManagement } from "@/components/TicketManagement";
 import { useToast } from "@/hooks/use-toast";
 import { CreateSubscriptionCodeDialog } from "@/components/CreateSubscriptionCodeDialog";
 import { InviteSuperAdminDialog } from "@/components/InviteSuperAdminDialog";
+import { CreateGlobalAnnouncementDialog } from "@/components/CreateGlobalAnnouncementDialog";
+import { format } from "date-fns";
+import { hu } from "date-fns/locale";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -124,6 +127,18 @@ interface LoginHistory {
   created_at: string;
 }
 
+interface Announcement {
+  id: string;
+  title: string;
+  content: string;
+  user_id: string;
+  created_at: string;
+  updated_at: string;
+  expires_at: string | null;
+  is_global: boolean;
+  is_archived: boolean;
+}
+
 const SuperAdminDashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -136,6 +151,7 @@ const SuperAdminDashboard = () => {
   const [transporters, setTransporters] = useState<Transporter[]>([]);
   const [transportDocuments, setTransportDocuments] = useState<TransportDocument[]>([]);
   const [subscriptionCodes, setSubscriptionCodes] = useState<SubscriptionCode[]>([]);
+  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; type: string; id: string; name: string }>({
     open: false,
@@ -175,7 +191,7 @@ const SuperAdminDashboard = () => {
   const loadAllData = async () => {
     setLoading(true);
     try {
-      const [profilesData, pendingData, animalsData, locationsData, transportersData, documentsData, codesData] = await Promise.all([
+      const [profilesData, pendingData, animalsData, locationsData, transportersData, documentsData, codesData, announcementsData] = await Promise.all([
         supabase.from("profiles").select("*"),
         supabase.from("profiles").select("*").eq("user_type", "hunter").eq("registration_approved", false).order("created_at", { ascending: false }),
         supabase.from("animals").select("*").order("created_at", { ascending: false }).limit(50),
@@ -183,9 +199,11 @@ const SuperAdminDashboard = () => {
         supabase.from("transporters").select("*"),
         supabase.from("transport_documents").select("*").order("transport_date", { ascending: false }).limit(50),
         supabase.from("subscription_codes").select("*").order("created_at", { ascending: false }),
+        supabase.from("announcements").select("*").eq("is_global", true).order("created_at", { ascending: false }),
       ]);
 
       if (profilesData.data) setProfiles(profilesData.data);
+      if (announcementsData.data) setAnnouncements(announcementsData.data);
       
       // Process pending hunters with hunter society names
       if (pendingData.data && pendingData.data.length > 0) {
@@ -563,7 +581,7 @@ const SuperAdminDashboard = () => {
             <CollapsibleContent>
               <CardContent>
                 <Tabs defaultValue="pending" className="w-full">
-                  <TabsList className="grid w-full grid-cols-7">
+                  <TabsList className="grid w-full grid-cols-8">
                     <TabsTrigger value="pending">
                       Jóváhagyásra vár
                       {pendingHunters.length > 0 && (
@@ -571,6 +589,7 @@ const SuperAdminDashboard = () => {
                       )}
                     </TabsTrigger>
                     <TabsTrigger value="users">Felhasználók</TabsTrigger>
+                    <TabsTrigger value="announcements">Globális hírek</TabsTrigger>
                     <TabsTrigger value="animals">Állatok</TabsTrigger>
                     <TabsTrigger value="locations">Hűtések</TabsTrigger>
                     <TabsTrigger value="transporters">Szállítók</TabsTrigger>
@@ -695,6 +714,117 @@ const SuperAdminDashboard = () => {
                       ))}
                     </TableBody>
                   </Table>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="announcements" className="mt-4">
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <h3 className="text-lg font-semibold">Globális hírek</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Ezek a hírek minden vadásztársaságnál megjelennek
+                      </p>
+                    </div>
+                    <CreateGlobalAnnouncementDialog onSuccess={loadAllData} />
+                  </div>
+                  
+                  {announcements.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Megaphone className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p>Még nincs globális hír</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {announcements.map((announcement) => (
+                        <Card 
+                          key={announcement.id} 
+                          className="border-2 border-primary bg-gradient-to-br from-primary/5 to-transparent"
+                        >
+                          <CardHeader>
+                            <div className="flex justify-between items-start">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <CardTitle className="text-lg">{announcement.title}</CardTitle>
+                                  <Badge variant="default">Globális</Badge>
+                                  {announcement.is_archived && (
+                                    <Badge variant="secondary">Archivált</Badge>
+                                  )}
+                                </div>
+                                <CardDescription>
+                                  {format(new Date(announcement.created_at), "yyyy. MM. dd. HH:mm", { locale: hu })}
+                                  {announcement.expires_at && (
+                                    <span className="ml-2">
+                                      • Lejár: {format(new Date(announcement.expires_at), "yyyy. MM. dd.", { locale: hu })}
+                                    </span>
+                                  )}
+                                </CardDescription>
+                              </div>
+                              <div className="flex gap-2">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={async () => {
+                                    const { error } = await supabase
+                                      .from("announcements")
+                                      .update({ is_archived: !announcement.is_archived })
+                                      .eq("id", announcement.id);
+                                    
+                                    if (error) {
+                                      toast({
+                                        title: "Hiba",
+                                        description: error.message,
+                                        variant: "destructive",
+                                      });
+                                    } else {
+                                      toast({
+                                        title: "Sikeres művelet",
+                                        description: announcement.is_archived ? "Hír visszaállítva" : "Hír archiválva",
+                                      });
+                                      loadAllData();
+                                    }
+                                  }}
+                                >
+                                  {announcement.is_archived ? "Visszaállítás" : "Archiválás"}
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={async () => {
+                                    if (confirm("Biztosan törölni szeretnéd ezt a hírt?")) {
+                                      const { error } = await supabase
+                                        .from("announcements")
+                                        .delete()
+                                        .eq("id", announcement.id);
+                                      
+                                      if (error) {
+                                        toast({
+                                          title: "Hiba",
+                                          description: error.message,
+                                          variant: "destructive",
+                                        });
+                                      } else {
+                                        toast({
+                                          title: "Törölve",
+                                          description: "A hír sikeresen törölve",
+                                        });
+                                        loadAllData();
+                                      }
+                                    }
+                                  }}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </div>
+                          </CardHeader>
+                          <CardContent>
+                            <p className="text-sm whitespace-pre-wrap">{announcement.content}</p>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </TabsContent>
 
