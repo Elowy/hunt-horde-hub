@@ -2321,6 +2321,8 @@ const Dashboard = () => {
                                   currentStatus={animal.reservation_status || 'available'}
                                   reservedBy={animal.reserved_by}
                                   reservationNote={animal.reservation_note}
+                                  hunterName={animal.hunter_name}
+                                  hunterType={animal.hunter_type}
                                   isHunter={isHunter}
                                   isAdmin={isAdmin}
                                   isEditor={isEditor}
@@ -2482,6 +2484,8 @@ const Dashboard = () => {
                                     currentStatus={animal.reservation_status || 'available'}
                                     reservedBy={animal.reserved_by}
                                     reservationNote={animal.reservation_note}
+                                    hunterName={animal.hunter_name}
+                                    hunterType={animal.hunter_type}
                                     isHunter={isHunter}
                                     isAdmin={isAdmin}
                                     isEditor={isEditor}
@@ -2617,6 +2621,8 @@ const Dashboard = () => {
                                     currentStatus={animal.reservation_status || 'available'}
                                     reservedBy={animal.reserved_by}
                                     reservationNote={animal.reservation_note}
+                                    hunterName={animal.hunter_name}
+                                    hunterType={animal.hunter_type}
                                     isHunter={isHunter}
                                     isAdmin={isAdmin}
                                     isEditor={isEditor}

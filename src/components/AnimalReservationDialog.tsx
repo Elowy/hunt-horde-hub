@@ -28,6 +28,8 @@ interface AnimalReservationDialogProps {
   currentStatus: string;
   reservedBy?: string | null;
   reservationNote?: string | null;
+  hunterName?: string | null;
+  hunterType?: string | null;
   isHunter: boolean;
   isAdmin: boolean;
   isEditor: boolean;
@@ -43,6 +45,8 @@ interface UserProfile {
   contact_email: string | null;
   contact_phone: string | null;
   address: string | null;
+  type: 'hunter' | 'hired_hunter';
+  displayName: string;
 }
 
 export const AnimalReservationDialog = ({
@@ -51,6 +55,8 @@ export const AnimalReservationDialog = ({
   currentStatus,
   reservedBy,
   reservationNote,
+  hunterName,
+  hunterType,
   isHunter,
   isAdmin,
   isEditor,
@@ -75,29 +81,92 @@ export const AnimalReservationDialog = ({
       }
       if (reservedBy) {
         fetchReservedUserProfile(reservedBy);
+      } else if (hunterName && hunterType === 'bérvadász') {
+        // If it's a hired hunter, create a mock profile
+        setReservedUserProfile({
+          id: 'hired-unknown',
+          contact_name: hunterName,
+          contact_email: null,
+          contact_phone: null,
+          address: null,
+          type: 'hired_hunter',
+          displayName: `${hunterName} - Bérvadász`
+        });
       }
     }
-  }, [open, reservedBy, isAdmin, isEditor]);
+  }, [open, reservedBy, hunterName, hunterType, isAdmin, isEditor]);
 
   const fetchUsers = async () => {
     try {
-      const { data: rolesData } = await supabase
-        .from("user_roles")
-        .select("user_id")
-        .eq("role", "hunter");
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
 
-      if (!rolesData) return;
+      const allUsers: UserProfile[] = [];
 
-      const userIds = rolesData.map(r => r.user_id);
-      
-      const { data: profilesData } = await supabase
-        .from("profiles")
-        .select("id, contact_name, contact_email, contact_phone, address")
-        .in("id", userIds);
+      // Ha vadász, csak saját magát töltse be
+      if (isHunter && !isAdmin && !isEditor) {
+        const { data: profileData } = await supabase
+          .from("profiles")
+          .select("id, contact_name, contact_email, contact_phone, address")
+          .eq("id", user.id)
+          .single();
 
-      if (profilesData) {
-        setUsers(profilesData);
+        if (profileData) {
+          allUsers.push({
+            ...profileData,
+            type: 'hunter',
+            displayName: `${profileData.contact_name || 'Névtelen'} - Vadász`
+          });
+        }
+      } else {
+        // Admin/Editor/Super Admin láthatja az összest
+        
+        // 1. Bérvadászok betöltése
+        const { data: hiredHuntersData } = await supabase
+          .from("hired_hunters")
+          .select("id, name, email, phone, license_number");
+
+        if (hiredHuntersData) {
+          hiredHuntersData.forEach(hh => {
+            allUsers.push({
+              id: `hired-${hh.id}`,
+              contact_name: hh.name,
+              contact_email: hh.email,
+              contact_phone: hh.phone,
+              address: null,
+              type: 'hired_hunter',
+              displayName: `${hh.name} - Bérvadász`
+            });
+          });
+        }
+
+        // 2. Vadász rangú felhasználók betöltése
+        const { data: rolesData } = await supabase
+          .from("user_roles")
+          .select("user_id")
+          .eq("role", "hunter");
+
+        if (rolesData) {
+          const userIds = rolesData.map(r => r.user_id);
+          
+          const { data: profilesData } = await supabase
+            .from("profiles")
+            .select("id, contact_name, contact_email, contact_phone, address")
+            .in("id", userIds);
+
+          if (profilesData) {
+            profilesData.forEach(profile => {
+              allUsers.push({
+                ...profile,
+                type: 'hunter',
+                displayName: `${profile.contact_name || 'Névtelen'} - Vadász`
+              });
+            });
+          }
+        }
       }
+
+      setUsers(allUsers);
     } catch (error) {
       console.error("Error fetching users:", error);
     }
@@ -105,14 +174,41 @@ export const AnimalReservationDialog = ({
 
   const fetchReservedUserProfile = async (userId: string) => {
     try {
-      const { data } = await supabase
-        .from("profiles")
-        .select("id, contact_name, contact_email, contact_phone, address")
-        .eq("id", userId)
-        .single();
+      // Check if it's a hired hunter (starts with 'hired-')
+      if (userId.startsWith('hired-')) {
+        const hiredHunterId = userId.replace('hired-', '');
+        const { data } = await supabase
+          .from("hired_hunters")
+          .select("id, name, email, phone, license_number")
+          .eq("id", hiredHunterId)
+          .single();
 
-      if (data) {
-        setReservedUserProfile(data);
+        if (data) {
+          setReservedUserProfile({
+            id: `hired-${data.id}`,
+            contact_name: data.name,
+            contact_email: data.email,
+            contact_phone: data.phone,
+            address: null,
+            type: 'hired_hunter',
+            displayName: `${data.name} - Bérvadász`
+          });
+        }
+      } else {
+        // Regular hunter user
+        const { data } = await supabase
+          .from("profiles")
+          .select("id, contact_name, contact_email, contact_phone, address")
+          .eq("id", userId)
+          .single();
+
+        if (data) {
+          setReservedUserProfile({
+            ...data,
+            type: 'hunter',
+            displayName: `${data.contact_name || 'Névtelen'} - Vadász`
+          });
+        }
       }
     } catch (error) {
       console.error("Error fetching reserved user profile:", error);
@@ -143,14 +239,34 @@ export const AnimalReservationDialog = ({
         if (status === "available") {
           updateData.reserved_by = null;
           updateData.reserved_at = null;
+          updateData.hunter_name = null;
         }
         // Ha jóváhagyva-ra állítja vagy kiválasztott egy felhasználót
         else if (status === "approved" || status === "pending") {
           // Ha van kiválasztott felhasználó, azt használjuk
           if (selectedUserId) {
-            updateData.reserved_by = selectedUserId;
-            if (!reservedBy) {
-              updateData.reserved_at = new Date().toISOString();
+            // Check if it's a hired hunter
+            if (selectedUserId.startsWith('hired-')) {
+              const hiredHunterId = selectedUserId.replace('hired-', '');
+              // Fetch hired hunter name
+              const { data: hiredHunter } = await supabase
+                .from("hired_hunters")
+                .select("name")
+                .eq("id", hiredHunterId)
+                .single();
+              
+              if (hiredHunter) {
+                updateData.hunter_name = hiredHunter.name;
+                updateData.hunter_type = "bérvadász";
+                updateData.reserved_by = null; // Hired hunters don't have user_id
+              }
+            } else {
+              // Regular hunter user
+              updateData.reserved_by = selectedUserId;
+              updateData.hunter_type = "saját vadász";
+              if (!reservedBy) {
+                updateData.reserved_at = new Date().toISOString();
+              }
             }
           } else if (!reservedBy) {
             // Ha nincs még foglalva, akkor a jelenlegi usert állítjuk be
@@ -307,7 +423,7 @@ export const AnimalReservationDialog = ({
                 <SelectContent>
                   {users.map((user) => (
                     <SelectItem key={user.id} value={user.id}>
-                      {user.contact_name || user.contact_email || user.id}
+                      {user.displayName}
                     </SelectItem>
                   ))}
                 </SelectContent>
