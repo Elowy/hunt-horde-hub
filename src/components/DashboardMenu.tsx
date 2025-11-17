@@ -138,7 +138,6 @@ export const DashboardMenu = ({ isAdmin, isEditor, isHunter, onLogout, onPriceUp
                 <p className="text-sm font-medium text-muted-foreground px-2">Nyilvántartás</p>
                 <div className="space-y-2">
                   <AddAnimalDialog onAnimalAdded={onPriceUpdated} />
-                  <PriceSettingsDialog onPriceUpdated={onPriceUpdated} />
                 </div>
               </div>
 
@@ -154,6 +153,7 @@ export const DashboardMenu = ({ isAdmin, isEditor, isHunter, onLogout, onPriceUp
                 <div className="space-y-2">
                   <TransportDocumentsDialog />
                   <TransporterDialog />
+                  <PriceSettingsDialog onPriceUpdated={onPriceUpdated} />
                   <Button
                     variant="ghost"
                     className="w-full justify-start"
