@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Menu, X, User, Users, FileText, Truck, Settings, LogOut, UserPlus, Crown, MapPin, CalendarCheck, Shield, BarChart, Trophy, Clock, Archive, Package, MessageSquare, History } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,7 @@ import { SettlementsAndZonesDialog } from "@/components/SettlementsAndZonesDialo
 import { SecurityZoneClosuresDialog } from "@/components/SecurityZoneClosuresDialog";
 import { AddAnimalDialog } from "@/components/AddAnimalDialog";
 import { GuestRegistrationQRDialog } from "@/components/GuestRegistrationQRDialog";
+import { BuyerPriceProposalDialog } from "@/components/BuyerPriceProposalDialog";
 import { Separator } from "@/components/ui/separator";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useIsSuperAdmin } from "@/hooks/useIsSuperAdmin";
@@ -20,6 +21,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { RoleSwitcher } from "@/components/RoleSwitcher";
 import { SubscriptionTierSwitcher } from "@/components/SubscriptionTierSwitcher";
 import { CompanySwitcher } from "@/components/CompanySwitcher";
+import { supabase } from "@/integrations/supabase/client";
 
 interface DashboardMenuProps {
   isAdmin: boolean;
@@ -32,8 +34,29 @@ interface DashboardMenuProps {
 export const DashboardMenu = ({ isAdmin, isEditor, isHunter, onLogout, onPriceUpdated }: DashboardMenuProps) => {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
+  const [isBuyer, setIsBuyer] = useState(false);
   const { isPro, loading: subscriptionLoading } = useSubscription();
   const { isSuperAdmin } = useIsSuperAdmin();
+
+  // Check if user is a buyer
+  useEffect(() => {
+    const checkBuyerStatus = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: buyer } = await supabase
+        .from("buyers")
+        .select("id")
+        .eq("user_id", user.id)
+        .single();
+
+      setIsBuyer(!!buyer);
+    };
+
+    if (open) {
+      checkBuyerStatus();
+    }
+  }, [open]);
 
   const handleNavigation = (path: string) => {
     navigate(path);
@@ -154,6 +177,7 @@ export const DashboardMenu = ({ isAdmin, isEditor, isHunter, onLogout, onPriceUp
                   <TransportDocumentsDialog />
                   <TransporterDialog />
                   <PriceSettingsDialog onPriceUpdated={onPriceUpdated} />
+                  {isBuyer && <BuyerPriceProposalDialog />}
                   <Button
                     variant="ghost"
                     className="w-full justify-start"
