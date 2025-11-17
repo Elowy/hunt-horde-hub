@@ -66,6 +66,8 @@ import jsPDF from "jspdf";
 import * as XLSX from "xlsx";
 import { getActiveRole } from "@/components/RoleSwitcher";
 import { useSubscription } from "@/hooks/useSubscription";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Crown } from "lucide-react";
 import { generateTransportTicket } from "@/lib/generateTransportTicket";
 import { addTransportTicketToPage } from "@/lib/addTransportTicketToPage";
 import { format, startOfMonth, endOfMonth, subMonths } from "date-fns";
@@ -136,7 +138,7 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const isMobile = useIsMobile();
-  const { isPro, loading: subscriptionLoading, productId } = useSubscription();
+  const { isPro, loading: subscriptionLoading, productId, tier } = useSubscription();
   const [searchTerm, setSearchTerm] = useState("");
   const [filterLocation, setFilterLocation] = useState("all");
   const [filterSpecies, setFilterSpecies] = useState("all");
@@ -2315,22 +2317,29 @@ const Dashboard = () => {
                                     </Button>
                                   </>
                                 )}
-                                <AnimalReservationDialog
-                                  animalId={animal.id}
-                                  animalIdentifier={animal.animal_id}
-                                  currentStatus={animal.reservation_status || 'available'}
-                                  reservedBy={animal.reserved_by}
-                                  reservationNote={animal.reservation_note}
-                                  hunterName={animal.hunter_name}
-                                  hunterType={animal.hunter_type}
-                                  isHunter={isHunter}
-                                  isAdmin={isAdmin}
-                                  isEditor={isEditor}
-                                  onReservationUpdated={fetchData}
+                                {tier === "pro" ? (
+                                  <AnimalReservationDialog
+                                    animalId={animal.id}
+                                    animalIdentifier={animal.animal_id}
+                                    currentStatus={animal.reservation_status || 'available'}
+                                    reservedBy={animal.reserved_by}
+                                    reservationNote={animal.reservation_note}
+                                    hunterName={animal.hunter_name}
+                                    hunterType={animal.hunter_type}
+                                    isHunter={isHunter}
+                                    isAdmin={isAdmin}
+                                    isEditor={isEditor}
+                                    onReservationUpdated={fetchData}
                                     animalPrice={price.gross}
                                     coolingPrice={getCoolingPrice(animal).gross}
                                     animalWeight={animal.weight || 0}
-                                />
+                                  />
+                                ) : (
+                                  <div className="flex items-center gap-1 px-2">
+                                    <Crown className="h-3 w-3 text-yellow-600 dark:text-yellow-400" />
+                                    <span className="text-xs text-muted-foreground">Pro verzió</span>
+                                  </div>
+                                )}
                               </div>
                             </TableCell>
                           </TableRow>
@@ -2478,22 +2487,29 @@ const Dashboard = () => {
                                       </Button>
                                     </>
                                   )}
-                                  <AnimalReservationDialog
-                                    animalId={animal.id}
-                                    animalIdentifier={animal.animal_id}
-                                    currentStatus={animal.reservation_status || 'available'}
-                                    reservedBy={animal.reserved_by}
-                                    reservationNote={animal.reservation_note}
-                                    hunterName={animal.hunter_name}
-                                    hunterType={animal.hunter_type}
-                                    isHunter={isHunter}
-                                    isAdmin={isAdmin}
-                                    isEditor={isEditor}
-                                    onReservationUpdated={fetchData}
-                                    animalPrice={price.gross}
-                                    coolingPrice={getCoolingPrice(animal).gross}
-                                    animalWeight={animal.weight || 0}
-                                  />
+                                  {tier === "pro" ? (
+                                    <AnimalReservationDialog
+                                      animalId={animal.id}
+                                      animalIdentifier={animal.animal_id}
+                                      currentStatus={animal.reservation_status || 'available'}
+                                      reservedBy={animal.reserved_by}
+                                      reservationNote={animal.reservation_note}
+                                      hunterName={animal.hunter_name}
+                                      hunterType={animal.hunter_type}
+                                      isHunter={isHunter}
+                                      isAdmin={isAdmin}
+                                      isEditor={isEditor}
+                                      onReservationUpdated={fetchData}
+                                      animalPrice={price.gross}
+                                      coolingPrice={getCoolingPrice(animal).gross}
+                                      animalWeight={animal.weight || 0}
+                                    />
+                                  ) : (
+                                    <div className="flex items-center gap-1 px-2">
+                                      <Crown className="h-3 w-3 text-yellow-600 dark:text-yellow-400" />
+                                      <span className="text-xs text-muted-foreground">Pro verzió</span>
+                                    </div>
+                                  )}
                                 </div>
                               </TableCell>
                             </TableRow>
@@ -2615,22 +2631,29 @@ const Dashboard = () => {
                                     locationName={transportDocuments[animal.id] || getLocationName(animal.storage_location_id)}
                                     price={price.gross}
                                   />
-                                  <AnimalReservationDialog
-                                    animalId={animal.id}
-                                    animalIdentifier={animal.animal_id}
-                                    currentStatus={animal.reservation_status || 'available'}
-                                    reservedBy={animal.reserved_by}
-                                    reservationNote={animal.reservation_note}
-                                    hunterName={animal.hunter_name}
-                                    hunterType={animal.hunter_type}
-                                    isHunter={isHunter}
-                                    isAdmin={isAdmin}
-                                    isEditor={isEditor}
-                                    onReservationUpdated={fetchData}
-                                    animalPrice={price.gross}
-                                    coolingPrice={getCoolingPrice(animal).gross}
-                                    animalWeight={animal.weight || 0}
-                                  />
+                                  {tier === "pro" ? (
+                                    <AnimalReservationDialog
+                                      animalId={animal.id}
+                                      animalIdentifier={animal.animal_id}
+                                      currentStatus={animal.reservation_status || 'available'}
+                                      reservedBy={animal.reserved_by}
+                                      reservationNote={animal.reservation_note}
+                                      hunterName={animal.hunter_name}
+                                      hunterType={animal.hunter_type}
+                                      isHunter={isHunter}
+                                      isAdmin={isAdmin}
+                                      isEditor={isEditor}
+                                      onReservationUpdated={fetchData}
+                                      animalPrice={price.gross}
+                                      coolingPrice={getCoolingPrice(animal).gross}
+                                      animalWeight={animal.weight || 0}
+                                    />
+                                  ) : (
+                                    <div className="flex items-center gap-1 px-2">
+                                      <Crown className="h-3 w-3 text-yellow-600 dark:text-yellow-400" />
+                                      <span className="text-xs text-muted-foreground">Pro verzió</span>
+                                    </div>
+                                  )}
                                 </div>
                               </TableCell>
                             </TableRow>
