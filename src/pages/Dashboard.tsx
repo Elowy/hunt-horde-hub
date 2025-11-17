@@ -1330,16 +1330,16 @@ const Dashboard = () => {
   };
 
   const getCoolingPrice = (animal: Animal) => {
-    if (!animal.weight) return 0;
+    if (!animal.weight) return { net: 0, gross: 0 };
     
     const location = locations.find(loc => loc.id === animal.storage_location_id);
-    if (!location || !location.cooling_price_per_kg) return 0;
+    if (!location || !location.cooling_price_per_kg) return { net: 0, gross: 0 };
     
-    const netCooling = animal.weight * location.cooling_price_per_kg;
+    const net = animal.weight * location.cooling_price_per_kg;
     const vatRate = location.cooling_vat_rate || 27;
-    const grossCooling = netCooling * (1 + vatRate / 100);
+    const gross = net * (1 + vatRate / 100);
     
-    return grossCooling;
+    return { net, gross };
   };
 
   const formatMonthLabel = (monthKey: string) => {
@@ -2214,12 +2214,13 @@ const Dashboard = () => {
                             </Button>
                           </TableHead>
                         )}
+                        <TableHead>Státusz</TableHead>
                         <TableHead>Azonosító</TableHead>
                         <TableHead>Faj</TableHead>
                         <TableHead>Súly (kg)</TableHead>
                         <TableHead>Osztály</TableHead>
-                        {!isHunter && <TableHead>Nettó ár (Ft)</TableHead>}
-                        {!isHunter && <TableHead>Bruttó ár (Ft)</TableHead>}
+                        {!isHunter && <TableHead>Állat ár</TableHead>}
+                        {!isHunter && <TableHead>Hűtési díj</TableHead>}
                         <TableHead>Vadász</TableHead>
                         <TableHead>Helyszín</TableHead>
                         <TableHead>Dátum</TableHead>
@@ -2239,23 +2240,37 @@ const Dashboard = () => {
                                 />
                               </TableCell>
                             )}
-                            <TableCell className="font-medium">
-                              <div className="flex items-center">
-                                {getReservationBadge(animal.reservation_status)}
-                                {animal.animal_id}
-                              </div>
+                            <TableCell>
+                              {getReservationBadge(animal.reservation_status)}
                             </TableCell>
+                            <TableCell className="font-medium">{animal.animal_id}</TableCell>
                             <TableCell>{animal.species}</TableCell>
                             <TableCell>{animal.weight || "-"}</TableCell>
                             <TableCell>{animal.class || "-"}</TableCell>
                             {!isHunter && (
-                              <TableCell className="font-bold">
-                                {price.net > 0 ? price.net.toLocaleString("hu-HU") : "-"}
+                              <TableCell>
+                                {price.net > 0 ? (
+                                  <div className="flex flex-col">
+                                    <span>{price.net.toLocaleString("hu-HU")} Ft</span>
+                                    <span className="font-semibold">{price.gross.toLocaleString("hu-HU")} Ft</span>
+                                  </div>
+                                ) : (
+                                  "-"
+                                )}
                               </TableCell>
                             )}
                             {!isHunter && (
-                              <TableCell className="font-semibold">
-                                {price.gross > 0 ? price.gross.toLocaleString("hu-HU") : "-"}
+                              <TableCell>
+                                {(() => {
+                                  const coolingPrice = getCoolingPrice(animal);
+                                  if (coolingPrice.net === 0) return "-";
+                                  return (
+                                    <div className="flex flex-col">
+                                      <span>{coolingPrice.net.toLocaleString("hu-HU")} Ft</span>
+                                      <span className="font-semibold">{coolingPrice.gross.toLocaleString("hu-HU")} Ft</span>
+                                    </div>
+                                  );
+                                })()}
                               </TableCell>
                             )}
                             <TableCell>{animal.hunter_name || "-"}</TableCell>
@@ -2310,9 +2325,9 @@ const Dashboard = () => {
                                   isAdmin={isAdmin}
                                   isEditor={isEditor}
                                   onReservationUpdated={fetchData}
-                                  animalPrice={price.gross}
-                                  coolingPrice={getCoolingPrice(animal)}
-                                  animalWeight={animal.weight || 0}
+                                    animalPrice={price.gross}
+                                    coolingPrice={getCoolingPrice(animal).gross}
+                                    animalWeight={animal.weight || 0}
                                 />
                               </div>
                             </TableCell>
@@ -2364,12 +2379,13 @@ const Dashboard = () => {
                               </Button>
                             </TableHead>
                           )}
+                          <TableHead>Státusz</TableHead>
                           <TableHead>Azonosító</TableHead>
                           <TableHead>Faj</TableHead>
                           <TableHead>Súly (kg)</TableHead>
                           <TableHead>Osztály</TableHead>
-                          <TableHead>Nettó ár (Ft)</TableHead>
-                          <TableHead>Bruttó ár (Ft)</TableHead>
+                          <TableHead>Állat ár</TableHead>
+                          <TableHead>Hűtési díj</TableHead>
                           <TableHead>Vadász</TableHead>
                           <TableHead>Helyszín</TableHead>
                           <TableHead>Elszállítva</TableHead>
@@ -2389,20 +2405,34 @@ const Dashboard = () => {
                                   />
                                 </TableCell>
                               )}
-                              <TableCell className="font-medium">
-                                <div className="flex items-center">
-                                  {getReservationBadge(animal.reservation_status)}
-                                  {animal.animal_id}
-                                </div>
+                              <TableCell>
+                                {getReservationBadge(animal.reservation_status)}
                               </TableCell>
+                              <TableCell className="font-medium">{animal.animal_id}</TableCell>
                               <TableCell>{animal.species}</TableCell>
                               <TableCell>{animal.weight || "-"}</TableCell>
                               <TableCell>{animal.class || "-"}</TableCell>
-                              <TableCell className="font-bold">
-                                {price.net > 0 ? price.net.toLocaleString("hu-HU") : "-"}
+                              <TableCell>
+                                {price.net > 0 ? (
+                                  <div className="flex flex-col">
+                                    <span>{price.net.toLocaleString("hu-HU")} Ft</span>
+                                    <span className="font-semibold">{price.gross.toLocaleString("hu-HU")} Ft</span>
+                                  </div>
+                                ) : (
+                                  "-"
+                                )}
                               </TableCell>
-                              <TableCell className="font-semibold">
-                                {price.gross > 0 ? price.gross.toLocaleString("hu-HU") : "-"}
+                              <TableCell>
+                                {(() => {
+                                  const coolingPrice = getCoolingPrice(animal);
+                                  if (coolingPrice.net === 0) return "-";
+                                  return (
+                                    <div className="flex flex-col">
+                                      <span>{coolingPrice.net.toLocaleString("hu-HU")} Ft</span>
+                                      <span className="font-semibold">{coolingPrice.gross.toLocaleString("hu-HU")} Ft</span>
+                                    </div>
+                                  );
+                                })()}
                               </TableCell>
                               <TableCell>{animal.hunter_name || "-"}</TableCell>
                               <TableCell>
@@ -2457,7 +2487,7 @@ const Dashboard = () => {
                                     isEditor={isEditor}
                                     onReservationUpdated={fetchData}
                                     animalPrice={price.gross}
-                                    coolingPrice={getCoolingPrice(animal)}
+                                    coolingPrice={getCoolingPrice(animal).gross}
                                     animalWeight={animal.weight || 0}
                                   />
                                 </div>
@@ -2510,16 +2540,17 @@ const Dashboard = () => {
                               <CheckSquare className="h-4 w-4" />
                             </Button>
                           </TableHead>
+                          <TableHead>Státusz</TableHead>
                           <TableHead>Azonosító</TableHead>
                           <TableHead>Faj</TableHead>
                           <TableHead>Súly (kg)</TableHead>
                           <TableHead>Osztály</TableHead>
-                          <TableHead>Nettó ár (Ft)</TableHead>
-                          <TableHead>Bruttó ár (Ft)</TableHead>
+                          <TableHead>Állat ár</TableHead>
+                          <TableHead>Hűtési díj</TableHead>
                           <TableHead>Vadász</TableHead>
                           <TableHead>Helyszín</TableHead>
                           <TableHead>Elszállítva</TableHead>
-                          <TableHead className="text-right">Műveletek</TableHead>
+                          <TableHead>Műveletek</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -2533,20 +2564,34 @@ const Dashboard = () => {
                                   onCheckedChange={() => toggleAnimalSelection(animal.id)}
                                 />
                               </TableCell>
-                              <TableCell className="font-medium">
-                                <div className="flex items-center">
-                                  {getReservationBadge(animal.reservation_status)}
-                                  {animal.animal_id}
-                                </div>
+                              <TableCell>
+                                {getReservationBadge(animal.reservation_status)}
                               </TableCell>
+                              <TableCell className="font-medium">{animal.animal_id}</TableCell>
                               <TableCell>{animal.species}</TableCell>
                               <TableCell>{animal.weight || "-"}</TableCell>
                               <TableCell>{animal.class || "-"}</TableCell>
-                              <TableCell className="font-bold">
-                                {price.net > 0 ? price.net.toLocaleString("hu-HU") : "-"}
+                              <TableCell>
+                                {price.net > 0 ? (
+                                  <div className="flex flex-col">
+                                    <span>{price.net.toLocaleString("hu-HU")} Ft</span>
+                                    <span className="font-semibold">{price.gross.toLocaleString("hu-HU")} Ft</span>
+                                  </div>
+                                ) : (
+                                  "-"
+                                )}
                               </TableCell>
-                              <TableCell className="font-semibold">
-                                {price.gross > 0 ? price.gross.toLocaleString("hu-HU") : "-"}
+                              <TableCell>
+                                {(() => {
+                                  const coolingPrice = getCoolingPrice(animal);
+                                  if (coolingPrice.net === 0) return "-";
+                                  return (
+                                    <div className="flex flex-col">
+                                      <span>{coolingPrice.net.toLocaleString("hu-HU")} Ft</span>
+                                      <span className="font-semibold">{coolingPrice.gross.toLocaleString("hu-HU")} Ft</span>
+                                    </div>
+                                  );
+                                })()}
                               </TableCell>
                               <TableCell>{animal.hunter_name || "-"}</TableCell>
                               <TableCell>
@@ -2577,7 +2622,7 @@ const Dashboard = () => {
                                     isEditor={isEditor}
                                     onReservationUpdated={fetchData}
                                     animalPrice={price.gross}
-                                    coolingPrice={getCoolingPrice(animal)}
+                                    coolingPrice={getCoolingPrice(animal).gross}
                                     animalWeight={animal.weight || 0}
                                   />
                                 </div>
