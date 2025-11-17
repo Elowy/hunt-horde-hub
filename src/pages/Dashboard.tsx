@@ -1900,7 +1900,7 @@ const Dashboard = () => {
                 <Filter className="h-4 w-4 mr-2" />
                 {showFilters ? "Szűrők elrejtése" : "További szűrők"}
               </Button>
-              {selectedAnimals.size > 0 && !isHunter && (
+              {selectedAnimals.size > 0 && (
                 <Button
                   variant="default"
                   onClick={exportSelectedToExcel}
@@ -2113,7 +2113,7 @@ const Dashboard = () => {
 
               <TabsContent value="cooled">
                 {/* Elszállító, Excel export és csoportos műveletek gombok */}
-                {selectedAnimals.size > 0 && !isHunter && (
+                {selectedAnimals.size > 0 && (
                   <div className="mb-4 flex flex-wrap gap-2 justify-end">
                     <Button onClick={handleCreateTransport} variant="default">
                       <FileDown className="h-4 w-4 mr-2" />
@@ -2144,19 +2144,17 @@ const Dashboard = () => {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        {!isHunter && (
-                          <TableHead className="w-[50px]">
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              className="h-8 w-8 p-0"
-                              onClick={handleToggleSelectAll}
-                              title={cooledAnimals.every(a => selectedAnimals.has(a.id)) ? "Kijelölés törlése" : "Összes kijelölése"}
-                            >
-                              <CheckSquare className="h-4 w-4" />
-                            </Button>
-                          </TableHead>
-                        )}
+                        <TableHead className="w-[50px]">
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-8 w-8 p-0"
+                            onClick={handleToggleSelectAll}
+                            title={cooledAnimals.every(a => selectedAnimals.has(a.id)) ? "Kijelölés törlése" : "Összes kijelölése"}
+                          >
+                            <CheckSquare className="h-4 w-4" />
+                          </Button>
+                        </TableHead>
                         <TableHead>Azonosító</TableHead>
                         <TableHead>Faj</TableHead>
                         <TableHead>Súly (kg)</TableHead>
@@ -2174,14 +2172,12 @@ const Dashboard = () => {
                         const price = getAnimalPrice(animal);
                         return (
                           <TableRow key={animal.id}>
-                            {!isHunter && (
-                              <TableCell>
-                                <Checkbox
-                                  checked={selectedAnimals.has(animal.id)}
-                                  onCheckedChange={() => toggleAnimalSelection(animal.id)}
-                                />
-                              </TableCell>
-                            )}
+                            <TableCell>
+                              <Checkbox
+                                checked={selectedAnimals.has(animal.id)}
+                                onCheckedChange={() => toggleAnimalSelection(animal.id)}
+                              />
+                            </TableCell>
                             <TableCell className="font-medium">{animal.animal_id}</TableCell>
                             <TableCell>{animal.species}</TableCell>
                             <TableCell>{animal.weight || "-"}</TableCell>
