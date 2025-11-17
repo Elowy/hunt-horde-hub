@@ -14,6 +14,13 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Separator } from "@/components/ui/separator";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface Transporter {
   id: string;
@@ -26,7 +33,7 @@ interface Transporter {
 interface CreateTransportDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onTransporterSelected: (transporterId: string, vehiclePlate: string) => void;
+  onTransporterSelected: (transporterId: string, vehiclePlate: string, buyerId?: string) => void;
 }
 
 export const CreateTransportDialog = ({ 
@@ -36,7 +43,9 @@ export const CreateTransportDialog = ({
 }: CreateTransportDialogProps) => {
   const { toast } = useToast();
   const [transporters, setTransporters] = useState<Transporter[]>([]);
+  const [buyers, setBuyers] = useState<any[]>([]);
   const [selectedTransporter, setSelectedTransporter] = useState<string>("");
+  const [selectedBuyer, setSelectedBuyer] = useState<string>("");
   const [vehiclePlate, setVehiclePlate] = useState<string>("");
   const [showNewForm, setShowNewForm] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -137,7 +146,7 @@ export const CreateTransportDialog = ({
         return;
       }
       
-      onTransporterSelected(data.id, vehiclePlate);
+      onTransporterSelected(data.id, vehiclePlate, selectedBuyer || undefined);
       onOpenChange(false);
     } catch (error: any) {
       toast({
@@ -169,7 +178,7 @@ export const CreateTransportDialog = ({
       return;
     }
 
-    onTransporterSelected(selectedTransporter, vehiclePlate);
+    onTransporterSelected(selectedTransporter, vehiclePlate, selectedBuyer || undefined);
     onOpenChange(false);
   };
 
@@ -217,6 +226,25 @@ export const CreateTransportDialog = ({
                     required
                   />
                 </div>
+
+                {buyers.length > 0 && (
+                  <div className="space-y-2">
+                    <Label htmlFor="buyer">Felvásárló (opcionális)</Label>
+                    <Select value={selectedBuyer} onValueChange={setSelectedBuyer}>
+                      <SelectTrigger id="buyer">
+                        <SelectValue placeholder="Válasszon felvásárlót..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">Nincs kiválasztva</SelectItem>
+                        {buyers.map((buyer: any) => (
+                          <SelectItem key={buyer.id} value={buyer.id}>
+                            {buyer.company_name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
 
                 <div className="flex gap-2">
                   <Button onClick={handleSelectExisting} className="flex-1">

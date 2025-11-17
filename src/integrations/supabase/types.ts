@@ -1300,6 +1300,7 @@ export type Database = {
       transport_documents: {
         Row: {
           animal_count: number
+          buyer_id: string | null
           created_at: string
           document_number: string
           id: string
@@ -1315,6 +1316,7 @@ export type Database = {
         }
         Insert: {
           animal_count?: number
+          buyer_id?: string | null
           created_at?: string
           document_number: string
           id?: string
@@ -1330,6 +1332,7 @@ export type Database = {
         }
         Update: {
           animal_count?: number
+          buyer_id?: string | null
           created_at?: string
           document_number?: string
           id?: string
@@ -1344,6 +1347,13 @@ export type Database = {
           vehicle_plate?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "transport_documents_buyer_id_fkey"
+            columns: ["buyer_id"]
+            isOneToOne: false
+            referencedRelation: "buyers"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "transport_documents_transporter_id_fkey"
             columns: ["transporter_id"]
