@@ -1,6 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 
-type NotificationType = 'transport' | 'storage_full' | 'animal_add' | 'animal_update' | 'animal_delete';
+type NotificationType = 'transport' | 'storage_full' | 'animal_add' | 'animal_update' | 'animal_delete' | 'registration_approved' | 'registration_rejected';
 
 interface NotificationData {
   notification_type: NotificationType;

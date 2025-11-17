@@ -10,7 +10,7 @@ const corsHeaders = {
 };
 
 interface NotificationRequest {
-  notification_type: 'transport' | 'storage_full' | 'animal_add' | 'animal_update' | 'animal_delete';
+  notification_type: 'transport' | 'storage_full' | 'animal_add' | 'animal_update' | 'animal_delete' | 'registration_approved' | 'registration_rejected';
   data: any;
   ip_address?: string;
 }
@@ -58,6 +58,8 @@ const handler = async (req: Request): Promise<Response> => {
       animal_add: settings.notify_on_animal_add,
       animal_update: settings.notify_on_animal_update,
       animal_delete: settings.notify_on_animal_delete,
+      registration_approved: settings.notify_on_registration_approved,
+      registration_rejected: settings.notify_on_registration_rejected,
     }[notification_type];
 
     if (!shouldNotify) {
@@ -84,6 +86,8 @@ const handler = async (req: Request): Promise<Response> => {
       animal_add: "Új vad hozzáadva",
       animal_update: "Vad módosítva",
       animal_delete: "Vad törölve",
+      registration_approved: "Beiratkozás jóváhagyva",
+      registration_rejected: "Beiratkozás elutasítva",
     }[notification_type];
 
     const emailBody = generateEmailBody(notification_type, data, ip_address);
@@ -172,6 +176,37 @@ function generateEmailBody(type: string, data: any, ip: string = "Ismeretlen"): 
         <p><strong>Faj:</strong> ${data.species}</p>
         <p><strong>Súly:</strong> ${data.weight || "-"} kg</p>
         <p><strong>Hűtési helyszín:</strong> ${data.location_name}</p>
+      `;
+      break;
+    case "registration_approved":
+      content = `
+        <h2>Beiratkozás jóváhagyva</h2>
+        <p>Örömmel értesítjük, hogy a vadászati beiratkozási kérelme <strong>jóváhagyásra került</strong>.</p>
+        <div style="background: #d4edda; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #28a745;">
+          <h3 style="margin-top: 0;">Beiratkozás részletei:</h3>
+          <p><strong>Vadászterület:</strong> ${data.security_zone_name || 'N/A'}</p>
+          ${data.hunting_location_name ? `<p><strong>Helyszín:</strong> ${data.hunting_location_name}</p>` : ''}
+          <p><strong>Kezdés:</strong> ${data.start_time ? new Date(data.start_time).toLocaleString('hu-HU') : 'N/A'}</p>
+          <p><strong>Befejezés:</strong> ${data.end_time ? new Date(data.end_time).toLocaleString('hu-HU') : 'N/A'}</p>
+          ${data.admin_note ? `<p><strong>Admin megjegyzés:</strong> ${data.admin_note}</p>` : ''}
+        </div>
+        <p>A beiratkozás részleteit az alkalmazásban is megtekintheti.</p>
+        <p>Kellemes vadászatot kívánunk!</p>
+      `;
+      break;
+    case "registration_rejected":
+      content = `
+        <h2>Beiratkozás elutasítva</h2>
+        <p>Sajnálattal értesítjük, hogy a vadászati beiratkozási kérelmét <strong>elutasították</strong>.</p>
+        <div style="background: #f8d7da; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #dc3545;">
+          <h3 style="margin-top: 0;">Beiratkozás részletei:</h3>
+          <p><strong>Vadászterület:</strong> ${data.security_zone_name || 'N/A'}</p>
+          ${data.hunting_location_name ? `<p><strong>Helyszín:</strong> ${data.hunting_location_name}</p>` : ''}
+          <p><strong>Kért kezdés:</strong> ${data.start_time ? new Date(data.start_time).toLocaleString('hu-HU') : 'N/A'}</p>
+          <p><strong>Kért befejezés:</strong> ${data.end_time ? new Date(data.end_time).toLocaleString('hu-HU') : 'N/A'}</p>
+          ${data.admin_note ? `<p><strong>Elutasítás oka:</strong> ${data.admin_note}</p>` : ''}
+        </div>
+        <p>További információkért kérjük, vegye fel a kapcsolatot az adminisztrátorral.</p>
       `;
       break;
   }

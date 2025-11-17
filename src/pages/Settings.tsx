@@ -15,6 +15,8 @@ interface NotificationSettings {
   notify_on_animal_add: boolean;
   notify_on_animal_update: boolean;
   notify_on_animal_delete: boolean;
+  notify_on_registration_approved: boolean;
+  notify_on_registration_rejected: boolean;
 }
 
 const Settings = () => {
@@ -28,6 +30,8 @@ const Settings = () => {
     notify_on_animal_add: true,
     notify_on_animal_update: false,
     notify_on_animal_delete: false,
+    notify_on_registration_approved: true,
+    notify_on_registration_rejected: true,
   });
 
   useEffect(() => {
@@ -65,6 +69,8 @@ const Settings = () => {
           notify_on_animal_add: data.notify_on_animal_add,
           notify_on_animal_update: data.notify_on_animal_update,
           notify_on_animal_delete: data.notify_on_animal_delete,
+          notify_on_registration_approved: data.notify_on_registration_approved ?? true,
+          notify_on_registration_rejected: data.notify_on_registration_rejected ?? true,
         });
       }
     } catch (error: any) {
@@ -234,6 +240,40 @@ const Settings = () => {
                 id="notify-delete"
                 checked={settings.notify_on_animal_delete}
                 onCheckedChange={(checked) => updateSetting("notify_on_animal_delete", checked)}
+              />
+            </div>
+
+            <Separator className="my-4" />
+
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label htmlFor="notify-approved" className="text-base">
+                  Beiratkozás jóváhagyása
+                </Label>
+                <p className="text-sm text-muted-foreground">
+                  Értesítés amikor a beiratkozási kérelme jóváhagyásra kerül
+                </p>
+              </div>
+              <Switch
+                id="notify-approved"
+                checked={settings.notify_on_registration_approved}
+                onCheckedChange={(checked) => updateSetting("notify_on_registration_approved", checked)}
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label htmlFor="notify-rejected" className="text-base">
+                  Beiratkozás elutasítása
+                </Label>
+                <p className="text-sm text-muted-foreground">
+                  Értesítés amikor a beiratkozási kérelme elutasításra kerül
+                </p>
+              </div>
+              <Switch
+                id="notify-rejected"
+                checked={settings.notify_on_registration_rejected}
+                onCheckedChange={(checked) => updateSetting("notify_on_registration_rejected", checked)}
               />
             </div>
 
