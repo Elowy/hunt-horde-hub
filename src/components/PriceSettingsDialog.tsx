@@ -37,9 +37,12 @@ interface PriceSetting {
 }
 
 const speciesOptions = [
-  { value: "🦌 Szarvas", label: "🦌 Szarvas" },
-  { value: "🐗 Vaddisznó", label: "🐗 Vaddisznó" },
   { value: "🐏 Őz", label: "🐏 Őz" },
+  { value: "🦌 Dám Szarvas", label: "🦌 Dám Szarvas" },
+  { value: "🦌 Szika Szarvas", label: "🦌 Szika Szarvas" },
+  { value: "🦌 Gím Szarvas", label: "🦌 Gím Szarvas" },
+  { value: "🐗 Vaddisznó", label: "🐗 Vaddisznó" },
+  { value: "🐏 Muflon", label: "🐏 Muflon" },
 ];
 
 const classOptions = ["I", "II", "III", "IV"];
