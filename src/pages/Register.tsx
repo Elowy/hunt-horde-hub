@@ -1,15 +1,17 @@
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { Building2, Mail, Phone, MapPin, User, Lock, FileText, CalendarCheck } from "lucide-react";
+import { Building2, Mail, Phone, MapPin, User, Lock, FileText, CalendarCheck, Check, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { cn } from "@/lib/utils";
 
 const Register = () => {
   const navigate = useNavigate();
@@ -20,6 +22,7 @@ const Register = () => {
     email: "",
     phone: "",
     address: "",
+    taxNumber: "",
     password: "",
     confirmPassword: "",
     userType: "hunter_society",
@@ -32,6 +35,7 @@ const Register = () => {
 
   const [loading, setLoading] = useState(false);
   const [hunterSocieties, setHunterSocieties] = useState<Array<{ id: string; company_name: string }>>([]);
+  const [openSocietyPopover, setOpenSocietyPopover] = useState(false);
 
   // Fetch hunter societies for dropdown
   useEffect(() => {
@@ -84,6 +88,16 @@ const Register = () => {
       return;
     }
 
+    // Vadásztársaság és felvásárló típusnál ellenőrizzük az adószámot
+    if ((formData.userType === "hunter_society" || formData.userType === "buyer") && !formData.taxNumber) {
+      toast({
+        title: "Hiányzó információ",
+        description: "Az adószám megadása kötelező!",
+        variant: "destructive"
+      });
+      return;
+    }
+
     // Vadász típusnál ellenőrizzük a vadásztársaság kiválasztását
     if (formData.userType === "hunter" && !formData.hunterSocietyId) {
       toast({
@@ -108,6 +122,7 @@ const Register = () => {
             contact_email: formData.email,
             contact_phone: formData.phone,
             address: formData.address,
+            tax_number: formData.userType !== "hunter" ? formData.taxNumber : null,
             user_type: formData.userType,
             hunter_license_number: formData.userType === "hunter" ? formData.hunterLicenseNumber : null,
             birth_date: formData.userType === "hunter" ? formData.birthDate : null,
@@ -234,6 +249,21 @@ const Register = () => {
                       required
                     />
                   </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="taxNumber" className="flex items-center gap-2">
+                      <FileText className="h-4 w-4 text-forest-deep" />
+                      Adószám
+                    </Label>
+                    <Input
+                      id="taxNumber"
+                      type="text"
+                      placeholder="12345678-1-23"
+                      value={formData.taxNumber}
+                      onChange={(e) => handleInputChange("taxNumber", e.target.value)}
+                      required
+                    />
+                  </div>
                 </>
               ) : (
                 <>
@@ -286,22 +316,49 @@ const Register = () => {
                       <Building2 className="h-4 w-4 text-forest-deep" />
                       Vadásztársaság
                     </Label>
-                    <Select
-                      value={formData.hunterSocietyId}
-                      onValueChange={(value) => handleInputChange("hunterSocietyId", value)}
-                      required
-                    >
-                      <SelectTrigger id="hunterSociety">
-                        <SelectValue placeholder="Válasszon vadásztársaságot" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {hunterSocieties.map((society) => (
-                          <SelectItem key={society.id} value={society.id}>
-                            {society.company_name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <Popover open={openSocietyPopover} onOpenChange={setOpenSocietyPopover}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          aria-expanded={openSocietyPopover}
+                          className="w-full justify-between"
+                        >
+                          {formData.hunterSocietyId
+                            ? hunterSocieties.find((society) => society.id === formData.hunterSocietyId)?.company_name
+                            : "Válasszon vadásztársaságot"}
+                          <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[400px] p-0 z-50 bg-popover" align="start">
+                        <Command className="bg-popover">
+                          <CommandInput placeholder="Keresés vadásztársaságok között..." />
+                          <CommandList>
+                            <CommandEmpty>Nincs találat.</CommandEmpty>
+                            <CommandGroup>
+                              {hunterSocieties.map((society) => (
+                                <CommandItem
+                                  key={society.id}
+                                  value={society.company_name}
+                                  onSelect={() => {
+                                    handleInputChange("hunterSocietyId", society.id);
+                                    setOpenSocietyPopover(false);
+                                  }}
+                                >
+                                  <Check
+                                    className={cn(
+                                      "mr-2 h-4 w-4",
+                                      formData.hunterSocietyId === society.id ? "opacity-100" : "opacity-0"
+                                    )}
+                                  />
+                                  {society.company_name}
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
                   </div>
                 </>
               )}
