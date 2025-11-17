@@ -780,9 +780,11 @@ export type Database = {
           created_at: string
           hunter_category: Database["public"]["Enums"]["hunter_category"] | null
           hunter_license_number: string | null
+          hunter_society_id: string | null
           id: string
           privacy_policy_accepted: boolean | null
           privacy_policy_accepted_at: string | null
+          registration_approved: boolean | null
           tax_number: string | null
           updated_at: string
           user_type: string | null
@@ -802,9 +804,11 @@ export type Database = {
             | Database["public"]["Enums"]["hunter_category"]
             | null
           hunter_license_number?: string | null
+          hunter_society_id?: string | null
           id: string
           privacy_policy_accepted?: boolean | null
           privacy_policy_accepted_at?: string | null
+          registration_approved?: boolean | null
           tax_number?: string | null
           updated_at?: string
           user_type?: string | null
@@ -824,15 +828,25 @@ export type Database = {
             | Database["public"]["Enums"]["hunter_category"]
             | null
           hunter_license_number?: string | null
+          hunter_society_id?: string | null
           id?: string
           privacy_policy_accepted?: boolean | null
           privacy_policy_accepted_at?: string | null
+          registration_approved?: boolean | null
           tax_number?: string | null
           updated_at?: string
           user_type?: string | null
           vat_rate?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_hunter_society_id_fkey"
+            columns: ["hunter_society_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       purchase_offers: {
         Row: {

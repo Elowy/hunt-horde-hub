@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Users as UsersIcon, Mail, UserCheck, Trash2, Shield } from "lucide-react";
+import { Users as UsersIcon, Mail, UserCheck, Trash2, Shield, CheckCircle, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { PageHeader } from "@/components/PageHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { BanUserDialog } from "@/components/BanUserDialog";
+import { InviteUserDialog } from "@/components/InviteUserDialog";
 import {
   Table,
   TableBody,
@@ -44,7 +45,20 @@ interface User {
     hunter_category: string | null;
     banned_until: string | null;
     ban_reason: string | null;
+    user_type: string | null;
+    registration_approved: boolean | null;
+    hunter_society_id: string | null;
   };
+}
+
+interface PendingHunter {
+  id: string;
+  email: string;
+  contact_name: string | null;
+  hunter_license_number: string | null;
+  hunter_society_id: string | null;
+  hunter_society_name: string | null;
+  created_at: string;
 }
 
 interface UserRole {
@@ -73,6 +87,7 @@ const Users = () => {
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
+  const [pendingHunters, setPendingHunters] = useState<PendingHunter[]>([]);
   const [userRoles, setUserRoles] = useState<UserRole[]>([]);
   const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -130,6 +145,50 @@ const Users = () => {
 
   const fetchData = async () => {
     try {
+      // Fetch pending hunters (hunters with registration_approved = false)
+      const { data: pendingData, error: pendingError } = await supabase
+        .from("profiles")
+        .select(`
+          id,
+          contact_name,
+          contact_email,
+          hunter_license_number,
+          hunter_society_id,
+          created_at,
+          user_type
+        `)
+        .eq("user_type", "hunter")
+        .eq("registration_approved", false)
+        .order("created_at", { ascending: false });
+
+      if (pendingError) throw pendingError;
+
+      // Fetch hunter society names for pending hunters
+      if (pendingData && pendingData.length > 0) {
+        const societyIds = pendingData
+          .map(h => h.hunter_society_id)
+          .filter((id): id is string => id !== null);
+        
+        const { data: societies } = await supabase
+          .from("profiles")
+          .select("id, company_name")
+          .in("id", societyIds);
+
+        const pendingWithSociety = pendingData.map(hunter => ({
+          id: hunter.id,
+          email: hunter.contact_email || "",
+          contact_name: hunter.contact_name,
+          hunter_license_number: hunter.hunter_license_number,
+          hunter_society_id: hunter.hunter_society_id,
+          hunter_society_name: societies?.find(s => s.id === hunter.hunter_society_id)?.company_name || null,
+          created_at: hunter.created_at,
+        }));
+
+        setPendingHunters(pendingWithSociety);
+      } else {
+        setPendingHunters([]);
+      }
+
       // Fetch user roles with their profiles
       const { data: rolesData, error: rolesError } = await supabase
         .from("user_roles")
@@ -139,23 +198,24 @@ const Users = () => {
       if (rolesError) throw rolesError;
       setUserRoles(rolesData || []);
 
-      // Fetch profiles for users with roles
+      // Fetch profiles for users with roles (excluding pending hunters)
       if (rolesData && rolesData.length > 0) {
         const userIds = rolesData.map(r => r.user_id);
         const { data: profilesData } = await supabase
           .from("profiles")
-          .select("id, company_name, contact_name, hunter_category, banned_until, ban_reason")
-          .in("id", userIds);
+          .select("id, company_name, contact_name, hunter_category, banned_until, ban_reason, user_type, registration_approved, hunter_society_id")
+          .in("id", userIds)
+          .or("registration_approved.eq.true,user_type.neq.hunter");
 
         // Create a pseudo-user list from profiles
         const usersWithProfiles = profilesData?.map(profile => ({
           id: profile.id,
-          email: "", // We can't get email from profiles, but we can show other info
+          email: "",
           created_at: rolesData.find(r => r.user_id === profile.id)?.created_at || "",
           profiles: profile,
         })) || [];
 
-        setUsers(usersWithProfiles);
+        setUsers(usersWithProfiles as any);
       }
 
       // Fetch invitations
@@ -188,6 +248,50 @@ const Users = () => {
       toast({
         title: "Hiba",
         description: "Nem sikerült betölteni az adatokat.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleApproveHunter = async (hunterId: string) => {
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ registration_approved: true })
+        .eq("id", hunterId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Jóváhagyva!",
+        description: "Vadász regisztráció jóváhagyva.",
+      });
+
+      await fetchData();
+    } catch (error: any) {
+      toast({
+        title: "Hiba",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleRejectHunter = async (hunterId: string) => {
+    try {
+      const { error } = await supabase.auth.admin.deleteUser(hunterId);
+      if (error) throw error;
+
+      toast({
+        title: "Elutasítva!",
+        description: "Vadász regisztráció elutasítva és törölve.",
+      });
+
+      await fetchData();
+    } catch (error: any) {
+      toast({
+        title: "Hiba",
+        description: error.message,
         variant: "destructive",
       });
     }
@@ -380,6 +484,66 @@ const Users = () => {
 
       <div className="container mx-auto px-6 py-8 max-w-6xl">
         <div className="grid gap-6">
+          {/* Jóváhagyásra váró vadászok */}
+          {pendingHunters.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <UserCheck className="h-5 w-5" />
+                  Jóváhagyásra váró vadászok
+                </CardTitle>
+                <CardDescription>
+                  Vadász regisztrációk, amelyek adminisztrátori jóváhagyásra várnak
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Név</TableHead>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Vadászjegyszám</TableHead>
+                      <TableHead>Vadásztársaság</TableHead>
+                      <TableHead>Regisztráció dátuma</TableHead>
+                      <TableHead>Művelet</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {pendingHunters.map((hunter) => (
+                      <TableRow key={hunter.id}>
+                        <TableCell className="font-medium">{hunter.contact_name || "Névtelen"}</TableCell>
+                        <TableCell>{hunter.email}</TableCell>
+                        <TableCell>{hunter.hunter_license_number || "-"}</TableCell>
+                        <TableCell>{hunter.hunter_society_name || "-"}</TableCell>
+                        <TableCell>{new Date(hunter.created_at).toLocaleDateString("hu-HU")}</TableCell>
+                        <TableCell>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="default"
+                              size="sm"
+                              onClick={() => handleApproveHunter(hunter.id)}
+                            >
+                              <CheckCircle className="h-4 w-4 mr-1" />
+                              Jóváhagy
+                            </Button>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => handleRejectHunter(hunter.id)}
+                            >
+                              <XCircle className="h-4 w-4 mr-1" />
+                              Elutasít
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Aktív felhasználók */}
           <Card>
             <CardHeader>
