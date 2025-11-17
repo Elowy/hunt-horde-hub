@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Users, Building2, Package, Truck, FileText, Shield, Edit, Trash2, Eye, Ticket, ChevronDown } from "lucide-react";
+import { Loader2, Users, Building2, Package, Truck, FileText, Shield, Edit, Trash2, Eye, Ticket, ChevronDown, UserCheck, CheckCircle, XCircle } from "lucide-react";
 import { TicketManagement } from "@/components/TicketManagement";
 import { useToast } from "@/hooks/use-toast";
 import { CreateSubscriptionCodeDialog } from "@/components/CreateSubscriptionCodeDialog";
@@ -40,6 +40,21 @@ interface Profile {
   hunter_license_number: string | null;
   birth_date: string | null;
   vat_rate: number | null;
+  created_at: string;
+  hunter_society_id: string | null;
+  hunter_category: string | null;
+  registration_approved: boolean | null;
+}
+
+interface PendingHunter {
+  id: string;
+  contact_name: string | null;
+  contact_email: string | null;
+  contact_phone: string | null;
+  hunter_license_number: string | null;
+  hunter_category: string | null;
+  hunter_society_id: string | null;
+  hunter_society_name: string | null;
   created_at: string;
 }
 
@@ -107,6 +122,7 @@ const SuperAdminDashboard = () => {
   const { isSuperAdmin, loading: checkingAdmin } = useIsSuperAdmin();
   
   const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [pendingHunters, setPendingHunters] = useState<PendingHunter[]>([]);
   const [animals, setAnimals] = useState<Animal[]>([]);
   const [storageLocations, setStorageLocations] = useState<StorageLocation[]>([]);
   const [transporters, setTransporters] = useState<Transporter[]>([]);
@@ -150,8 +166,9 @@ const SuperAdminDashboard = () => {
   const loadAllData = async () => {
     setLoading(true);
     try {
-      const [profilesData, animalsData, locationsData, transportersData, documentsData, codesData] = await Promise.all([
+      const [profilesData, pendingData, animalsData, locationsData, transportersData, documentsData, codesData] = await Promise.all([
         supabase.from("profiles").select("*"),
+        supabase.from("profiles").select("*").eq("user_type", "hunter").eq("registration_approved", false).order("created_at", { ascending: false }),
         supabase.from("animals").select("*").order("created_at", { ascending: false }).limit(50),
         supabase.from("storage_locations").select("*"),
         supabase.from("transporters").select("*"),
@@ -160,6 +177,35 @@ const SuperAdminDashboard = () => {
       ]);
 
       if (profilesData.data) setProfiles(profilesData.data);
+      
+      // Process pending hunters with hunter society names
+      if (pendingData.data && pendingData.data.length > 0) {
+        const societyIds = pendingData.data
+          .map(h => h.hunter_society_id)
+          .filter((id): id is string => id !== null);
+        
+        const { data: societies } = await supabase
+          .from("profiles")
+          .select("id, company_name")
+          .in("id", societyIds);
+
+        const pendingWithSociety = pendingData.data.map(hunter => ({
+          id: hunter.id,
+          contact_name: hunter.contact_name,
+          contact_phone: hunter.contact_phone,
+          contact_email: hunter.contact_email,
+          hunter_license_number: hunter.hunter_license_number,
+          hunter_category: hunter.hunter_category,
+          hunter_society_id: hunter.hunter_society_id,
+          hunter_society_name: societies?.find(s => s.id === hunter.hunter_society_id)?.company_name || null,
+          created_at: hunter.created_at,
+        }));
+
+        setPendingHunters(pendingWithSociety);
+      } else {
+        setPendingHunters([]);
+      }
+      
       if (animalsData.data) setAnimals(animalsData.data);
       if (locationsData.data) setStorageLocations(locationsData.data);
       if (transportersData.data) setTransporters(transportersData.data);
@@ -301,6 +347,69 @@ const SuperAdminDashboard = () => {
     }
   };
 
+  const handleApproveHunter = async (hunterId: string) => {
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ registration_approved: true })
+        .eq("id", hunterId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Sikeres jóváhagyás!",
+        description: "A vadász regisztrációja jóváhagyásra került.",
+      });
+
+      loadAllData();
+    } catch (error: any) {
+      console.error("Error approving hunter:", error);
+      toast({
+        title: "Hiba",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleRejectHunter = async (hunterId: string) => {
+    try {
+      // Delete the user completely
+      const { error } = await supabase.functions.invoke("delete-user-account", {
+        body: { userId: hunterId },
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Regisztráció elutasítva",
+        description: "A vadász regisztrációja elutasításra került és törölve lett.",
+      });
+
+      loadAllData();
+    } catch (error: any) {
+      console.error("Error rejecting hunter:", error);
+      toast({
+        title: "Hiba",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const getHunterCategoryLabel = (category: string | null) => {
+    if (!category) return "Nincs megadva";
+    switch (category) {
+      case "tag": return "Tag";
+      case "vendeg": return "Vendég";
+      case "bervadasz": return "Bérvadász";
+      case "ib_vendeg": return "IB Vendég";
+      case "trofeas_vadasz": return "Trófeás vadász";
+      case "egyeb": return "Egyéb";
+      default: return "Nincs megadva";
+    }
+  };
+
   const handleViewProfile = async (profile: Profile) => {
     setSelectedProfile(profile);
     setEditingSubscription(false);
@@ -340,16 +449,36 @@ const SuperAdminDashboard = () => {
         </div>
 
         {/* Összesítő kártyák */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium flex items-center gap-2">
                 <Users className="h-4 w-4" />
-                Felhasználók
+                Összes felhasználó
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{profiles.length}</div>
+              <p className="text-xs text-muted-foreground mt-1">
+                {profiles.filter(p => p.user_type === "hunter_society").length} vadásztársaság
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium flex items-center gap-2">
+                <Users className="h-4 w-4 text-orange-500" />
+                Vadászok
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {profiles.filter(p => p.user_type === "hunter").length}
+              </div>
+              <p className="text-xs text-orange-500 mt-1">
+                {pendingHunters.length} jóváhagyásra vár
+              </p>
             </CardContent>
           </Card>
 
@@ -393,7 +522,7 @@ const SuperAdminDashboard = () => {
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium flex items-center gap-2">
                 <FileText className="h-4 w-4" />
-                Szállítólevél
+                Szállítólevelek
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -420,36 +549,123 @@ const SuperAdminDashboard = () => {
             </CardHeader>
             <CollapsibleContent>
               <CardContent>
-                <Tabs defaultValue="users" className="w-full">
-                  <TabsList className="grid w-full grid-cols-6">
+                <Tabs defaultValue="pending" className="w-full">
+                  <TabsList className="grid w-full grid-cols-7">
+                    <TabsTrigger value="pending">
+                      Jóváhagyásra vár
+                      {pendingHunters.length > 0 && (
+                        <Badge variant="destructive" className="ml-2">{pendingHunters.length}</Badge>
+                      )}
+                    </TabsTrigger>
                     <TabsTrigger value="users">Felhasználók</TabsTrigger>
                     <TabsTrigger value="animals">Állatok</TabsTrigger>
-                    <TabsTrigger value="locations">Hűtési helyek</TabsTrigger>
+                    <TabsTrigger value="locations">Hűtések</TabsTrigger>
                     <TabsTrigger value="transporters">Szállítók</TabsTrigger>
                     <TabsTrigger value="documents">Szállítólevelek</TabsTrigger>
                     <TabsTrigger value="codes">Kódok</TabsTrigger>
                   </TabsList>
+
+              <TabsContent value="pending" className="mt-4">
+                {pendingHunters.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <UserCheck className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p>Nincs jóváhagyásra váró vadász regisztráció</p>
+                  </div>
+                ) : (
+                  <div className="rounded-md border">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Név</TableHead>
+                          <TableHead>Email</TableHead>
+                          <TableHead>Vadászjegy szám</TableHead>
+                          <TableHead>Kategória</TableHead>
+                          <TableHead>Vadásztársaság</TableHead>
+                          <TableHead>Regisztráció</TableHead>
+                          <TableHead className="text-right">Műveletek</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {pendingHunters.map((hunter) => (
+                          <TableRow key={hunter.id}>
+                            <TableCell className="font-medium">{hunter.contact_name || "-"}</TableCell>
+                            <TableCell>{hunter.contact_email || "-"}</TableCell>
+                            <TableCell>{hunter.hunter_license_number || "-"}</TableCell>
+                            <TableCell>
+                              <Badge variant="secondary">{getHunterCategoryLabel(hunter.hunter_category)}</Badge>
+                            </TableCell>
+                            <TableCell>{hunter.hunter_society_name || "-"}</TableCell>
+                            <TableCell>{new Date(hunter.created_at).toLocaleDateString('hu-HU')}</TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex justify-end gap-2">
+                                <Button
+                                  variant="default"
+                                  size="sm"
+                                  onClick={() => handleApproveHunter(hunter.id)}
+                                >
+                                  <CheckCircle className="h-4 w-4 mr-1" />
+                                  Jóváhagy
+                                </Button>
+                                <Button
+                                  variant="destructive"
+                                  size="sm"
+                                  onClick={() => handleRejectHunter(hunter.id)}
+                                >
+                                  <XCircle className="h-4 w-4 mr-1" />
+                                  Elutasít
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </TabsContent>
 
               <TabsContent value="users" className="mt-4">
                 <div className="rounded-md border">
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Cégnév</TableHead>
+                        <TableHead>Cégnév / Név</TableHead>
                         <TableHead>Kapcsolattartó</TableHead>
                         <TableHead>Email</TableHead>
                         <TableHead>Típus</TableHead>
+                        <TableHead>Vadásztársaság</TableHead>
+                        <TableHead>Jóváhagyva</TableHead>
                         <TableHead className="text-right">Műveletek</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {profiles.map((profile) => (
                         <TableRow key={profile.id}>
-                          <TableCell className="font-medium">{profile.company_name || "-"}</TableCell>
+                          <TableCell className="font-medium">
+                            {profile.user_type === "hunter" ? profile.contact_name : profile.company_name || "-"}
+                          </TableCell>
                           <TableCell>{profile.contact_name || "-"}</TableCell>
                           <TableCell>{profile.contact_email || "-"}</TableCell>
                           <TableCell>
-                            <Badge variant="secondary">{profile.user_type || "-"}</Badge>
+                            <Badge variant={profile.user_type === "hunter" ? "default" : "secondary"}>
+                              {profile.user_type === "hunter" ? "Vadász" : profile.user_type === "hunter_society" ? "Vadásztársaság" : "Felvásárló"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            {profile.user_type === "hunter" && profile.hunter_society_id ? (
+                              <span className="text-sm">
+                                {profiles.find(p => p.id === profile.hunter_society_id)?.company_name || "-"}
+                              </span>
+                            ) : "-"}
+                          </TableCell>
+                          <TableCell>
+                            {profile.user_type === "hunter" ? (
+                              profile.registration_approved ? (
+                                <Badge variant="default">Igen</Badge>
+                              ) : (
+                                <Badge variant="destructive">Nem</Badge>
+                              )
+                            ) : "-"}
                           </TableCell>
                           <TableCell className="text-right">
                             <div className="flex justify-end gap-2">
