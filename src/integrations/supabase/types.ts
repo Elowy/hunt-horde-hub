@@ -654,6 +654,8 @@ export type Database = {
           notify_on_animal_add: boolean | null
           notify_on_animal_delete: boolean | null
           notify_on_animal_update: boolean | null
+          notify_on_registration_approved: boolean | null
+          notify_on_registration_rejected: boolean | null
           notify_on_storage_full: boolean | null
           notify_on_transport: boolean | null
           updated_at: string | null
@@ -665,6 +667,8 @@ export type Database = {
           notify_on_animal_add?: boolean | null
           notify_on_animal_delete?: boolean | null
           notify_on_animal_update?: boolean | null
+          notify_on_registration_approved?: boolean | null
+          notify_on_registration_rejected?: boolean | null
           notify_on_storage_full?: boolean | null
           notify_on_transport?: boolean | null
           updated_at?: string | null
@@ -676,6 +680,8 @@ export type Database = {
           notify_on_animal_add?: boolean | null
           notify_on_animal_delete?: boolean | null
           notify_on_animal_update?: boolean | null
+          notify_on_registration_approved?: boolean | null
+          notify_on_registration_rejected?: boolean | null
           notify_on_storage_full?: boolean | null
           notify_on_transport?: boolean | null
           updated_at?: string | null

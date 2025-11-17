@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useSubscription } from "@/hooks/useSubscription";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { PageHeader } from "@/components/PageHeader";
+import { useNotifications } from "@/hooks/useNotifications";
 import {
   Dialog,
   DialogContent,
@@ -120,6 +121,7 @@ interface HuntingRegistration {
 const HuntingRegistrations = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { sendNotification } = useNotifications();
   const { isPro, loading: subscriptionLoading } = useSubscription();
   const [registrations, setRegistrations] = useState<HuntingRegistration[]>([]);
   const [zones, setZones] = useState<SecurityZone[]>([]);
@@ -523,6 +525,19 @@ const HuntingRegistrations = () => {
 
   const handleApprove = async (regId: string) => {
     try {
+      // Fetch registration details before approval for notification
+      const { data: registration, error: fetchError } = await supabase
+        .from("hunting_registrations")
+        .select(`
+          *,
+          security_zones!inner(name),
+          hunting_locations(name)
+        `)
+        .eq("id", regId)
+        .single();
+
+      if (fetchError) throw fetchError;
+
       const { error } = await supabase
         .from("hunting_registrations")
         .update({ 
@@ -533,19 +548,18 @@ const HuntingRegistrations = () => {
 
       if (error) throw error;
 
-      // Send email notification about approval
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session) {
-          await supabase.functions.invoke("send-registration-approval", {
-            body: {
-              registrationId: regId,
-            },
-          });
-        }
-      } catch (emailError) {
-        console.error("Error sending approval email:", emailError);
-        // Don't fail the approval if email fails
+      // Send notification to the user who created the registration
+      if (registration) {
+        await sendNotification({
+          notification_type: 'registration_approved',
+          data: {
+            security_zone_name: registration.security_zones?.name,
+            hunting_location_name: registration.hunting_locations?.name,
+            start_time: registration.start_time,
+            end_time: registration.end_time,
+            admin_note: registration.admin_note,
+          },
+        });
       }
 
       toast({ title: "Siker!", description: "Beiratkozás jóváhagyva!" });
@@ -561,12 +575,40 @@ const HuntingRegistrations = () => {
 
   const handleReject = async (regId: string) => {
     try {
+      // Fetch registration details before rejection for notification
+      const { data: registration, error: fetchError } = await supabase
+        .from("hunting_registrations")
+        .select(`
+          *,
+          security_zones!inner(name),
+          hunting_locations(name)
+        `)
+        .eq("id", regId)
+        .single();
+
+      if (fetchError) throw fetchError;
+
       const { error } = await supabase
         .from("hunting_registrations")
         .update({ status: "rejected" })
         .eq("id", regId);
 
       if (error) throw error;
+
+      // Send notification to the user who created the registration
+      if (registration) {
+        await sendNotification({
+          notification_type: 'registration_rejected',
+          data: {
+            security_zone_name: registration.security_zones?.name,
+            hunting_location_name: registration.hunting_locations?.name,
+            start_time: registration.start_time,
+            end_time: registration.end_time,
+            admin_note: registration.admin_note,
+          },
+        });
+      }
+
       toast({ title: "Siker!", description: "Beiratkozás elutasítva!" });
       fetchRegistrations();
     } catch (error: any) {
