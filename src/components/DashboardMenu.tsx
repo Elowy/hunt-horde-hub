@@ -7,6 +7,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { ViewportToggle } from "@/components/ViewportToggle";
 import { TransportDocumentsDialog } from "@/components/TransportDocumentsDialog";
 import { BuyerTransportDocuments } from "@/components/BuyerTransportDocuments";
+import { PriceProposalsDialog } from "@/components/PriceProposalsDialog";
 import { TransporterDialog } from "@/components/TransporterDialog";
 import { PriceSettingsDialog } from "@/components/PriceSettingsDialog";
 import { InviteUserDialog } from "@/components/InviteUserDialog";
@@ -178,6 +179,7 @@ export const DashboardMenu = ({ isAdmin, isEditor, isHunter, onLogout, onPriceUp
                   <TransportDocumentsDialog />
                   <TransporterDialog />
                   <PriceSettingsDialog onPriceUpdated={onPriceUpdated} />
+                  {isAdmin && <PriceProposalsDialog />}
                   {isBuyer && (
                     <>
                       <BuyerPriceProposalDialog />
