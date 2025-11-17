@@ -57,6 +57,26 @@ const Login = () => {
       }
 
       if (data.user) {
+        // Log login history
+        try {
+          let ipAddress = "Unknown";
+          try {
+            const ipResponse = await fetch("https://api.ipify.org?format=json");
+            const ipData = await ipResponse.json();
+            ipAddress = ipData.ip;
+          } catch (error) {
+            console.error("Failed to fetch IP:", error);
+          }
+
+          await supabase.from("user_login_history").insert({
+            user_id: data.user.id,
+            ip_address: ipAddress,
+            user_agent: navigator.userAgent,
+          });
+        } catch (error) {
+          console.error("Failed to log login history:", error);
+        }
+
         toast({
           title: "Sikeres bejelentkezés!",
           description: "Üdvözöljük újra!",
