@@ -60,6 +60,7 @@ import { StorageLocationCarousel } from "@/components/StorageLocationCarousel";
 import { AddAnimalDialog } from "@/components/AddAnimalDialog";
 import { AnnouncementBanner } from "@/components/AnnouncementBanner";
 import { QuickActionsSettingsDialog } from "@/components/QuickActionsSettingsDialog";
+import { AnimalReservationDialog } from "@/components/AnimalReservationDialog";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import jsPDF from "jspdf";
 import * as XLSX from "xlsx";
@@ -110,6 +111,10 @@ interface Animal {
   vet_result: string | null;
   transport_cooling_price?: number | null;
   transport_cooling_vat_rate?: number | null;
+  reservation_status?: string;
+  reserved_by?: string | null;
+  reserved_at?: string | null;
+  reservation_note?: string | null;
 }
 
 interface TransportDocument {
@@ -1307,6 +1312,21 @@ const Dashboard = () => {
     return `${monthNames[parseInt(month) - 1]} ${year}`;
   };
 
+  const getReservationBadge = (status: string = 'available') => {
+    switch (status) {
+      case 'available':
+        return <Badge className="bg-green-500 hover:bg-green-600 text-white text-xs mr-2">Elérhető</Badge>;
+      case 'pending':
+        return <Badge className="bg-yellow-500 hover:bg-yellow-600 text-white text-xs mr-2">Foglalva</Badge>;
+      case 'approved':
+        return <Badge className="bg-red-500 hover:bg-red-600 text-white text-xs mr-2">Foglalva</Badge>;
+      case 'atev':
+        return <Badge className="bg-purple-500 hover:bg-purple-600 text-white text-xs mr-2">ATEV</Badge>;
+      default:
+        return <Badge className="bg-green-500 hover:bg-green-600 text-white text-xs mr-2">Elérhető</Badge>;
+    }
+  };
+
   const getTotalCoolingRevenue = () => {
     return animals.reduce((sum, animal) => {
       if (animal.is_transported || !animal.weight) return sum;
@@ -2182,7 +2202,12 @@ const Dashboard = () => {
                                 />
                               </TableCell>
                             )}
-                            <TableCell className="font-medium">{animal.animal_id}</TableCell>
+                            <TableCell className="font-medium">
+                              <div className="flex items-center">
+                                {getReservationBadge(animal.reservation_status)}
+                                {animal.animal_id}
+                              </div>
+                            </TableCell>
                             <TableCell>{animal.species}</TableCell>
                             <TableCell>{animal.weight || "-"}</TableCell>
                             <TableCell>{animal.class || "-"}</TableCell>
@@ -2238,6 +2263,17 @@ const Dashboard = () => {
                                     </Button>
                                   </>
                                 )}
+                                <AnimalReservationDialog
+                                  animalId={animal.id}
+                                  animalIdentifier={animal.animal_id}
+                                  currentStatus={animal.reservation_status || 'available'}
+                                  reservedBy={animal.reserved_by}
+                                  reservationNote={animal.reservation_note}
+                                  isHunter={isHunter}
+                                  isAdmin={isAdmin}
+                                  isEditor={isEditor}
+                                  onReservationUpdated={fetchData}
+                                />
                               </div>
                             </TableCell>
                           </TableRow>
@@ -2313,7 +2349,12 @@ const Dashboard = () => {
                                   />
                                 </TableCell>
                               )}
-                              <TableCell className="font-medium">{animal.animal_id}</TableCell>
+                              <TableCell className="font-medium">
+                                <div className="flex items-center">
+                                  {getReservationBadge(animal.reservation_status)}
+                                  {animal.animal_id}
+                                </div>
+                              </TableCell>
                               <TableCell>{animal.species}</TableCell>
                               <TableCell>{animal.weight || "-"}</TableCell>
                               <TableCell>{animal.class || "-"}</TableCell>
@@ -2365,6 +2406,17 @@ const Dashboard = () => {
                                       </Button>
                                     </>
                                   )}
+                                  <AnimalReservationDialog
+                                    animalId={animal.id}
+                                    animalIdentifier={animal.animal_id}
+                                    currentStatus={animal.reservation_status || 'available'}
+                                    reservedBy={animal.reserved_by}
+                                    reservationNote={animal.reservation_note}
+                                    isHunter={isHunter}
+                                    isAdmin={isAdmin}
+                                    isEditor={isEditor}
+                                    onReservationUpdated={fetchData}
+                                  />
                                 </div>
                               </TableCell>
                             </TableRow>
@@ -2438,7 +2490,12 @@ const Dashboard = () => {
                                   onCheckedChange={() => toggleAnimalSelection(animal.id)}
                                 />
                               </TableCell>
-                              <TableCell className="font-medium">{animal.animal_id}</TableCell>
+                              <TableCell className="font-medium">
+                                <div className="flex items-center">
+                                  {getReservationBadge(animal.reservation_status)}
+                                  {animal.animal_id}
+                                </div>
+                              </TableCell>
                               <TableCell>{animal.species}</TableCell>
                               <TableCell>{animal.weight || "-"}</TableCell>
                               <TableCell>{animal.class || "-"}</TableCell>
@@ -2465,6 +2522,17 @@ const Dashboard = () => {
                                     animal={animal} 
                                     locationName={transportDocuments[animal.id] || getLocationName(animal.storage_location_id)}
                                     price={price.gross}
+                                  />
+                                  <AnimalReservationDialog
+                                    animalId={animal.id}
+                                    animalIdentifier={animal.animal_id}
+                                    currentStatus={animal.reservation_status || 'available'}
+                                    reservedBy={animal.reserved_by}
+                                    reservationNote={animal.reservation_note}
+                                    isHunter={isHunter}
+                                    isAdmin={isAdmin}
+                                    isEditor={isEditor}
+                                    onReservationUpdated={fetchData}
                                   />
                                 </div>
                               </TableCell>

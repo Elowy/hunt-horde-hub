@@ -66,6 +66,10 @@ export type Database = {
           is_transported: boolean | null
           judgement_number: string | null
           notes: string | null
+          reservation_note: string | null
+          reservation_status: string | null
+          reserved_at: string | null
+          reserved_by: string | null
           sample_date: string | null
           sample_id: string | null
           security_zone_id: string | null
@@ -103,6 +107,10 @@ export type Database = {
           is_transported?: boolean | null
           judgement_number?: string | null
           notes?: string | null
+          reservation_note?: string | null
+          reservation_status?: string | null
+          reserved_at?: string | null
+          reserved_by?: string | null
           sample_date?: string | null
           sample_id?: string | null
           security_zone_id?: string | null
@@ -140,6 +148,10 @@ export type Database = {
           is_transported?: boolean | null
           judgement_number?: string | null
           notes?: string | null
+          reservation_note?: string | null
+          reservation_status?: string | null
+          reserved_at?: string | null
+          reserved_by?: string | null
           sample_date?: string | null
           sample_id?: string | null
           security_zone_id?: string | null
