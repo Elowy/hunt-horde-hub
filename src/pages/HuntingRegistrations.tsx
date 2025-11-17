@@ -466,6 +466,28 @@ const HuntingRegistrations = () => {
         insertData.user_id = user.id;
       }
 
+      // Check if user already has an active registration (pending or approved)
+      const targetUserId = insertData.user_id;
+      const { data: existingRegistrations, error: checkError } = await supabase
+        .from("hunting_registrations")
+        .select("id, status, start_time, end_time, security_zones(name)")
+        .eq("user_id", targetUserId)
+        .in("status", ["pending", "approved"])
+        .limit(1);
+
+      if (checkError) throw checkError;
+
+      if (existingRegistrations && existingRegistrations.length > 0) {
+        const existing = existingRegistrations[0];
+        const statusText = existing.status === "pending" ? "jóváhagyásra váró" : "jóváhagyott";
+        toast({
+          title: "Már van aktív beiratkozás",
+          description: `Már létezik egy ${statusText} beiratkozás (${existing.security_zones?.name}). Kérjük, először törölje vagy változtassa meg azt, mielőtt újat hozna létre.`,
+          variant: "destructive",
+        });
+        return;
+      }
+
       // If admin or editor is creating, automatically approve
       if (isAdminOrEditorCreating) {
         insertData.status = "approved";
