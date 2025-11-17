@@ -144,17 +144,7 @@ const Register = () => {
       }
 
       if (data.user) {
-        // Minden új felhasználó automatikusan kap 1 hónapos Pro próbaidőszakot
-        const expiresAt = new Date();
-        expiresAt.setMonth(expiresAt.getMonth() + 1);
-        
-        await supabase.from("trial_subscriptions").insert({
-          user_id: data.user.id,
-          tier: "pro",
-          expires_at: expiresAt.toISOString(),
-          newsletter_subscribed: formData.newsletterSubscribed,
-        });
-
+        // Trial subscription is now automatically created by database trigger
         if (formData.userType === "hunter") {
           toast({
             title: "Regisztráció beküldve!",
