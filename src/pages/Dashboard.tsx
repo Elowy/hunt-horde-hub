@@ -338,12 +338,12 @@ const Dashboard = () => {
         supabase
           .from("animals")
           .select("*")
-          .eq("user_id", user.id)
+          .in("user_id", userIds)
           .order("created_at", { ascending: false }),
         supabase
           .from("price_settings")
           .select("*")
-          .eq("user_id", user.id),
+          .in("user_id", userIds),
         supabase
           .from("transport_documents")
           .select(`
@@ -353,7 +353,7 @@ const Dashboard = () => {
               company_name
             )
           `)
-          .eq("user_id", user.id),
+          .in("user_id", userIds),
         supabase
           .from("profiles")
           .select("vat_rate")
