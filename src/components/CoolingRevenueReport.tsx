@@ -4,7 +4,6 @@ import { FileDown } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import jsPDF from "jspdf";
-import { getActiveCompany } from "@/components/CompanySwitcher";
 import {
   Select,
   SelectContent,
@@ -156,25 +155,9 @@ export const CoolingRevenueReport = () => {
       }
 
       // Hűtési helyszínek lekérdezése
-      // Check if super admin is filtering by company
-      const activeCompany = getActiveCompany();
-      let userIds = [user.id];
-
-      if (activeCompany) {
-        const { data: companyProfiles } = await supabase
-          .from("profiles")
-          .select("id")
-          .eq("company_name", activeCompany);
-        
-        if (companyProfiles && companyProfiles.length > 0) {
-          userIds = companyProfiles.map(p => p.id);
-        }
-      }
-
       const { data: locations, error: locationsError } = await supabase
         .from("storage_locations")
-        .select("id, name, cooling_price_per_kg, cooling_vat_rate")
-        .in("user_id", userIds);
+        .select("id, name, cooling_price_per_kg, cooling_vat_rate");
 
       if (locationsError) throw locationsError;
 

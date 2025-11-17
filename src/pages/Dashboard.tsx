@@ -315,10 +315,19 @@ const Dashboard = () => {
       if (!user) return;
 
       // Check if super admin is filtering by company
+      const { data: superAdminRole } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
+        .eq("role", "super_admin")
+        .maybeSingle();
+
+      const isSuperAdmin = !!superAdminRole;
       const activeCompany = getActiveCompany();
       let userIds = [user.id];
 
-      if (activeCompany) {
+      // Only apply company filter for super admins
+      if (isSuperAdmin && activeCompany) {
         const { data: companyProfiles } = await supabase
           .from("profiles")
           .select("id")
@@ -338,12 +347,12 @@ const Dashboard = () => {
         supabase
           .from("animals")
           .select("*")
-          .in("user_id", userIds)
+          .in("user_id", isSuperAdmin && activeCompany ? userIds : [user.id])
           .order("created_at", { ascending: false }),
         supabase
           .from("price_settings")
           .select("*")
-          .in("user_id", userIds),
+          .in("user_id", isSuperAdmin && activeCompany ? userIds : [user.id]),
         supabase
           .from("transport_documents")
           .select(`
@@ -353,7 +362,7 @@ const Dashboard = () => {
               company_name
             )
           `)
-          .in("user_id", userIds),
+          .in("user_id", isSuperAdmin && activeCompany ? userIds : [user.id]),
         supabase
           .from("profiles")
           .select("vat_rate")
