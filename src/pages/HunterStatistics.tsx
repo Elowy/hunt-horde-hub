@@ -17,7 +17,15 @@ interface HunterStat {
   animal_revenue: number;
   cooling_revenue: number;
   total_revenue: number;
+  total_registrations: number;
   species_breakdown: { [key: string]: number };
+}
+
+interface ZoneStat {
+  zone_name: string;
+  total_registrations?: number;
+  total_animals?: number;
+  total_weight?: number;
 }
 
 const HunterStatistics = () => {
@@ -27,6 +35,8 @@ const HunterStatistics = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [isEditor, setIsEditor] = useState(false);
   const [hunterStats, setHunterStats] = useState<HunterStat[]>([]);
+  const [registrationZones, setRegistrationZones] = useState<ZoneStat[]>([]);
+  const [huntingZones, setHuntingZones] = useState<ZoneStat[]>([]);
 
   useEffect(() => {
     checkAccess();
@@ -103,15 +113,76 @@ const HunterStatistics = () => {
           transport_price_per_kg,
           transport_vat_rate,
           transport_cooling_price,
-          transport_cooling_vat_rate
+          transport_cooling_vat_rate,
+          security_zone_id,
+          security_zones (
+            name
+          )
         `)
         .not("hunter_name", "is", null);
 
       if (error) throw error;
 
+      // Fetch all registrations
+      const { data: registrations, error: regError } = await supabase
+        .from("hunting_registrations")
+        .select(`
+          id,
+          user_id,
+          is_guest,
+          guest_name,
+          security_zone_id,
+          security_zones (
+            name
+          )
+        `);
+
+      if (regError) throw regError;
+
+      // Fetch all profiles for user names
+      const { data: profiles, error: profileError } = await supabase
+        .from("profiles")
+        .select("id, contact_name");
+
+      if (profileError) throw profileError;
+
+      // Create a map of user_id to contact_name
+      const profileMap = new Map(
+        profiles?.map((p) => [p.id, p.contact_name]) || []
+      );
+
       // Group by hunter
       const statsMap = new Map<string, HunterStat>();
 
+      // Process registrations to count them per hunter
+      registrations?.forEach((registration) => {
+        const hunterName = registration.is_guest 
+          ? registration.guest_name 
+          : profileMap.get(registration.user_id);
+        
+        if (!hunterName) return;
+
+        const key = `${hunterName}_tag`;
+        
+        if (!statsMap.has(key)) {
+          statsMap.set(key, {
+            hunter_name: hunterName,
+            hunter_type: "tag",
+            total_animals: 0,
+            total_weight: 0,
+            animal_revenue: 0,
+            cooling_revenue: 0,
+            total_revenue: 0,
+            total_registrations: 0,
+            species_breakdown: {},
+          });
+        }
+
+        const stat = statsMap.get(key)!;
+        stat.total_registrations += 1;
+      });
+
+      // Process animals
       animals?.forEach((animal) => {
         const key = `${animal.hunter_name}_${animal.hunter_type || "tag"}`;
         
@@ -124,6 +195,7 @@ const HunterStatistics = () => {
             animal_revenue: 0,
             cooling_revenue: 0,
             total_revenue: 0,
+            total_registrations: 0,
             species_breakdown: {},
           });
         }
@@ -161,6 +233,52 @@ const HunterStatistics = () => {
       });
 
       setHunterStats(Array.from(statsMap.values()));
+
+      // Process registration zones
+      const regZoneMap = new Map<string, ZoneStat>();
+      registrations?.forEach((registration) => {
+        const zoneName = registration.security_zones?.name || "Ismeretlen körzet";
+        
+        if (!regZoneMap.has(zoneName)) {
+          regZoneMap.set(zoneName, {
+            zone_name: zoneName,
+            total_registrations: 0,
+          });
+        }
+        
+        const zoneStat = regZoneMap.get(zoneName)!;
+        zoneStat.total_registrations! += 1;
+      });
+
+      setRegistrationZones(
+        Array.from(regZoneMap.values()).sort(
+          (a, b) => (b.total_registrations || 0) - (a.total_registrations || 0)
+        )
+      );
+
+      // Process hunting zones (by animals)
+      const huntZoneMap = new Map<string, ZoneStat>();
+      animals?.forEach((animal) => {
+        const zoneName = animal.security_zones?.name || "Ismeretlen körzet";
+        
+        if (!huntZoneMap.has(zoneName)) {
+          huntZoneMap.set(zoneName, {
+            zone_name: zoneName,
+            total_animals: 0,
+            total_weight: 0,
+          });
+        }
+        
+        const zoneStat = huntZoneMap.get(zoneName)!;
+        zoneStat.total_animals! += 1;
+        zoneStat.total_weight! += animal.weight || 0;
+      });
+
+      setHuntingZones(
+        Array.from(huntZoneMap.values()).sort(
+          (a, b) => (b.total_animals || 0) - (a.total_animals || 0)
+        )
+      );
     } catch (error: any) {
       toast({
         title: "Hiba",
@@ -215,14 +333,22 @@ const HunterStatistics = () => {
 
         {/* Statistics */}
         <Tabs defaultValue="animals" className="space-y-6">
-          <TabsList className="grid w-full max-w-md grid-cols-2">
+          <TabsList className="grid w-full grid-cols-2 md:grid-cols-4">
             <TabsTrigger value="animals">
               <Package className="h-4 w-4 mr-2" />
               Elejtett állatok
             </TabsTrigger>
             <TabsTrigger value="revenue">
               <DollarSign className="h-4 w-4 mr-2" />
-              Összesített bevétel
+              Bevétel
+            </TabsTrigger>
+            <TabsTrigger value="reg-zones">
+              <Trophy className="h-4 w-4 mr-2" />
+              Beiratkozási körzetek
+            </TabsTrigger>
+            <TabsTrigger value="hunt-zones">
+              <TrendingUp className="h-4 w-4 mr-2" />
+              Elejtési körzetek
             </TabsTrigger>
           </TabsList>
 
@@ -250,6 +376,7 @@ const HunterStatistics = () => {
                         <TableHead className="w-16">Hely</TableHead>
                         <TableHead>Vadász neve</TableHead>
                         <TableHead>Típus</TableHead>
+                        <TableHead className="text-right">Beiratkozások</TableHead>
                         <TableHead className="text-right">Elejtett állatok</TableHead>
                         <TableHead className="text-right">Összsúly (kg)</TableHead>
                         <TableHead>Fajok</TableHead>
@@ -266,6 +393,9 @@ const HunterStatistics = () => {
                             <Badge variant={stat.hunter_type === "bérvadász" ? "secondary" : "outline"}>
                               {stat.hunter_type}
                             </Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {stat.total_registrations}
                           </TableCell>
                           <TableCell className="text-right font-semibold">
                             {stat.total_animals}
@@ -315,6 +445,7 @@ const HunterStatistics = () => {
                         <TableHead className="w-16">Hely</TableHead>
                         <TableHead>Vadász neve</TableHead>
                         <TableHead>Típus</TableHead>
+                        <TableHead className="text-right">Beiratkozások</TableHead>
                         <TableHead className="text-right">Elejtett állatok</TableHead>
                         <TableHead className="text-right">Összsúly (kg)</TableHead>
                         <TableHead className="text-right">Állat ár (Ft)</TableHead>
@@ -335,6 +466,9 @@ const HunterStatistics = () => {
                             </Badge>
                           </TableCell>
                           <TableCell className="text-right">
+                            {stat.total_registrations}
+                          </TableCell>
+                          <TableCell className="text-right">
                             {stat.total_animals}
                           </TableCell>
                           <TableCell className="text-right">
@@ -348,6 +482,100 @@ const HunterStatistics = () => {
                           </TableCell>
                           <TableCell className="text-right font-semibold text-green-600 dark:text-green-400">
                             {stat.total_revenue.toLocaleString("hu-HU")} Ft
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Registration Zones */}
+          <TabsContent value="reg-zones">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Trophy className="h-5 w-5" />
+                  Legaktívabb beiratkozási körzetek
+                </CardTitle>
+                <CardDescription>
+                  Biztonsági körzetek rangsorolva a beiratkozások száma alapján
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {registrationZones.length === 0 ? (
+                  <p className="text-center text-muted-foreground py-8">
+                    Nincs megjeleníthető adat
+                  </p>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-16">Hely</TableHead>
+                        <TableHead>Körzet neve</TableHead>
+                        <TableHead className="text-right">Beiratkozások száma</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {registrationZones.map((zone, index) => (
+                        <TableRow key={`${zone.zone_name}_${index}`}>
+                          <TableCell className="font-medium text-lg">
+                            {getMedalIcon(index)}
+                          </TableCell>
+                          <TableCell className="font-medium">{zone.zone_name}</TableCell>
+                          <TableCell className="text-right font-semibold">
+                            {zone.total_registrations}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Hunting Zones */}
+          <TabsContent value="hunt-zones">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <TrendingUp className="h-5 w-5" />
+                  Legsikeresebb elejtési körzetek
+                </CardTitle>
+                <CardDescription>
+                  Biztonsági körzetek rangsorolva az elejtett állatok száma alapján
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {huntingZones.length === 0 ? (
+                  <p className="text-center text-muted-foreground py-8">
+                    Nincs megjeleníthető adat
+                  </p>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-16">Hely</TableHead>
+                        <TableHead>Körzet neve</TableHead>
+                        <TableHead className="text-right">Elejtett állatok</TableHead>
+                        <TableHead className="text-right">Összsúly (kg)</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {huntingZones.map((zone, index) => (
+                        <TableRow key={`${zone.zone_name}_${index}`}>
+                          <TableCell className="font-medium text-lg">
+                            {getMedalIcon(index)}
+                          </TableCell>
+                          <TableCell className="font-medium">{zone.zone_name}</TableCell>
+                          <TableCell className="text-right font-semibold">
+                            {zone.total_animals}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {zone.total_weight?.toFixed(1)} kg
                           </TableCell>
                         </TableRow>
                       ))}
