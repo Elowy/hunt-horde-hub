@@ -151,6 +151,18 @@ const Users = () => {
 
   const fetchData = async () => {
     try {
+      // Get current user's hunter society
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      const { data: currentProfile } = await supabase
+        .from("profiles")
+        .select("id, company_name, hunter_society_id, user_type")
+        .eq("id", currentUser?.id)
+        .single();
+
+      const currentSocietyId = currentProfile?.user_type === "hunter" 
+        ? currentProfile.hunter_society_id 
+        : currentProfile?.id;
+
       // Fetch pending hunters (hunters with registration_approved = false)
       const { data: pendingData, error: pendingError } = await supabase
         .from("profiles")
@@ -170,6 +182,7 @@ const Users = () => {
         `)
         .eq("user_type", "hunter")
         .eq("registration_approved", false)
+        .eq("hunter_society_id", currentSocietyId)
         .order("created_at", { ascending: false });
 
       if (pendingError) throw pendingError;
@@ -215,25 +228,40 @@ const Users = () => {
       if (rolesError) throw rolesError;
       setUserRoles(rolesData || []);
 
-      // Fetch profiles for users with roles (excluding pending hunters)
-      if (rolesData && rolesData.length > 0) {
-        const userIds = rolesData.map(r => r.user_id);
-        const { data: profilesData } = await supabase
-          .from("profiles")
-          .select("id, company_name, contact_name, hunter_category, banned_until, ban_reason, user_type, registration_approved, hunter_society_id")
-          .in("id", userIds)
-          .or("registration_approved.eq.true,user_type.neq.hunter");
+      // Fetch users with roles AND approved hunters for this hunter society
+      const userIds = rolesData?.map(r => r.user_id) || [];
+      
+      // Fetch profiles with roles
+      const { data: profilesWithRoles } = await supabase
+        .from("profiles")
+        .select("id, company_name, contact_name, hunter_category, banned_until, ban_reason, user_type, registration_approved, hunter_society_id")
+        .in("id", userIds);
 
-        // Create a pseudo-user list from profiles
-        const usersWithProfiles = profilesData?.map(profile => ({
-          id: profile.id,
-          email: "",
-          created_at: rolesData.find(r => r.user_id === profile.id)?.created_at || "",
-          profiles: profile,
-        })) || [];
+      // Fetch approved hunters for this society
+      const { data: approvedHunters } = await supabase
+        .from("profiles")
+        .select("id, company_name, contact_name, hunter_category, banned_until, ban_reason, user_type, registration_approved, hunter_society_id")
+        .eq("user_type", "hunter")
+        .eq("registration_approved", true)
+        .eq("hunter_society_id", currentSocietyId);
 
-        setUsers(usersWithProfiles as any);
-      }
+      // Combine both lists, removing duplicates
+      const allProfiles = [...(profilesWithRoles || [])];
+      (approvedHunters || []).forEach(hunter => {
+        if (!allProfiles.find(p => p.id === hunter.id)) {
+          allProfiles.push(hunter);
+        }
+      });
+
+      // Create a pseudo-user list from profiles
+      const usersWithProfiles = allProfiles.map(profile => ({
+        id: profile.id,
+        email: "",
+        created_at: rolesData?.find(r => r.user_id === profile.id)?.created_at || "",
+        profiles: profile,
+      }));
+
+      setUsers(usersWithProfiles as any);
 
       // Fetch invitations
       const { data: invitationsData, error: invitationsError } = await supabase
