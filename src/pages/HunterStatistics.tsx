@@ -14,6 +14,8 @@ interface HunterStat {
   hunter_type: string;
   total_animals: number;
   total_weight: number;
+  animal_revenue: number;
+  cooling_revenue: number;
   total_revenue: number;
   species_breakdown: { [key: string]: number };
 }
@@ -98,10 +100,10 @@ const HunterStatistics = () => {
           hunter_type,
           species,
           weight,
-          storage_locations (
-            cooling_price_per_kg,
-            cooling_vat_rate
-          )
+          transport_price_per_kg,
+          transport_vat_rate,
+          transport_cooling_price,
+          transport_cooling_vat_rate
         `)
         .not("hunter_name", "is", null);
 
@@ -119,6 +121,8 @@ const HunterStatistics = () => {
             hunter_type: animal.hunter_type || "tag",
             total_animals: 0,
             total_weight: 0,
+            animal_revenue: 0,
+            cooling_revenue: 0,
             total_revenue: 0,
             species_breakdown: {},
           });
@@ -128,14 +132,26 @@ const HunterStatistics = () => {
         stat.total_animals += 1;
         stat.total_weight += animal.weight || 0;
 
-        // Calculate revenue
-        if (animal.weight && animal.storage_locations) {
-          const pricePerKg = animal.storage_locations.cooling_price_per_kg || 0;
-          const vatRate = animal.storage_locations.cooling_vat_rate || 27;
+        // Calculate animal revenue
+        if (animal.weight && animal.transport_price_per_kg) {
+          const pricePerKg = animal.transport_price_per_kg;
+          const vatRate = animal.transport_vat_rate || 27;
           const netRevenue = animal.weight * pricePerKg;
           const grossRevenue = netRevenue * (1 + vatRate / 100);
-          stat.total_revenue += grossRevenue;
+          stat.animal_revenue += grossRevenue;
         }
+
+        // Calculate cooling revenue
+        if (animal.weight && animal.transport_cooling_price) {
+          const coolingPrice = animal.transport_cooling_price;
+          const coolingVatRate = animal.transport_cooling_vat_rate || 27;
+          const netCoolingRevenue = animal.weight * coolingPrice;
+          const grossCoolingRevenue = netCoolingRevenue * (1 + coolingVatRate / 100);
+          stat.cooling_revenue += grossCoolingRevenue;
+        }
+
+        // Total revenue is sum of animal and cooling revenue
+        stat.total_revenue = stat.animal_revenue + stat.cooling_revenue;
 
         // Species breakdown
         if (!stat.species_breakdown[animal.species]) {
@@ -284,7 +300,7 @@ const HunterStatistics = () => {
                   Toplista - Összesített bevétel
                 </CardTitle>
                 <CardDescription>
-                  Vadászok rangsorolva a hűtési díjból származó bruttó bevétel alapján
+                  Vadászok rangsorolva a teljes bruttó bevétel alapján (állat ár + hűtési díj)
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -301,7 +317,9 @@ const HunterStatistics = () => {
                         <TableHead>Típus</TableHead>
                         <TableHead className="text-right">Elejtett állatok</TableHead>
                         <TableHead className="text-right">Összsúly (kg)</TableHead>
-                        <TableHead className="text-right">Bruttó bevétel (Ft)</TableHead>
+                        <TableHead className="text-right">Állat ár (Ft)</TableHead>
+                        <TableHead className="text-right">Hűtési díj (Ft)</TableHead>
+                        <TableHead className="text-right">Összesen (Ft)</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -321,6 +339,12 @@ const HunterStatistics = () => {
                           </TableCell>
                           <TableCell className="text-right">
                             {stat.total_weight.toFixed(1)} kg
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {stat.animal_revenue.toLocaleString("hu-HU")} Ft
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {stat.cooling_revenue.toLocaleString("hu-HU")} Ft
                           </TableCell>
                           <TableCell className="text-right font-semibold text-green-600 dark:text-green-400">
                             {stat.total_revenue.toLocaleString("hu-HU")} Ft
