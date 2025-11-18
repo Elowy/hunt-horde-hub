@@ -18,6 +18,9 @@ import { useToast } from "@/hooks/use-toast";
 import { CreateSubscriptionCodeDialog } from "@/components/CreateSubscriptionCodeDialog";
 import { InviteSuperAdminDialog } from "@/components/InviteSuperAdminDialog";
 import { CreateGlobalAnnouncementDialog } from "@/components/CreateGlobalAnnouncementDialog";
+import { SuperAdminRoleSwitcher } from "@/components/admin/SuperAdminRoleSwitcher";
+import { SuperAdminSubscriptionSwitcher } from "@/components/admin/SuperAdminSubscriptionSwitcher";
+import { SuperAdminCompanySwitcher } from "@/components/admin/SuperAdminCompanySwitcher";
 import { format } from "date-fns";
 import { hu } from "date-fns/locale";
 import {
@@ -560,6 +563,13 @@ const SuperAdminDashboard = () => {
               <div className="text-2xl font-bold">{transportDocuments.length}</div>
             </CardContent>
           </Card>
+        </div>
+
+        {/* UI Tesztelő eszközök */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <SuperAdminRoleSwitcher />
+          <SuperAdminSubscriptionSwitcher />
+          <SuperAdminCompanySwitcher />
         </div>
 
         {/* Részletes adatok */}

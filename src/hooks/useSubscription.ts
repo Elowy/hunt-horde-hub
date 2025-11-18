@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { getTestSubscriptionTier } from "@/components/admin/SuperAdminSubscriptionSwitcher";
 
 const PRO_PRODUCT_IDS = ["prod_TQMCsYuGXl2cqX", "prod_TQMCzW95I3TlPz"];
 const NORMAL_PRODUCT_IDS = ["prod_TQMCKFFwVc6lXT", "prod_TQMCwp0XrDYkOB"];
@@ -68,6 +69,26 @@ export const useSubscription = () => {
       if (!session) {
         setIsPro(false);
         return;
+      }
+
+      // Check if super admin is testing UI with different subscription tier
+      // IMPORTANT: This does NOT change actual billing or limits, only UI display
+      const { data: superAdminRole } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", session.user.id)
+        .eq("role", "super_admin")
+        .maybeSingle();
+
+      if (superAdminRole) {
+        const testTier = getTestSubscriptionTier();
+        if (testTier) {
+          setTier(testTier);
+          setIsPro(testTier === "pro");
+          setProductId(`test_${testTier}`);
+          setLoading(false);
+          return;
+        }
       }
 
       // Ellenőrizzük a próbaidőszakot először
