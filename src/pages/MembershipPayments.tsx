@@ -30,6 +30,7 @@ interface Payment {
   paid: boolean;
   paid_at: string | null;
   notes: string | null;
+  season_year: number;
   profiles: {
     contact_name: string | null;
     contact_email: string | null;
@@ -49,8 +50,11 @@ const MembershipPayments = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [isEditor, setIsEditor] = useState(false);
   const [currentSeasonYear, setCurrentSeasonYear] = useState(0);
+  const [selectedSeasonYear, setSelectedSeasonYear] = useState(0);
+  const [availableSeasons, setAvailableSeasons] = useState<number[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
+  const [allPayments, setAllPayments] = useState<Payment[]>([]);
   const [feeSettings, setFeeSettings] = useState<FeeSettings | null>(null);
   const [selectedMember, setSelectedMember] = useState("");
   const [selectedPeriod, setSelectedPeriod] = useState<"first_half" | "second_half" | "full_year">("first_half");
@@ -58,6 +62,7 @@ const MembershipPayments = () => {
   const [notes, setNotes] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [bulkDialogOpen, setBulkDialogOpen] = useState(false);
+  const [archiveDialogOpen, setArchiveDialogOpen] = useState(false);
   const [bulkPeriod, setBulkPeriod] = useState<"first_half" | "second_half" | "full_year">("first_half");
   const [bulkCreating, setBulkCreating] = useState(false);
 
@@ -65,6 +70,13 @@ const MembershipPayments = () => {
     checkAuth();
     initializeData();
   }, []);
+
+  useEffect(() => {
+    if (selectedSeasonYear > 0) {
+      fetchPayments(selectedSeasonYear);
+      fetchFeeSettings(selectedSeasonYear);
+    }
+  }, [selectedSeasonYear]);
 
   const checkAuth = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -103,11 +115,14 @@ const MembershipPayments = () => {
       const currentYear = today.getFullYear();
       const seasonYear = currentMonth <= 2 ? currentYear - 1 : currentYear;
       setCurrentSeasonYear(seasonYear);
+      setSelectedSeasonYear(seasonYear);
 
       await Promise.all([
         fetchMembers(),
         fetchPayments(seasonYear),
-        fetchFeeSettings(seasonYear)
+        fetchFeeSettings(seasonYear),
+        fetchAvailableSeasons(),
+        fetchAllPayments()
       ]);
     } catch (error: any) {
       toast({
@@ -117,6 +132,54 @@ const MembershipPayments = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchAvailableSeasons = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("membership_payments")
+        .select("season_year");
+
+      if (error) throw error;
+
+      // Get unique season years and sort them
+      const uniqueSeasons = [...new Set(data?.map(p => p.season_year) || [])].sort((a, b) => b - a);
+      
+      // Add current season if not present
+      if (!uniqueSeasons.includes(currentSeasonYear)) {
+        uniqueSeasons.unshift(currentSeasonYear);
+        uniqueSeasons.sort((a, b) => b - a);
+      }
+      
+      setAvailableSeasons(uniqueSeasons);
+    } catch (error) {
+      console.error("Error fetching available seasons:", error);
+    }
+  };
+
+  const fetchAllPayments = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from("membership_payments")
+        .select(`
+          *,
+          profiles!membership_payments_user_id_fkey (
+            contact_name,
+            contact_email
+          )
+        `)
+        .eq("hunter_society_id", user.id)
+        .order("season_year", { ascending: false })
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      setAllPayments(data || []);
+    } catch (error) {
+      console.error("Error fetching all payments:", error);
     }
   };
 
@@ -209,7 +272,9 @@ const MembershipPayments = () => {
       setSelectedMember("");
       setAmount("");
       setNotes("");
-      fetchPayments(currentSeasonYear);
+      fetchPayments(selectedSeasonYear);
+      fetchAvailableSeasons();
+      fetchAllPayments();
     } catch (error: any) {
       toast({
         title: "Hiba",
@@ -334,7 +399,9 @@ const MembershipPayments = () => {
       });
 
       setBulkDialogOpen(false);
-      fetchPayments(currentSeasonYear);
+      fetchPayments(selectedSeasonYear);
+      fetchAvailableSeasons();
+      fetchAllPayments();
     } catch (error: any) {
       toast({
         title: "Hiba",
@@ -367,7 +434,9 @@ const MembershipPayments = () => {
         description: "A tagdíj fizetettként lett megjelölve.",
       });
 
-      fetchPayments(currentSeasonYear);
+      fetchPayments(selectedSeasonYear);
+      fetchAvailableSeasons();
+      fetchAllPayments();
     } catch (error: any) {
       toast({
         title: "Hiba",
@@ -395,7 +464,9 @@ const MembershipPayments = () => {
         description: "A tagdíj fizetetlen státuszra állítva.",
       });
 
-      fetchPayments(currentSeasonYear);
+      fetchPayments(selectedSeasonYear);
+      fetchAvailableSeasons();
+      fetchAllPayments();
     } catch (error: any) {
       toast({
         title: "Hiba",
@@ -431,6 +502,7 @@ const MembershipPayments = () => {
     paid: payments.filter(p => p.paid).length,
     unpaid: payments.filter(p => !p.paid).length,
     totalAmount: payments.reduce((sum, p) => sum + (p.paid ? p.amount : 0), 0),
+    totalRevenue: payments.reduce((sum, p) => sum + p.amount, 0),
   };
 
   return (
@@ -442,18 +514,38 @@ const MembershipPayments = () => {
       />
       
       <div className="container mx-auto py-6 px-4">
-        <div className="mb-6">
-          <h2 className="text-3xl font-bold text-forest-deep flex items-center gap-2">
-            <DollarSign className="h-8 w-8" />
-            Tagdíjak kezelése
-          </h2>
-          <p className="text-muted-foreground">
-            {currentSeasonYear}/{currentSeasonYear + 1} vadászati idény
-          </p>
+        <div className="mb-6 flex items-start justify-between">
+          <div>
+            <h2 className="text-3xl font-bold text-forest-deep flex items-center gap-2">
+              <DollarSign className="h-8 w-8" />
+              Tagdíjak kezelése
+            </h2>
+            <p className="text-muted-foreground">
+              Tagdíjak nyilvántartása és kezelése
+            </p>
+          </div>
+          <div className="flex gap-2 items-center">
+            <Label htmlFor="season-select" className="text-sm font-medium">Idény:</Label>
+            <Select 
+              value={selectedSeasonYear.toString()} 
+              onValueChange={(value) => setSelectedSeasonYear(parseInt(value))}
+            >
+              <SelectTrigger id="season-select" className="w-[200px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {availableSeasons.map((year) => (
+                  <SelectItem key={year} value={year.toString()}>
+                    {year}/{year + 1} {year === currentSeasonYear && "(aktuális)"}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         {/* Statistics */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
           <Card>
             <CardHeader className="pb-3">
               <CardDescription>Összes bejegyzés</CardDescription>
@@ -476,6 +568,12 @@ const MembershipPayments = () => {
             <CardHeader className="pb-3">
               <CardDescription>Befizetett összeg</CardDescription>
               <CardTitle className="text-3xl">{stats.totalAmount.toLocaleString()} Ft</CardTitle>
+            </CardHeader>
+          </Card>
+          <Card>
+            <CardHeader className="pb-3">
+              <CardDescription>Összes bevétel</CardDescription>
+              <CardTitle className="text-3xl text-primary">{stats.totalRevenue.toLocaleString()} Ft</CardTitle>
             </CardHeader>
           </Card>
         </div>
@@ -614,6 +712,74 @@ const MembershipPayments = () => {
                   {bulkCreating ? "Létrehozás és értesítések küldése..." : "Kiküldés mindenkinek"}
                 </Button>
               </div>
+            </DialogContent>
+          </Dialog>
+
+          <Dialog open={archiveDialogOpen} onOpenChange={setArchiveDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline">
+                Archívum
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-6xl max-h-[80vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Tagdíj archívum</DialogTitle>
+                <DialogDescription>
+                  Minden idény tagdíj bejegyzései
+                </DialogDescription>
+              </DialogHeader>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Idény</TableHead>
+                    <TableHead>Tag</TableHead>
+                    <TableHead>Időszak</TableHead>
+                    <TableHead>Összeg</TableHead>
+                    <TableHead>Státusz</TableHead>
+                    <TableHead>Fizetés dátuma</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {allPayments.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center text-muted-foreground">
+                        Nincs megjeleníthető adat
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    allPayments.map((payment) => (
+                      <TableRow key={payment.id}>
+                        <TableCell className="font-medium">
+                          {payment.season_year}/{payment.season_year + 1}
+                        </TableCell>
+                        <TableCell>
+                          {payment.profiles?.contact_name || payment.profiles?.contact_email || "Ismeretlen"}
+                        </TableCell>
+                        <TableCell>{getPeriodLabel(payment.period)}</TableCell>
+                        <TableCell>{payment.amount.toLocaleString()} Ft</TableCell>
+                        <TableCell>
+                          {payment.paid ? (
+                            <Badge variant="default" className="bg-green-600">
+                              <CheckCircle className="h-3 w-3 mr-1" />
+                              Fizetve
+                            </Badge>
+                          ) : (
+                            <Badge variant="destructive">
+                              <XCircle className="h-3 w-3 mr-1" />
+                              Fizetetlen
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {payment.paid_at
+                            ? format(new Date(payment.paid_at), "yyyy. MM. dd.", { locale: hu })
+                            : "-"}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
             </DialogContent>
           </Dialog>
          </div>
