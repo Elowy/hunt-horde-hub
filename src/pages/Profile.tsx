@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { InviteUserDialog } from "@/components/InviteUserDialog";
 import { useSubscription } from "@/hooks/useSubscription";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { MembershipDiscountInfo } from "@/components/MembershipDiscountInfo";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -513,6 +514,9 @@ const Profile = () => {
               </CardContent>
             </Card>
           )}
+
+          {/* Membership and Discount Info */}
+          <MembershipDiscountInfo />
 
           {/* Adatvédelmi és fiók törlés */}
           <Card className="border-destructive/50">

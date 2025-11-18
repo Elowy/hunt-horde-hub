@@ -30,6 +30,8 @@ const Settings = () => {
   const [saving, setSaving] = useState(false);
   const [sendingTest, setSendingTest] = useState<string | null>(null);
   const { isSuperAdmin } = useIsSuperAdmin();
+  const [userType, setUserType] = useState<string>("");
+  const [enableMembershipDiscount, setEnableMembershipDiscount] = useState(false);
   const [settings, setSettings] = useState<NotificationSettings>({
     notify_on_transport: true,
     notify_on_storage_full: true,
@@ -60,6 +62,7 @@ const Settings = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
+      // Load notification settings
       const { data, error } = await supabase
         .from("notification_settings")
         .select("*")
@@ -83,6 +86,18 @@ const Settings = () => {
           notify_on_membership_fee: data.notify_on_membership_fee ?? true,
         });
       }
+
+      // Load profile settings
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("user_type, enable_membership_discount")
+        .eq("id", user.id)
+        .single();
+
+      if (profile) {
+        setUserType(profile.user_type || "");
+        setEnableMembershipDiscount(profile.enable_membership_discount || false);
+      }
     } catch (error: any) {
       console.error("Error loading settings:", error);
       toast({
@@ -101,6 +116,7 @@ const Settings = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
+      // Save notification settings
       const { error } = await supabase
         .from("notification_settings")
         .upsert({
@@ -109,6 +125,16 @@ const Settings = () => {
         });
 
       if (error) throw error;
+
+      // Save profile settings (membership discount)
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .update({
+          enable_membership_discount: enableMembershipDiscount,
+        })
+        .eq("id", user.id);
+
+      if (profileError) throw profileError;
 
       toast({
         title: "Sikeres mentés",
@@ -512,6 +538,35 @@ const Settings = () => {
         <div className="mt-6">
           <MembershipFeeSettings />
         </div>
+
+        {/* Membership Discount Setting - Only for hunter societies */}
+        {userType === "hunter_society" && (
+          <Card className="mt-6">
+            <CardHeader>
+              <CardTitle>Tagdíj kedvezmény beállítások</CardTitle>
+              <CardDescription>
+                Engedélyezze, hogy a tagok a tagdíj befizetésük mértékéig kedvezményes áron foglalhassanak állatokat
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5 flex-1">
+                  <Label htmlFor="enable-discount" className="text-base">
+                    Tagdíj alapú kedvezmény engedélyezése
+                  </Label>
+                  <p className="text-sm text-muted-foreground">
+                    Ha engedélyezve van, a vadászok a tagdíjuk mértékéig 2. osztályú áron, ÁFA nélkül foglalhatnak állatokat
+                  </p>
+                </div>
+                <Switch
+                  id="enable-discount"
+                  checked={enableMembershipDiscount}
+                  onCheckedChange={setEnableMembershipDiscount}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );
