@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { getActiveSubscriptionTier } from "@/components/SubscriptionTierSwitcher";
 
 const PRO_PRODUCT_IDS = ["prod_TQMCsYuGXl2cqX", "prod_TQMCzW95I3TlPz"];
 const NORMAL_PRODUCT_IDS = ["prod_TQMCKFFwVc6lXT", "prod_TQMCwp0XrDYkOB"];
@@ -64,16 +63,6 @@ export const useSubscription = () => {
   const checkSubscription = async () => {
     try {
       setLoading(true);
-      
-      // Super Admin override from localStorage
-      const impersonateTier = getActiveSubscriptionTier();
-      if (impersonateTier) {
-        setTier(impersonateTier);
-        setIsPro(impersonateTier === "pro");
-        setProductId(impersonateTier === "pro" ? "impersonate_pro" : impersonateTier === "normal" ? "impersonate_normal" : "impersonate_free");
-        setLoading(false);
-        return;
-      }
       
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
