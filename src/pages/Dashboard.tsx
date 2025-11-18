@@ -64,8 +64,7 @@ import { AnimalReservationDialog } from "@/components/AnimalReservationDialog";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import jsPDF from "jspdf";
 import * as XLSX from "xlsx";
-import { getActiveRole } from "@/components/RoleSwitcher";
-import { getActiveCompany } from "@/components/CompanySwitcher";
+import { useIsSuperAdmin } from "@/hooks/useIsSuperAdmin";
 import { useSubscription } from "@/hooks/useSubscription";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Crown } from "lucide-react";
@@ -140,6 +139,7 @@ const Dashboard = () => {
   const { toast } = useToast();
   const isMobile = useIsMobile();
   const { isPro, loading: subscriptionLoading, productId, tier } = useSubscription();
+  const { isSuperAdmin } = useIsSuperAdmin();
   const [searchTerm, setSearchTerm] = useState("");
   const [filterLocation, setFilterLocation] = useState("all");
   const [filterSpecies, setFilterSpecies] = useState("all");
@@ -276,17 +276,6 @@ const Dashboard = () => {
       .eq("role", "super_admin")
       .maybeSingle();
 
-    const isSuperAdmin = !!superAdminRole;
-
-    // If super admin is impersonating a role, use that role
-    const impersonateRole = getActiveRole();
-    if (isSuperAdmin && impersonateRole && impersonateRole !== "super_admin") {
-      setIsAdmin(impersonateRole === "admin");
-      setIsEditor(impersonateRole === "editor");
-      setIsHunter(impersonateRole === "hunter");
-      return;
-    }
-
     // Check if user is admin
     const { data: adminRole } = await supabase
       .from("user_roles")
@@ -323,45 +312,23 @@ const Dashboard = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Check if super admin is filtering by company
-      const { data: superAdminRole } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", user.id)
-        .eq("role", "super_admin")
-        .maybeSingle();
-
-      const isSuperAdmin = !!superAdminRole;
-      const activeCompany = getActiveCompany();
-      let userIds = [user.id];
-
-      // Only apply company filter for super admins
-      if (isSuperAdmin && activeCompany) {
-        const { data: companyProfiles } = await supabase
-          .from("profiles")
-          .select("id")
-          .eq("company_name", activeCompany);
-        
-        if (companyProfiles && companyProfiles.length > 0) {
-          userIds = companyProfiles.map(p => p.id);
-        }
-      }
-
+      // All users (including super admins) only see their own data
+      // Super admins can use the Super Admin Dashboard to view all data
       const [locationsResult, animalsResult, pricesResult, transportDocsResult, profileResult] = await Promise.all([
         supabase
           .from("storage_locations")
           .select("*")
-          .in("user_id", userIds)
+          .eq("user_id", user.id)
           .order("created_at", { ascending: false }),
         supabase
           .from("animals")
           .select("*")
-          .in("user_id", isSuperAdmin && activeCompany ? userIds : [user.id])
+          .eq("user_id", user.id)
           .order("created_at", { ascending: false }),
         supabase
           .from("price_settings")
           .select("*")
-          .in("user_id", isSuperAdmin && activeCompany ? userIds : [user.id]),
+          .eq("user_id", user.id),
         supabase
           .from("transport_documents")
           .select(`
@@ -371,7 +338,7 @@ const Dashboard = () => {
               company_name
             )
           `)
-          .in("user_id", isSuperAdmin && activeCompany ? userIds : [user.id]),
+          .eq("user_id", user.id),
         supabase
           .from("profiles")
           .select("vat_rate")

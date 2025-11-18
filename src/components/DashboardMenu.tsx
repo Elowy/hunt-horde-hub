@@ -20,9 +20,6 @@ import { Separator } from "@/components/ui/separator";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useIsSuperAdmin } from "@/hooks/useIsSuperAdmin";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { RoleSwitcher } from "@/components/RoleSwitcher";
-import { SubscriptionTierSwitcher } from "@/components/SubscriptionTierSwitcher";
-import { CompanySwitcher } from "@/components/CompanySwitcher";
 import { supabase } from "@/integrations/supabase/client";
 
 interface DashboardMenuProps {
@@ -114,17 +111,14 @@ export const DashboardMenu = ({ isAdmin, isEditor, isHunter, onLogout, onPriceUp
             <>
               <div className="space-y-2">
                 <p className="text-sm font-medium text-muted-foreground px-2">Super Admin</p>
-                <Button
-                  variant="ghost"
-                  className="w-full justify-start text-primary"
-                  onClick={() => handleNavigation("/super-admin")}
-                >
-                  <Shield className="mr-2 h-4 w-4" />
-                  Super Admin Dashboard
-                </Button>
-                <RoleSwitcher />
-                <SubscriptionTierSwitcher />
-                <CompanySwitcher />
+              <Button
+                variant="ghost"
+                className="w-full justify-start text-primary"
+                onClick={() => handleNavigation("/super-admin")}
+              >
+                <Shield className="mr-2 h-4 w-4" />
+                Super Admin Dashboard
+              </Button>
               </div>
               <Separator />
             </>
