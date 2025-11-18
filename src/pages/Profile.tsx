@@ -39,6 +39,7 @@ const Profile = () => {
     contactPhone: "",
     address: "",
     taxNumber: "",
+    userType: "",
   });
   const [passwordData, setPasswordData] = useState({
     code: "",
@@ -104,6 +105,7 @@ const Profile = () => {
           contactPhone: profile.contact_phone || "",
           address: profile.address || "",
           taxNumber: profile.tax_number || "",
+          userType: profile.user_type || "",
         });
       }
     } catch (error: any) {
@@ -322,14 +324,29 @@ const Profile = () => {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="companyName">Cégnév</Label>
+                <Label htmlFor="userType">Felhasználó típusa (nem módosítható)</Label>
+                <Input
+                  id="userType"
+                  value={
+                    formData.userType === "hunter" 
+                      ? "Vadász" 
+                      : formData.userType === "hunter_society" 
+                      ? "Vadásztársaság" 
+                      : formData.userType === "buyer"
+                      ? "Felvásárló"
+                      : "Ismeretlen"
+                  }
+                  disabled
+                  className="bg-muted"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="companyName">Cégnév (nem módosítható)</Label>
                 <Input
                   id="companyName"
                   value={formData.companyName}
-                  onChange={(e) =>
-                    setFormData({ ...formData, companyName: e.target.value })
-                  }
-                  placeholder="Vadásztársaság Kft."
+                  disabled
+                  className="bg-muted"
                 />
               </div>
               <div className="space-y-2">
