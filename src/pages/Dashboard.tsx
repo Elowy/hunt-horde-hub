@@ -115,6 +115,8 @@ interface Animal {
   vet_result: string | null;
   transport_cooling_price?: number | null;
   transport_cooling_vat_rate?: number | null;
+  transport_price_per_kg?: number | null;
+  transport_vat_rate?: number | null;
   reservation_status?: string;
   reserved_by?: string | null;
   reserved_at?: string | null;

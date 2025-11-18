@@ -47,6 +47,10 @@ interface Animal {
   vet_sample_id: string | null;
   vet_doctor_name: string | null;
   vet_result: string | null;
+  is_transported?: boolean | null;
+  transported_at?: string | null;
+  transport_price_per_kg?: number | null;
+  transport_vat_rate?: number | null;
 }
 
 interface StorageLocation {
@@ -162,6 +166,21 @@ export const EditAnimalDialog = ({ animal, locations, onAnimalUpdated }: EditAni
   }, [open]);
 
   const calculatePrice = () => {
+    // Ha az állat már el van szállítva, ne változtassuk az árat
+    if (animal.is_transported || animal.transported_at) {
+      if (animal.transport_price_per_kg && formData.weight) {
+        const weight = parseFloat(formData.weight);
+        const vat = animal.transport_vat_rate || vatRate;
+        const netPrice = weight * animal.transport_price_per_kg;
+        const grossPrice = netPrice * (1 + vat / 100);
+        setCalculatedPrice({
+          net: Math.round(netPrice),
+          gross: Math.round(grossPrice),
+        });
+      }
+      return;
+    }
+
     if (!formData.weight || !formData.species || !formData.class) {
       setCalculatedPrice({ net: 0, gross: 0 });
       return;
