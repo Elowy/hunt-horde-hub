@@ -13,6 +13,7 @@ import { AddExistingHunterDialog } from "@/components/AddExistingHunterDialog";
 import { useSubscription } from "@/hooks/useSubscription";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { MembershipDiscountInfo } from "@/components/MembershipDiscountInfo";
+import { UserTickets } from "@/components/UserTickets";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -32,6 +33,8 @@ const Profile = () => {
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isEditor, setIsEditor] = useState(false);
+  const [isHunter, setIsHunter] = useState(false);
   const [formData, setFormData] = useState({
     companyName: "",
     contactName: "",
@@ -64,11 +67,13 @@ const Profile = () => {
       const { data: roles } = await supabase
         .from("user_roles")
         .select("role")
-        .eq("user_id", user.id)
-        .eq("role", "admin")
-        .maybeSingle();
+        .eq("user_id", user.id);
 
-      setIsAdmin(!!roles);
+      if (roles) {
+        setIsAdmin(roles.some(r => r.role === "admin"));
+        setIsEditor(roles.some(r => r.role === "editor"));
+        setIsHunter(roles.some(r => r.role === "hunter"));
+      }
     } catch (error) {
       console.error("Error checking admin status:", error);
     }
@@ -538,6 +543,13 @@ const Profile = () => {
 
           {/* Membership and Discount Info */}
           <MembershipDiscountInfo />
+
+          {/* User Tickets */}
+          <UserTickets 
+            isHunter={isHunter}
+            isAdmin={isAdmin}
+            isEditor={isEditor}
+          />
 
           {/* Adatvédelmi és fiók törlés */}
           <Card className="border-destructive/50">
