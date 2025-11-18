@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Menu, X, User, Users, FileText, Truck, Settings, LogOut, UserPlus, Crown, MapPin, CalendarCheck, Shield, BarChart, Trophy, Clock, Archive, Package, MessageSquare, History } from "lucide-react";
+import { Menu, X, User, Users, FileText, Truck, Settings, LogOut, UserPlus, Crown, MapPin, CalendarCheck, Shield, BarChart, Trophy, Clock, Archive, Package, MessageSquare, History, File } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -276,6 +276,38 @@ export const DashboardMenu = ({ isAdmin, isEditor, isHunter, onLogout, onPriceUp
                       Időalapú statisztikák
                     </Button>
                   </>
+                )}
+              </div>
+
+              <Separator />
+            </>
+          )}
+
+          {/* Dokumentumok - Csak vadásztársaságoknak és Pro verzióval */}
+          {!isHunter && !isBuyer && (
+            <>
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-muted-foreground px-2">Dokumentumok</p>
+                {subscriptionLoading ? (
+                  <p className="text-xs text-muted-foreground px-2">Betöltés...</p>
+                ) : isPro ? (
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-start"
+                    onClick={() => handleNavigation("/documents")}
+                  >
+                    <File className="mr-2 h-4 w-4" />
+                    Dokumentumok
+                  </Button>
+                ) : (
+                  <Alert className="border-yellow-500/50 bg-yellow-500/10 py-2 mx-2">
+                    <AlertDescription className="text-xs flex items-center gap-2">
+                      <Crown className="h-3 w-3 text-yellow-600 dark:text-yellow-400 shrink-0" />
+                      <span className="text-yellow-700 dark:text-yellow-300">
+                        Dokumentumok - Csak Pro
+                      </span>
+                    </AlertDescription>
+                  </Alert>
                 )}
               </div>
 
