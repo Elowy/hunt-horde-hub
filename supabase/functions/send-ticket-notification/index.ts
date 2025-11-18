@@ -88,6 +88,27 @@ const handler = async (req: Request): Promise<Response> => {
 
     const userName = profile?.contact_name || profile?.company_name || "Felhasználó";
 
+    // Check notification settings for status changes
+    if (type === "status_change") {
+      const { data: notificationSettings } = await supabaseClient
+        .from("notification_settings")
+        .select("notify_on_ticket_status_change")
+        .eq("user_id", ticket.user_id)
+        .single();
+
+      // If user has disabled ticket status notifications, don't send email
+      if (notificationSettings && notificationSettings.notify_on_ticket_status_change === false) {
+        console.log("[TICKET-NOTIFICATION] User has disabled ticket status notifications");
+        return new Response(JSON.stringify({ success: true, message: "Notification disabled by user" }), {
+          status: 200,
+          headers: {
+            "Content-Type": "application/json",
+            ...corsHeaders,
+          },
+        });
+      }
+    }
+
     let subject = "";
     let htmlContent = "";
 
