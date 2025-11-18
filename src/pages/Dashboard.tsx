@@ -65,6 +65,8 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
 import jsPDF from "jspdf";
 import * as XLSX from "xlsx";
 import { useIsSuperAdmin } from "@/hooks/useIsSuperAdmin";
+import { getTestRole } from "@/components/admin/SuperAdminRoleSwitcher";
+import { getTestCompanyFilter } from "@/components/admin/SuperAdminCompanySwitcher";
 import { useSubscription } from "@/hooks/useSubscription";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Crown } from "lucide-react";
@@ -276,6 +278,18 @@ const Dashboard = () => {
       .eq("role", "super_admin")
       .maybeSingle();
 
+    const userIsSuperAdmin = !!superAdminRole;
+
+    // If super admin is testing UI with a different role, use that for UI only
+    // IMPORTANT: This does NOT change actual permissions or data access
+    const testRole = userIsSuperAdmin ? getTestRole() : null;
+    if (userIsSuperAdmin && testRole && testRole !== "super_admin") {
+      setIsAdmin(testRole === "admin");
+      setIsEditor(testRole === "editor");
+      setIsHunter(testRole === "hunter");
+      return;
+    }
+
     // Check if user is admin
     const { data: adminRole } = await supabase
       .from("user_roles")
@@ -284,7 +298,7 @@ const Dashboard = () => {
       .eq("role", "admin")
       .maybeSingle();
 
-    setIsAdmin(!!adminRole || isSuperAdmin);
+    setIsAdmin(!!adminRole || userIsSuperAdmin);
 
     // Check if user is editor
     const { data: editorRole } = await supabase
@@ -294,7 +308,7 @@ const Dashboard = () => {
       .eq("role", "editor")
       .maybeSingle();
 
-    setIsEditor(!!editorRole || isSuperAdmin);
+    setIsEditor(!!editorRole || userIsSuperAdmin);
 
     // Check if user is hunter
     const { data: hunterRole } = await supabase
@@ -312,23 +326,46 @@ const Dashboard = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // All users (including super admins) only see their own data
-      // Super admins can use the Super Admin Dashboard to view all data
+      // Check if super admin is viewing data for a specific company (UI testing only)
+      const { data: superAdminRole } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
+        .eq("role", "super_admin")
+        .maybeSingle();
+
+      const userIsSuperAdmin = !!superAdminRole;
+      const testCompanyFilter = userIsSuperAdmin ? getTestCompanyFilter() : null;
+      let userIds = [user.id];
+
+      // If super admin is filtering by company, get those user IDs for viewing
+      if (userIsSuperAdmin && testCompanyFilter) {
+        const { data: companyProfiles } = await supabase
+          .from("profiles")
+          .select("id")
+          .eq("company_name", testCompanyFilter);
+        
+        if (companyProfiles && companyProfiles.length > 0) {
+          userIds = companyProfiles.map(p => p.id);
+        }
+      }
+
+      // Fetch data - super admins viewing specific company see that company's data
       const [locationsResult, animalsResult, pricesResult, transportDocsResult, profileResult] = await Promise.all([
         supabase
           .from("storage_locations")
           .select("*")
-          .eq("user_id", user.id)
+          .in("user_id", userIds)
           .order("created_at", { ascending: false }),
         supabase
           .from("animals")
           .select("*")
-          .eq("user_id", user.id)
+          .in("user_id", userIds)
           .order("created_at", { ascending: false }),
         supabase
           .from("price_settings")
           .select("*")
-          .eq("user_id", user.id),
+          .in("user_id", userIds),
         supabase
           .from("transport_documents")
           .select(`
@@ -338,7 +375,7 @@ const Dashboard = () => {
               company_name
             )
           `)
-          .eq("user_id", user.id),
+          .in("user_id", userIds),
         supabase
           .from("profiles")
           .select("vat_rate")
