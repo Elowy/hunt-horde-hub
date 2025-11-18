@@ -25,6 +25,7 @@ import Tickets from "./pages/Tickets";
 import ActivityLog from "./pages/ActivityLog";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import Documents from "./pages/Documents";
+import MembershipPayments from "./pages/MembershipPayments";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -58,6 +59,7 @@ const App = () => (
             <Route path="/activity-log" element={<ActivityLog />} />
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />
             <Route path="/documents" element={<Documents />} />
+            <Route path="/membership-payments" element={<MembershipPayments />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

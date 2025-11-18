@@ -287,6 +287,27 @@ export const DashboardMenu = ({ isAdmin, isEditor, isHunter, onLogout, onPriceUp
           {!isHunter && !isBuyer && (
             <>
               <div className="space-y-2">
+                <p className="text-sm font-medium text-muted-foreground px-2">Tagdíjak</p>
+                {(isAdmin || isEditor) && (
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-start"
+                    onClick={() => handleNavigation("/membership-payments")}
+                  >
+                    <Package className="mr-2 h-4 w-4" />
+                    Tagdíjak kezelése
+                  </Button>
+                )}
+              </div>
+
+              <Separator />
+            </>
+          )}
+
+          {/* Dokumentumok - Csak vadásztársaságoknak és Pro verzióval */}
+          {!isHunter && !isBuyer && (
+            <>
+              <div className="space-y-2">
                 <p className="text-sm font-medium text-muted-foreground px-2">Dokumentumok</p>
                 {subscriptionLoading ? (
                   <p className="text-xs text-muted-foreground px-2">Betöltés...</p>

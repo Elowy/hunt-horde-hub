@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Bell, Loader2, Save, Send } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { useIsSuperAdmin } from "@/hooks/useIsSuperAdmin";
+import { MembershipFeeSettings } from "@/components/MembershipFeeSettings";
 
 interface NotificationSettings {
   notify_on_transport: boolean;
@@ -485,6 +486,11 @@ const Settings = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* Membership Fee Settings - Only for hunter societies */}
+        <div className="mt-6">
+          <MembershipFeeSettings />
+        </div>
       </div>
     </div>
   );
