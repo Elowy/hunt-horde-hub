@@ -6,8 +6,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Bell, Loader2, Save } from "lucide-react";
+import { ArrowLeft, Bell, Loader2, Save, Send } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
+import { useIsSuperAdmin } from "@/hooks/useIsSuperAdmin";
 
 interface NotificationSettings {
   notify_on_transport: boolean;
@@ -25,6 +26,8 @@ const Settings = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [sendingTest, setSendingTest] = useState<string | null>(null);
+  const { isSuperAdmin } = useIsSuperAdmin();
   const [settings, setSettings] = useState<NotificationSettings>({
     notify_on_transport: true,
     notify_on_storage_full: true,
@@ -123,6 +126,39 @@ const Settings = () => {
     setSettings(prev => ({ ...prev, [key]: value }));
   };
 
+  const sendTestEmail = async (notificationType: string) => {
+    try {
+      setSendingTest(notificationType);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user?.email) {
+        throw new Error("Nem található email cím");
+      }
+
+      const { error } = await supabase.functions.invoke("send-test-notification", {
+        body: {
+          notification_type: notificationType,
+          user_email: user.email,
+        },
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Teszt email elküldve",
+        description: `A teszt értesítés el lett küldve a ${user.email} címre`,
+      });
+    } catch (error: any) {
+      console.error("Error sending test email:", error);
+      toast({
+        title: "Hiba",
+        description: error.message || "Nem sikerült elküldeni a teszt emailt",
+        variant: "destructive",
+      });
+    } finally {
+      setSendingTest(null);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-background to-muted">
@@ -159,7 +195,7 @@ const Settings = () => {
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
+              <div className="space-y-0.5 flex-1">
                 <Label htmlFor="notify-transport" className="text-base">
                   Elszállítás történt
                 </Label>
@@ -167,17 +203,33 @@ const Settings = () => {
                   Értesítés új szállítólevél létrehozásakor a részletes adatokkal
                 </p>
               </div>
-              <Switch
-                id="notify-transport"
-                checked={settings.notify_on_transport}
-                onCheckedChange={(checked) => updateSetting("notify_on_transport", checked)}
-              />
+              <div className="flex items-center gap-2">
+                {isSuperAdmin && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => sendTestEmail("transport")}
+                    disabled={sendingTest === "transport"}
+                  >
+                    {sendingTest === "transport" ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Send className="h-4 w-4" />
+                    )}
+                  </Button>
+                )}
+                <Switch
+                  id="notify-transport"
+                  checked={settings.notify_on_transport}
+                  onCheckedChange={(checked) => updateSetting("notify_on_transport", checked)}
+                />
+              </div>
             </div>
 
             <Separator />
 
             <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
+              <div className="space-y-0.5 flex-1">
                 <Label htmlFor="notify-storage" className="text-base">
                   Hűtő telítettség 80% felett
                 </Label>
@@ -185,17 +237,33 @@ const Settings = () => {
                   Figyelmeztetés amikor egy hűtési hely eléri a 80%-os kapacitást
                 </p>
               </div>
-              <Switch
-                id="notify-storage"
-                checked={settings.notify_on_storage_full}
-                onCheckedChange={(checked) => updateSetting("notify_on_storage_full", checked)}
-              />
+              <div className="flex items-center gap-2">
+                {isSuperAdmin && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => sendTestEmail("storage_full")}
+                    disabled={sendingTest === "storage_full"}
+                  >
+                    {sendingTest === "storage_full" ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Send className="h-4 w-4" />
+                    )}
+                  </Button>
+                )}
+                <Switch
+                  id="notify-storage"
+                  checked={settings.notify_on_storage_full}
+                  onCheckedChange={(checked) => updateSetting("notify_on_storage_full", checked)}
+                />
+              </div>
             </div>
 
             <Separator />
 
             <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
+              <div className="space-y-0.5 flex-1">
                 <Label htmlFor="notify-add" className="text-base">
                   Új vad hozzáadása
                 </Label>
@@ -203,17 +271,33 @@ const Settings = () => {
                   Értesítés minden új állat regisztrációjáról
                 </p>
               </div>
-              <Switch
-                id="notify-add"
-                checked={settings.notify_on_animal_add}
-                onCheckedChange={(checked) => updateSetting("notify_on_animal_add", checked)}
-              />
+              <div className="flex items-center gap-2">
+                {isSuperAdmin && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => sendTestEmail("animal_add")}
+                    disabled={sendingTest === "animal_add"}
+                  >
+                    {sendingTest === "animal_add" ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Send className="h-4 w-4" />
+                    )}
+                  </Button>
+                )}
+                <Switch
+                  id="notify-add"
+                  checked={settings.notify_on_animal_add}
+                  onCheckedChange={(checked) => updateSetting("notify_on_animal_add", checked)}
+                />
+              </div>
             </div>
 
             <Separator />
 
             <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
+              <div className="space-y-0.5 flex-1">
                 <Label htmlFor="notify-update" className="text-base">
                   Vad módosítása
                 </Label>
@@ -221,17 +305,33 @@ const Settings = () => {
                   Értesítés állat adatok módosításakor a változásokkal
                 </p>
               </div>
-              <Switch
-                id="notify-update"
-                checked={settings.notify_on_animal_update}
-                onCheckedChange={(checked) => updateSetting("notify_on_animal_update", checked)}
-              />
+              <div className="flex items-center gap-2">
+                {isSuperAdmin && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => sendTestEmail("animal_update")}
+                    disabled={sendingTest === "animal_update"}
+                  >
+                    {sendingTest === "animal_update" ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Send className="h-4 w-4" />
+                    )}
+                  </Button>
+                )}
+                <Switch
+                  id="notify-update"
+                  checked={settings.notify_on_animal_update}
+                  onCheckedChange={(checked) => updateSetting("notify_on_animal_update", checked)}
+                />
+              </div>
             </div>
 
             <Separator />
 
             <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
+              <div className="space-y-0.5 flex-1">
                 <Label htmlFor="notify-delete" className="text-base">
                   Vad törlése
                 </Label>
@@ -239,17 +339,33 @@ const Settings = () => {
                   Értesítés állat törlésekor a törölt adatokkal
                 </p>
               </div>
-              <Switch
-                id="notify-delete"
-                checked={settings.notify_on_animal_delete}
-                onCheckedChange={(checked) => updateSetting("notify_on_animal_delete", checked)}
-              />
+              <div className="flex items-center gap-2">
+                {isSuperAdmin && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => sendTestEmail("animal_delete")}
+                    disabled={sendingTest === "animal_delete"}
+                  >
+                    {sendingTest === "animal_delete" ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Send className="h-4 w-4" />
+                    )}
+                  </Button>
+                )}
+                <Switch
+                  id="notify-delete"
+                  checked={settings.notify_on_animal_delete}
+                  onCheckedChange={(checked) => updateSetting("notify_on_animal_delete", checked)}
+                />
+              </div>
             </div>
 
             <Separator className="my-4" />
 
             <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
+              <div className="space-y-0.5 flex-1">
                 <Label htmlFor="notify-approved" className="text-base">
                   Beiratkozás jóváhagyása
                 </Label>
@@ -257,15 +373,33 @@ const Settings = () => {
                   Értesítés amikor a beiratkozási kérelme jóváhagyásra kerül
                 </p>
               </div>
-              <Switch
-                id="notify-approved"
-                checked={settings.notify_on_registration_approved}
-                onCheckedChange={(checked) => updateSetting("notify_on_registration_approved", checked)}
-              />
+              <div className="flex items-center gap-2">
+                {isSuperAdmin && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => sendTestEmail("registration_approved")}
+                    disabled={sendingTest === "registration_approved"}
+                  >
+                    {sendingTest === "registration_approved" ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Send className="h-4 w-4" />
+                    )}
+                  </Button>
+                )}
+                <Switch
+                  id="notify-approved"
+                  checked={settings.notify_on_registration_approved}
+                  onCheckedChange={(checked) => updateSetting("notify_on_registration_approved", checked)}
+                />
+              </div>
             </div>
 
+            <Separator />
+
             <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
+              <div className="space-y-0.5 flex-1">
                 <Label htmlFor="notify-rejected" className="text-base">
                   Beiratkozás elutasítása
                 </Label>
@@ -273,17 +407,33 @@ const Settings = () => {
                   Értesítés amikor a beiratkozási kérelme elutasításra kerül
                 </p>
               </div>
-              <Switch
-                id="notify-rejected"
-                checked={settings.notify_on_registration_rejected}
-                onCheckedChange={(checked) => updateSetting("notify_on_registration_rejected", checked)}
-              />
+              <div className="flex items-center gap-2">
+                {isSuperAdmin && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => sendTestEmail("registration_rejected")}
+                    disabled={sendingTest === "registration_rejected"}
+                  >
+                    {sendingTest === "registration_rejected" ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Send className="h-4 w-4" />
+                    )}
+                  </Button>
+                )}
+                <Switch
+                  id="notify-rejected"
+                  checked={settings.notify_on_registration_rejected}
+                  onCheckedChange={(checked) => updateSetting("notify_on_registration_rejected", checked)}
+                />
+              </div>
             </div>
 
             <Separator />
 
             <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
+              <div className="space-y-0.5 flex-1">
                 <Label htmlFor="notify-announcement" className="text-base">
                   Új hírek
                 </Label>
@@ -291,11 +441,27 @@ const Settings = () => {
                   Értesítés amikor új hír kerül közzétételre
                 </p>
               </div>
-              <Switch
-                id="notify-announcement"
-                checked={settings.notify_on_announcement}
-                onCheckedChange={(checked) => updateSetting("notify_on_announcement", checked)}
-              />
+              <div className="flex items-center gap-2">
+                {isSuperAdmin && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => sendTestEmail("announcement")}
+                    disabled={sendingTest === "announcement"}
+                  >
+                    {sendingTest === "announcement" ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Send className="h-4 w-4" />
+                    )}
+                  </Button>
+                )}
+                <Switch
+                  id="notify-announcement"
+                  checked={settings.notify_on_announcement}
+                  onCheckedChange={(checked) => updateSetting("notify_on_announcement", checked)}
+                />
+              </div>
             </div>
 
             <div className="pt-4">
