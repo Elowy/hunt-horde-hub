@@ -1637,6 +1637,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      add_hunter_to_society: {
+        Args: { _hunter_user_id: string; _society_id: string }
+        Returns: undefined
+      }
       get_user_company_name: { Args: { _user_id: string }; Returns: string }
       get_user_hunter_society_id: {
         Args: { _user_id: string }

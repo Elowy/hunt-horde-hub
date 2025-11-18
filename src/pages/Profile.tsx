@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { PageHeader } from "@/components/PageHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { InviteUserDialog } from "@/components/InviteUserDialog";
+import { AddExistingHunterDialog } from "@/components/AddExistingHunterDialog";
 import { useSubscription } from "@/hooks/useSubscription";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { MembershipDiscountInfo } from "@/components/MembershipDiscountInfo";
@@ -495,7 +496,10 @@ const Profile = () => {
                 {subscriptionLoading ? (
                   <p className="text-muted-foreground">Előfizetés ellenőrzése...</p>
                 ) : isPro ? (
-                  <InviteUserDialog />
+                  <div className="space-y-2">
+                    <InviteUserDialog />
+                    <AddExistingHunterDialog />
+                  </div>
                 ) : (
                   <Alert className="border-yellow-500/50 bg-yellow-500/10">
                     <Crown className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
