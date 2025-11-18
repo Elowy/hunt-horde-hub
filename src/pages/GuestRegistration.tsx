@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -36,6 +36,10 @@ type FormData = z.infer<typeof formSchema>;
 
 export default function GuestRegistration() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const qrCode = searchParams.get('qr');
+  const [qrValidated, setQrValidated] = useState(false);
+  const [validatingQR, setValidatingQR] = useState(!!qrCode);
   const [securityZones, setSecurityZones] = useState<any[]>([]);
   const [huntingLocations, setHuntingLocations] = useState<any[]>([]);
   const [closures, setClosures] = useState<any[]>([]);
@@ -53,15 +57,55 @@ export default function GuestRegistration() {
   const selectedZoneId = form.watch("security_zone_id");
 
   useEffect(() => {
+    if (qrCode) {
+      validateQRCode();
+    }
     fetchSecurityZones();
     fetchClosures();
-  }, []);
+  }, [qrCode]);
 
   useEffect(() => {
     if (selectedZoneId) {
       fetchHuntingLocations(selectedZoneId);
     }
   }, [selectedZoneId]);
+
+  const validateQRCode = async () => {
+    if (!qrCode) return;
+
+    try {
+      setValidatingQR(true);
+      
+      const { data, error } = await supabase
+        .from("qr_codes")
+        .select("*")
+        .eq("code", qrCode)
+        .eq("type", "guest_registration")
+        .eq("is_active", true)
+        .single();
+
+      if (error || !data) {
+        toast.error("Érvénytelen QR kód vagy a QR kód le van tiltva");
+        setTimeout(() => navigate("/"), 3000);
+        return;
+      }
+
+      // Check if expired
+      if (data.expires_at && new Date(data.expires_at) < new Date()) {
+        toast.error("Ez a QR kód lejárt");
+        setTimeout(() => navigate("/"), 3000);
+        return;
+      }
+
+      setQrValidated(true);
+      toast.success("QR kód érvényesítve! Töltse ki az űrlapot a beiratkozáshoz.");
+    } catch (error: any) {
+      console.error("Error validating QR code:", error);
+      toast.error("Nem sikerült ellenőrizni a QR kódot");
+    } finally {
+      setValidatingQR(false);
+    }
+  };
 
   const fetchSecurityZones = async () => {
     const { data, error } = await supabase

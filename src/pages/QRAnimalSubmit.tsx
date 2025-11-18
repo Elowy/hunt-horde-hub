@@ -39,6 +39,41 @@ export default function QRAnimalSubmit() {
     try {
       setValidating(true);
       
+      // First check new qr_codes table
+      const { data: qrData, error: qrError } = await supabase
+        .from("qr_codes")
+        .select(`
+          *,
+          storage_locations (
+            id,
+            name,
+            address,
+            user_id
+          )
+        `)
+        .eq("code", qrCode)
+        .eq("type", "storage_location")
+        .eq("is_active", true)
+        .single();
+
+      if (qrData && qrData.storage_locations) {
+        // Check if expired
+        if (qrData.expires_at && new Date(qrData.expires_at) < new Date()) {
+          toast({
+            title: "Érvénytelen QR kód",
+            description: "Ez a QR kód lejárt.",
+            variant: "destructive",
+          });
+          setTimeout(() => navigate("/"), 3000);
+          return;
+        }
+
+        setStorageLocation(qrData.storage_locations);
+        setValidating(false);
+        return;
+      }
+
+      // Fallback to old storage_locations table for backwards compatibility
       const { data, error } = await supabase
         .from("storage_locations")
         .select("id, name, address, user_id, qr_enabled")
