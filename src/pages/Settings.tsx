@@ -17,6 +17,7 @@ interface NotificationSettings {
   notify_on_animal_delete: boolean;
   notify_on_registration_approved: boolean;
   notify_on_registration_rejected: boolean;
+  notify_on_announcement: boolean;
 }
 
 const Settings = () => {
@@ -32,6 +33,7 @@ const Settings = () => {
     notify_on_animal_delete: false,
     notify_on_registration_approved: true,
     notify_on_registration_rejected: true,
+    notify_on_announcement: true,
   });
 
   useEffect(() => {
@@ -71,6 +73,7 @@ const Settings = () => {
           notify_on_animal_delete: data.notify_on_animal_delete,
           notify_on_registration_approved: data.notify_on_registration_approved ?? true,
           notify_on_registration_rejected: data.notify_on_registration_rejected ?? true,
+          notify_on_announcement: data.notify_on_announcement ?? true,
         });
       }
     } catch (error: any) {
@@ -274,6 +277,24 @@ const Settings = () => {
                 id="notify-rejected"
                 checked={settings.notify_on_registration_rejected}
                 onCheckedChange={(checked) => updateSetting("notify_on_registration_rejected", checked)}
+              />
+            </div>
+
+            <Separator />
+
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label htmlFor="notify-announcement" className="text-base">
+                  Új hírek
+                </Label>
+                <p className="text-sm text-muted-foreground">
+                  Értesítés amikor új hír kerül közzétételre
+                </p>
+              </div>
+              <Switch
+                id="notify-announcement"
+                checked={settings.notify_on_announcement}
+                onCheckedChange={(checked) => updateSetting("notify_on_announcement", checked)}
               />
             </div>
 
