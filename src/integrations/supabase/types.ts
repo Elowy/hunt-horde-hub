@@ -839,6 +839,7 @@ export type Database = {
           notify_on_registration_approved: boolean | null
           notify_on_registration_rejected: boolean | null
           notify_on_storage_full: boolean | null
+          notify_on_ticket_status_change: boolean | null
           notify_on_transport: boolean | null
           updated_at: string | null
           user_id: string
@@ -854,6 +855,7 @@ export type Database = {
           notify_on_registration_approved?: boolean | null
           notify_on_registration_rejected?: boolean | null
           notify_on_storage_full?: boolean | null
+          notify_on_ticket_status_change?: boolean | null
           notify_on_transport?: boolean | null
           updated_at?: string | null
           user_id: string
@@ -869,6 +871,7 @@ export type Database = {
           notify_on_registration_approved?: boolean | null
           notify_on_registration_rejected?: boolean | null
           notify_on_storage_full?: boolean | null
+          notify_on_ticket_status_change?: boolean | null
           notify_on_transport?: boolean | null
           updated_at?: string | null
           user_id?: string

@@ -21,6 +21,7 @@ interface NotificationSettings {
   notify_on_registration_rejected: boolean;
   notify_on_announcement: boolean;
   notify_on_membership_fee: boolean;
+  notify_on_ticket_status_change: boolean;
 }
 
 const Settings = () => {
@@ -42,6 +43,7 @@ const Settings = () => {
     notify_on_registration_rejected: true,
     notify_on_announcement: true,
     notify_on_membership_fee: true,
+    notify_on_ticket_status_change: true,
   });
 
   useEffect(() => {
@@ -84,6 +86,7 @@ const Settings = () => {
           notify_on_registration_rejected: data.notify_on_registration_rejected ?? true,
           notify_on_announcement: data.notify_on_announcement ?? true,
           notify_on_membership_fee: data.notify_on_membership_fee ?? true,
+          notify_on_ticket_status_change: data.notify_on_ticket_status_change ?? true,
         });
       }
 
@@ -509,6 +512,24 @@ const Settings = () => {
                 id="notify-membership-fee"
                 checked={settings.notify_on_membership_fee}
                 onCheckedChange={(checked) => updateSetting("notify_on_membership_fee", checked)}
+              />
+            </div>
+
+            <Separator />
+
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5 flex-1">
+                <Label htmlFor="notify-ticket-status" className="text-base">
+                  Támogatási jegy státusz változás
+                </Label>
+                <p className="text-sm text-muted-foreground">
+                  Értesítés amikor a támogatási jegy státusza megváltozik
+                </p>
+              </div>
+              <Switch
+                id="notify-ticket-status"
+                checked={settings.notify_on_ticket_status_change}
+                onCheckedChange={(checked) => updateSetting("notify_on_ticket_status_change", checked)}
               />
             </div>
 
