@@ -259,6 +259,53 @@ const TimeBasedStatistics = () => {
     }));
   };
 
+  // Fajok szerinti idénycsúcs
+  const getSpeciesSeasonalPeak = () => {
+    const speciesMonthData: Record<string, Record<string, number>> = {};
+    
+    animals.forEach(animal => {
+      if (animal.cooling_date) {
+        const date = new Date(animal.cooling_date);
+        const month = format(date, 'MMMM', { locale: hu });
+        
+        if (!speciesMonthData[animal.species]) {
+          speciesMonthData[animal.species] = {};
+        }
+        if (!speciesMonthData[animal.species][month]) {
+          speciesMonthData[animal.species][month] = 0;
+        }
+        speciesMonthData[animal.species][month]++;
+      }
+    });
+
+    // Get all unique months
+    const allMonths = Array.from({ length: 12 }, (_, i) => 
+      format(new Date(2024, i, 1), 'MMMM', { locale: hu })
+    );
+
+    // Transform to chart data
+    return allMonths.map(month => {
+      const dataPoint: any = { month };
+      Object.keys(speciesMonthData).forEach(species => {
+        dataPoint[species] = speciesMonthData[species][month] || 0;
+      });
+      return dataPoint;
+    });
+  };
+
+  const getSpeciesColors = () => {
+    const species = [...new Set(animals.map(a => a.species))];
+    const colors = [
+      "hsl(var(--primary))",
+      "hsl(var(--secondary))",
+      "hsl(var(--accent))",
+      "hsl(142, 71%, 45%)",
+      "hsl(24, 70%, 50%)",
+      "hsl(262, 83%, 58%)",
+    ];
+    return species.map((s, i) => ({ species: s, color: colors[i % colors.length] }));
+  };
+
   const getMonthLabel = (monthKey: string) => {
     const monthNames = ['Január', 'Február', 'Március', 'Április', 'Május', 'Június', 
                        'Július', 'Augusztus', 'Szeptember', 'Október', 'November', 'December'];
@@ -468,6 +515,45 @@ const TimeBasedStatistics = () => {
                     fill="hsl(var(--chart-2))" 
                     radius={[8, 8, 0, 0]}
                   />
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
+          {/* Species Seasonal Peak - Full Width */}
+          <Card className="lg:col-span-2">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <BarChart3 className="h-5 w-5" />
+                Fajok szerinti idénycsúcs
+              </CardTitle>
+              <CardDescription>
+                Mely hónapokban, mely fajok a legaktívabbak (összes év)
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={400}>
+                <BarChart data={getSpeciesSeasonalPeak()}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis 
+                    dataKey="month" 
+                    tick={{ fontSize: 10 }}
+                    angle={-45}
+                    textAnchor="end"
+                    height={80}
+                  />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  {getSpeciesColors().map(({ species, color }) => (
+                    <Bar 
+                      key={species}
+                      dataKey={species} 
+                      name={species} 
+                      fill={color}
+                      radius={[4, 4, 0, 0]}
+                    />
+                  ))}
                 </BarChart>
               </ResponsiveContainer>
             </CardContent>
