@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { CoolingRevenueReport } from "@/components/CoolingRevenueReport";
 import { HuntingSeasonReport } from "@/components/HuntingSeasonReport";
+import { HuntingEfficiency } from "@/components/HuntingEfficiency";
 import { PageHeader } from "@/components/PageHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { useSubscription } from "@/hooks/useSubscription";
@@ -158,6 +159,34 @@ const Reports = () => {
                 
                 <div className="pt-4">
                   <HuntingSeasonReport />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Vadászati eredményesség */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Vadászati eredményesség</CardTitle>
+              <CardDescription>
+                Kimenetelek és elejtések részletes összehasonlítása
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  Az elemzés tartalmazza:
+                </p>
+                <ul className="text-sm text-muted-foreground list-disc list-inside space-y-1 ml-2">
+                  <li>Állat elejtés / beírás arány</li>
+                  <li>Állat elejtés / kimenetel arány</li>
+                  <li>Eredményes kimenetelek százaléka</li>
+                  <li>Vendégek vs. tagok eredményességének összehasonlítása</li>
+                  <li>Kimenetelek száma vs elejtett állatok száma</li>
+                </ul>
+                
+                <div className="pt-4">
+                  <HuntingEfficiency />
                 </div>
               </div>
             </CardContent>
