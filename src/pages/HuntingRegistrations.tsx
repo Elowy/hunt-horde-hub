@@ -96,6 +96,7 @@ interface HuntingRegistration {
   guest_license_number: string | null;
   guest_phone: string | null;
   guest_email: string | null;
+  weather_data: any | null;
   security_zones: {
     name: string;
     settlements: {
@@ -136,6 +137,8 @@ const HuntingRegistrations = () => {
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [weatherData, setWeatherData] = useState<any>(null);
+  const [loadingWeather, setLoadingWeather] = useState(false);
   
   // Archive filters
   const [archiveFilterZone, setArchiveFilterZone] = useState<string>("");

@@ -484,6 +484,7 @@ export type Database = {
           status: string
           updated_at: string
           user_id: string
+          weather_data: Json | null
         }
         Insert: {
           admin_note?: string | null
@@ -505,6 +506,7 @@ export type Database = {
           status?: string
           updated_at?: string
           user_id: string
+          weather_data?: Json | null
         }
         Update: {
           admin_note?: string | null
@@ -526,6 +528,7 @@ export type Database = {
           status?: string
           updated_at?: string
           user_id?: string
+          weather_data?: Json | null
         }
         Relationships: [
           {
