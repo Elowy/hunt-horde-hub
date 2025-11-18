@@ -26,6 +26,7 @@ import ActivityLog from "./pages/ActivityLog";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import Documents from "./pages/Documents";
 import MembershipPayments from "./pages/MembershipPayments";
+import QRAnimalSubmit from "./pages/QRAnimalSubmit";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -60,6 +61,7 @@ const App = () => (
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />
             <Route path="/documents" element={<Documents />} />
             <Route path="/membership-payments" element={<MembershipPayments />} />
+            <Route path="/qr-animal-submit/:qrCode" element={<QRAnimalSubmit />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
