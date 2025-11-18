@@ -14,10 +14,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, Ban, CheckCircle, AlertCircle } from "lucide-react";
+import { CalendarIcon, Ban, CheckCircle, AlertCircle, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useSubscription } from "@/hooks/useSubscription";
+import { Progress } from "@/components/ui/progress";
 
 const formSchema = z.object({
   guest_name: z.string().min(1, "A név megadása kötelező").max(100, "A név maximum 100 karakter lehet"),
@@ -41,6 +42,8 @@ export default function GuestRegistration() {
   const [submitted, setSubmitted] = useState(false);
   const [weatherData, setWeatherData] = useState<any>(null);
   const [loadingWeather, setLoadingWeather] = useState(false);
+  const [huntingChance, setHuntingChance] = useState<number | null>(null);
+  const [loadingChance, setLoadingChance] = useState(false);
   const { limits, loading: subscriptionLoading } = useSubscription();
 
   const form = useForm<FormData>({
@@ -125,6 +128,50 @@ export default function GuestRegistration() {
     }
   };
 
+  const fetchHuntingChance = async (zoneId: string) => {
+    setLoadingChance(true);
+    try {
+      // Get registrations in the last 90 days for this zone
+      const ninetyDaysAgo = new Date();
+      ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+
+      const { data: registrations, error: regError } = await supabase
+        .from("hunting_registrations")
+        .select("id")
+        .eq("security_zone_id", zoneId)
+        .gte("start_time", ninetyDaysAgo.toISOString());
+
+      if (regError) throw regError;
+
+      const registrationCount = registrations?.length || 0;
+
+      // Get animals shot in the last 90 days for this zone
+      const { data: animals, error: animalsError } = await supabase
+        .from("animals")
+        .select("id, hunting_registrations!inner(security_zone_id, start_time)")
+        .eq("hunting_registrations.security_zone_id", zoneId)
+        .gte("hunting_registrations.start_time", ninetyDaysAgo.toISOString());
+
+      if (animalsError) throw animalsError;
+
+      const shotCount = animals?.length || 0;
+
+      // Calculate hunting chance percentage
+      if (registrationCount === 0) {
+        setHuntingChance(0);
+      } else {
+        const chance = (shotCount / registrationCount) * 100;
+        setHuntingChance(Math.min(100, Math.round(chance)));
+      }
+    } catch (error) {
+      console.error("Error fetching hunting chance:", error);
+      toast.error("Nem sikerült betölteni az elejtési esély adatokat");
+      setHuntingChance(null);
+    } finally {
+      setLoadingChance(false);
+    }
+  };
+
   const handleZoneChange = async (value: string) => {
     form.setValue("security_zone_id", value);
     
@@ -132,6 +179,7 @@ export default function GuestRegistration() {
     if (selectedZoneData?.settlements?.name) {
       await fetchWeather(selectedZoneData.settlements.name);
     }
+    await fetchHuntingChance(value);
   };
 
   const onSubmit = async (values: FormData) => {
@@ -396,6 +444,35 @@ export default function GuestRegistration() {
                         <span>Szélsebesség:</span>
                         <span className="font-medium">{weatherData.current.wind_speed} km/h</span>
                       </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {loadingChance && selectedZoneId && (
+                  <div className="text-sm text-muted-foreground">
+                    Elejtési esély számítása...
+                  </div>
+                )}
+
+                {huntingChance !== null && !loadingChance && selectedZoneId && (
+                  <Card className="bg-accent/5">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm flex items-center gap-2">
+                        <TrendingUp className="h-4 w-4" />
+                        Elejtési esély
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-muted-foreground">Esély</span>
+                          <span className="text-xl font-bold">{huntingChance}%</span>
+                        </div>
+                        <Progress value={huntingChance} className="h-2" />
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Az elmúlt 90 nap adatai alapján a területen
+                      </p>
                     </CardContent>
                   </Card>
                 )}
