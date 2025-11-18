@@ -64,6 +64,7 @@ const MembershipPayments = () => {
   const [bulkDialogOpen, setBulkDialogOpen] = useState(false);
   const [archiveDialogOpen, setArchiveDialogOpen] = useState(false);
   const [bulkPeriod, setBulkPeriod] = useState<"first_half" | "second_half" | "full_year">("first_half");
+  const [bulkAmount, setBulkAmount] = useState("");
   const [bulkCreating, setBulkCreating] = useState(false);
 
   useEffect(() => {
@@ -325,10 +326,10 @@ const MembershipPayments = () => {
   };
 
   const handleCreateAllPayments = async () => {
-    if (!feeSettings) {
+    if (!bulkAmount) {
       toast({
         title: "Hiba",
-        description: "Nincs beállítva tagdíj az aktuális idényre",
+        description: "Kérjük, adja meg az összeget",
         variant: "destructive",
       });
       return;
@@ -347,18 +348,14 @@ const MembershipPayments = () => {
 
       if (!profile) throw new Error("Profil nem található");
 
-      const bulkAmount = bulkPeriod === "first_half" 
-        ? feeSettings.first_half_amount 
-        : bulkPeriod === "second_half" 
-        ? feeSettings.second_half_amount 
-        : feeSettings.full_year_amount;
+      const amountToUse = parseFloat(bulkAmount);
 
       const paymentsToCreate = members.map(member => ({
         user_id: member.id,
         hunter_society_id: profile.id,
         season_year: currentSeasonYear,
         period: bulkPeriod,
-        amount: bulkAmount,
+        amount: amountToUse,
       }));
 
       const { error } = await supabase
@@ -378,7 +375,7 @@ const MembershipPayments = () => {
                   user_email: member.contact_email,
                   user_name: member.contact_name || "Tag",
                   period: bulkPeriod,
-                  amount: bulkAmount,
+                  amount: amountToUse,
                   season_year: currentSeasonYear,
                   hunter_society_name: profile.company_name || "Vadásztársaság",
                 },
@@ -399,6 +396,7 @@ const MembershipPayments = () => {
       });
 
       setBulkDialogOpen(false);
+      setBulkAmount("");
       fetchPayments(selectedSeasonYear);
       fetchAvailableSeasons();
       fetchAllPayments();
@@ -679,22 +677,50 @@ const MembershipPayments = () => {
               <div className="space-y-4">
                 <div className="space-y-2">
                   <Label>Időszak</Label>
-                  <Select value={bulkPeriod} onValueChange={(val: any) => setBulkPeriod(val)}>
+                  <Select value={bulkPeriod} onValueChange={(val: any) => {
+                    setBulkPeriod(val);
+                    // Auto-fill amount based on settings
+                    if (feeSettings) {
+                      if (val === "first_half") setBulkAmount(feeSettings.first_half_amount.toString());
+                      else if (val === "second_half") setBulkAmount(feeSettings.second_half_amount.toString());
+                      else if (val === "full_year") setBulkAmount(feeSettings.full_year_amount.toString());
+                    }
+                  }}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="first_half">
-                        Első félév - {feeSettings?.first_half_amount.toLocaleString() || 0} Ft
+                        Első félév (márc. 1 - aug. 31)
                       </SelectItem>
                       <SelectItem value="second_half">
-                        Második félév - {feeSettings?.second_half_amount.toLocaleString() || 0} Ft
+                        Második félév (szept. 1 - feb. utolsó nap)
                       </SelectItem>
                       <SelectItem value="full_year">
-                        Egész év - {feeSettings?.full_year_amount.toLocaleString() || 0} Ft
+                        Egész év
                       </SelectItem>
                     </SelectContent>
                   </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Összeg (Ft)</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    step="100"
+                    value={bulkAmount}
+                    onChange={(e) => setBulkAmount(e.target.value)}
+                    placeholder="0"
+                  />
+                  {feeSettings && (
+                    <p className="text-xs text-muted-foreground">
+                      Beállított összegek: 
+                      Első félév: {feeSettings.first_half_amount.toLocaleString()} Ft, 
+                      Második félév: {feeSettings.second_half_amount.toLocaleString()} Ft, 
+                      Egész év: {feeSettings.full_year_amount.toLocaleString()} Ft
+                    </p>
+                  )}
                 </div>
 
                 <div className="bg-muted p-4 rounded-lg space-y-1">
