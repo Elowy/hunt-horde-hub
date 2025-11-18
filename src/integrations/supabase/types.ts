@@ -686,6 +686,117 @@ export type Database = {
         }
         Relationships: []
       }
+      membership_fee_settings: {
+        Row: {
+          created_at: string
+          first_half_amount: number
+          full_year_amount: number
+          hunter_society_id: string
+          id: string
+          notes: string | null
+          season_year: number
+          second_half_amount: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          first_half_amount?: number
+          full_year_amount?: number
+          hunter_society_id: string
+          id?: string
+          notes?: string | null
+          season_year: number
+          second_half_amount?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          first_half_amount?: number
+          full_year_amount?: number
+          hunter_society_id?: string
+          id?: string
+          notes?: string | null
+          season_year?: number
+          second_half_amount?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "membership_fee_settings_hunter_society_id_fkey"
+            columns: ["hunter_society_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      membership_payments: {
+        Row: {
+          amount: number
+          created_at: string
+          hunter_society_id: string
+          id: string
+          notes: string | null
+          paid: boolean
+          paid_at: string | null
+          paid_by: string | null
+          period: Database["public"]["Enums"]["membership_period"]
+          season_year: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          hunter_society_id: string
+          id?: string
+          notes?: string | null
+          paid?: boolean
+          paid_at?: string | null
+          paid_by?: string | null
+          period: Database["public"]["Enums"]["membership_period"]
+          season_year: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          hunter_society_id?: string
+          id?: string
+          notes?: string | null
+          paid?: boolean
+          paid_at?: string | null
+          paid_by?: string | null
+          period?: Database["public"]["Enums"]["membership_period"]
+          season_year?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "membership_payments_hunter_society_id_fkey"
+            columns: ["hunter_society_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "membership_payments_paid_by_fkey"
+            columns: ["paid_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "membership_payments_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notification_logs: {
         Row: {
           created_at: string | null
@@ -1552,6 +1663,7 @@ export type Database = {
         | "magan_szoro"
         | "kozponti_szoro"
         | "csapda"
+      membership_period: "first_half" | "second_half" | "full_year"
       ticket_status: "open" | "in_progress" | "closed"
     }
     CompositeTypes: {
@@ -1696,6 +1808,7 @@ export const Constants = {
         "kozponti_szoro",
         "csapda",
       ],
+      membership_period: ["first_half", "second_half", "full_year"],
       ticket_status: ["open", "in_progress", "closed"],
     },
   },
