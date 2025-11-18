@@ -39,6 +39,8 @@ export default function GuestRegistration() {
   const [huntingLocations, setHuntingLocations] = useState<any[]>([]);
   const [closures, setClosures] = useState<any[]>([]);
   const [submitted, setSubmitted] = useState(false);
+  const [weatherData, setWeatherData] = useState<any>(null);
+  const [loadingWeather, setLoadingWeather] = useState(false);
   const { limits, loading: subscriptionLoading } = useSubscription();
 
   const form = useForm<FormData>({
@@ -104,6 +106,34 @@ export default function GuestRegistration() {
     return closures.some((closure) => closure.security_zone_id === zoneId);
   };
 
+  const fetchWeather = async (settlementName: string) => {
+    if (!settlementName) return;
+    
+    setLoadingWeather(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('get-weather', {
+        body: { settlementName }
+      });
+
+      if (error) throw error;
+      setWeatherData(data);
+    } catch (error) {
+      console.error('Error fetching weather:', error);
+      toast.error("Nem sikerült lekérdezni az időjárást");
+    } finally {
+      setLoadingWeather(false);
+    }
+  };
+
+  const handleZoneChange = async (value: string) => {
+    form.setValue("security_zone_id", value);
+    
+    const selectedZoneData = securityZones.find(z => z.id === value);
+    if (selectedZoneData?.settlements?.name) {
+      await fetchWeather(selectedZoneData.settlements.name);
+    }
+  };
+
   const onSubmit = async (values: FormData) => {
     try {
       const { error } = await supabase.from("hunting_registrations").insert({
@@ -120,6 +150,7 @@ export default function GuestRegistration() {
         requires_admin_approval: true,
         status: "pending",
         user_id: "00000000-0000-0000-0000-000000000000", // Placeholder for guest
+        weather_data: weatherData,
       });
 
       if (error) throw error;
@@ -312,7 +343,7 @@ export default function GuestRegistration() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Biztonsági körzet *</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
+                      <Select onValueChange={handleZoneChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Válasszon körzetet" />
@@ -336,6 +367,38 @@ export default function GuestRegistration() {
                     </FormItem>
                   )}
                 />
+
+                {loadingWeather && (
+                  <div className="text-sm text-muted-foreground">
+                    Időjárás betöltése...
+                  </div>
+                )}
+
+                {weatherData && !loadingWeather && (
+                  <Card className="bg-accent/5">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm">Aktuális időjárás - {weatherData.settlement}</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span>Hőmérséklet:</span>
+                        <span className="font-medium">{weatherData.current.temperature}°C</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Páratartalom:</span>
+                        <span className="font-medium">{weatherData.current.humidity}%</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Csapadék valószínűség:</span>
+                        <span className="font-medium">{weatherData.current.precipitation_probability}%</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Szélsebesség:</span>
+                        <span className="font-medium">{weatherData.current.wind_speed} km/h</span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
 
                 {huntingLocations.length > 0 && (
                   <FormField
