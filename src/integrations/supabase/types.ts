@@ -964,6 +964,7 @@ export type Database = {
           contact_name: string | null
           contact_phone: string | null
           created_at: string
+          enable_membership_discount: boolean | null
           hunter_category: Database["public"]["Enums"]["hunter_category"] | null
           hunter_license_number: string | null
           hunter_society_id: string | null
@@ -986,6 +987,7 @@ export type Database = {
           contact_name?: string | null
           contact_phone?: string | null
           created_at?: string
+          enable_membership_discount?: boolean | null
           hunter_category?:
             | Database["public"]["Enums"]["hunter_category"]
             | null
@@ -1010,6 +1012,7 @@ export type Database = {
           contact_name?: string | null
           contact_phone?: string | null
           created_at?: string
+          enable_membership_discount?: boolean | null
           hunter_category?:
             | Database["public"]["Enums"]["hunter_category"]
             | null
