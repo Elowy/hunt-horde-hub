@@ -16,6 +16,7 @@ import HuntingRegistrations from "./pages/HuntingRegistrations";
 import GuestRegistration from "./pages/GuestRegistration";
 import HiredHunters from "./pages/HiredHunters";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard";
+import ZoneStatistics from "./pages/ZoneStatistics";
 import Settings from "./pages/Settings";
 import Reports from "./pages/Reports";
 import HunterStatistics from "./pages/HunterStatistics";
@@ -62,6 +63,7 @@ const App = () => (
             <Route path="/documents" element={<Documents />} />
             <Route path="/membership-payments" element={<MembershipPayments />} />
             <Route path="/qr-animal-submit/:qrCode" element={<QRAnimalSubmit />} />
+            <Route path="/zone-statistics" element={<ZoneStatistics />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

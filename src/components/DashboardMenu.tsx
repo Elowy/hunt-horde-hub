@@ -216,14 +216,24 @@ export const DashboardMenu = ({ isAdmin, isEditor, isHunter, onLogout, onPriceUp
                     Vadászati beiratkozások
                   </Button>
                   {(isAdmin || isEditor) && (
-                    <Button
-                      variant="ghost"
-                      className="w-full justify-start"
-                      onClick={() => handleNavigation("/hired-hunters")}
-                    >
-                      <Users className="mr-2 h-4 w-4" />
-                      Bérvadászok
-                    </Button>
+                    <>
+                      <Button
+                        variant="ghost"
+                        className="w-full justify-start"
+                        onClick={() => handleNavigation("/hired-hunters")}
+                      >
+                        <Users className="mr-2 h-4 w-4" />
+                        Bérvadászok
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        className="w-full justify-start"
+                        onClick={() => handleNavigation("/zone-statistics")}
+                      >
+                        <MapPin className="mr-2 h-4 w-4" />
+                        Terület statisztikák
+                      </Button>
+                    </>
                   )}
                 </>
               ) : (
