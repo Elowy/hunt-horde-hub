@@ -21,6 +21,12 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { AlertCircle, Check, User, Mail, Phone, MapPin } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface AnimalReservationDialogProps {
   animalId: string;
@@ -317,14 +323,29 @@ export const AnimalReservationDialog = ({
   };
 
   const needsApproval = currentStatus === "pending" && (isAdmin || isEditor);
+  const isReservedByOther = isHunter && currentStatus !== "available";
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         {isHunter ? (
-          <Button variant="ghost" size="sm" title="Igényt tartok rá">
-            <Check className="h-4 w-4" />
-          </Button>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  disabled={isReservedByOther}
+                  title={isReservedByOther ? "Ez az állat már foglalt" : "Igényt tartok rá"}
+                >
+                  <Check className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                {isReservedByOther ? "Ez az állat már foglalt" : "Igényt tartok rá"}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         ) : needsApproval ? (
           <Button variant="ghost" size="sm" className="text-yellow-600" title="Jóváhagyás szükséges">
             <AlertCircle className="h-4 w-4" />
