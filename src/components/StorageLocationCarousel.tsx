@@ -5,6 +5,7 @@ import { MapPin, Star, Trash2 } from "lucide-react";
 import useEmblaCarousel from "embla-carousel-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { EditStorageLocationDialog } from "@/components/EditStorageLocationDialog";
+import { StorageLocationQRDialog } from "@/components/StorageLocationQRDialog";
 
 interface StorageLocation {
   id: string;
@@ -13,6 +14,8 @@ interface StorageLocation {
   capacity: number | null;
   is_default: boolean;
   notes: string | null;
+  qr_code: string | null;
+  qr_enabled: boolean;
 }
 
 interface LocationStats {
@@ -74,6 +77,13 @@ export const StorageLocationCarousel = ({
                   <Star className="h-4 w-4 text-muted-foreground hover:text-accent" />
                 </Button>
               )}
+              <StorageLocationQRDialog
+                locationId={location.id}
+                locationName={location.name}
+                qrCode={location.qr_code}
+                qrEnabled={location.qr_enabled}
+                onUpdate={onLocationUpdated}
+              />
               <EditStorageLocationDialog location={location} onLocationUpdated={onLocationUpdated} />
               <Button
                 variant="ghost"

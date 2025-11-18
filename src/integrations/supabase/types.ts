@@ -914,6 +914,110 @@ export type Database = {
         }
         Relationships: []
       }
+      pending_animals: {
+        Row: {
+          age: string | null
+          animal_id: string | null
+          approval_status: string
+          class: string | null
+          condition: string | null
+          cooling_date: string | null
+          created_at: string
+          gender: string | null
+          hunter_name: string | null
+          hunter_society_id: string
+          id: string
+          notes: string | null
+          rejection_reason: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          security_zone_id: string | null
+          species: string
+          storage_location_id: string
+          submitted_at: string
+          submitted_via: string | null
+          updated_at: string
+          weight: number | null
+        }
+        Insert: {
+          age?: string | null
+          animal_id?: string | null
+          approval_status?: string
+          class?: string | null
+          condition?: string | null
+          cooling_date?: string | null
+          created_at?: string
+          gender?: string | null
+          hunter_name?: string | null
+          hunter_society_id: string
+          id?: string
+          notes?: string | null
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          security_zone_id?: string | null
+          species: string
+          storage_location_id: string
+          submitted_at?: string
+          submitted_via?: string | null
+          updated_at?: string
+          weight?: number | null
+        }
+        Update: {
+          age?: string | null
+          animal_id?: string | null
+          approval_status?: string
+          class?: string | null
+          condition?: string | null
+          cooling_date?: string | null
+          created_at?: string
+          gender?: string | null
+          hunter_name?: string | null
+          hunter_society_id?: string
+          id?: string
+          notes?: string | null
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          security_zone_id?: string | null
+          species?: string
+          storage_location_id?: string
+          submitted_at?: string
+          submitted_via?: string | null
+          updated_at?: string
+          weight?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pending_animals_hunter_society_id_fkey"
+            columns: ["hunter_society_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pending_animals_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pending_animals_security_zone_id_fkey"
+            columns: ["security_zone_id"]
+            isOneToOne: false
+            referencedRelation: "security_zones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pending_animals_storage_location_id_fkey"
+            columns: ["storage_location_id"]
+            isOneToOne: false
+            referencedRelation: "storage_locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       price_settings: {
         Row: {
           class: string
@@ -1243,6 +1347,8 @@ export type Database = {
           is_default: boolean | null
           name: string
           notes: string | null
+          qr_code: string | null
+          qr_enabled: boolean | null
           updated_at: string
           user_id: string
         }
@@ -1256,6 +1362,8 @@ export type Database = {
           is_default?: boolean | null
           name: string
           notes?: string | null
+          qr_code?: string | null
+          qr_enabled?: boolean | null
           updated_at?: string
           user_id: string
         }
@@ -1269,6 +1377,8 @@ export type Database = {
           is_default?: boolean | null
           name?: string
           notes?: string | null
+          qr_code?: string | null
+          qr_enabled?: boolean | null
           updated_at?: string
           user_id?: string
         }

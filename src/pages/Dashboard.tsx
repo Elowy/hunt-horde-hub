@@ -59,6 +59,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { StorageLocationCarousel } from "@/components/StorageLocationCarousel";
 import { AddAnimalDialog } from "@/components/AddAnimalDialog";
 import { AnnouncementBanner } from "@/components/AnnouncementBanner";
+import { PendingAnimalsList } from "@/components/PendingAnimalsList";
 import { QuickActionsSettingsDialog } from "@/components/QuickActionsSettingsDialog";
 import { AnimalReservationDialog } from "@/components/AnimalReservationDialog";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
@@ -84,6 +85,8 @@ interface StorageLocation {
   notes: string | null;
   cooling_price_per_kg?: number | null;
   cooling_vat_rate?: number | null;
+  qr_code: string | null;
+  qr_enabled: boolean;
 }
 
 interface Animal {
@@ -1724,6 +1727,13 @@ const Dashboard = () => {
               )}
             </CollapsibleContent>
           </Collapsible>
+        )}
+
+        {/* Pending Animals - only for admins and editors */}
+        {(isAdmin || isEditor) && (
+          <div className="mb-8">
+            <PendingAnimalsList />
+          </div>
         )}
 
         {/* Statisztika - csak ha nem vadász és nem ingyenes felhasználó, becsukható */}
