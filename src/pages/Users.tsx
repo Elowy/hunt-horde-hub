@@ -9,6 +9,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { BanUserDialog } from "@/components/BanUserDialog";
 import { InviteUserDialog } from "@/components/InviteUserDialog";
+import { AddExistingHunterDialog } from "@/components/AddExistingHunterDialog";
 import {
   Table,
   TableBody,

@@ -11,6 +11,7 @@ import { PriceProposalsDialog } from "@/components/PriceProposalsDialog";
 import { TransporterDialog } from "@/components/TransporterDialog";
 import { PriceSettingsDialog } from "@/components/PriceSettingsDialog";
 import { InviteUserDialog } from "@/components/InviteUserDialog";
+import { AddExistingHunterDialog } from "@/components/AddExistingHunterDialog";
 import { SettlementsAndZonesDialog } from "@/components/SettlementsAndZonesDialog";
 import { SecurityZoneClosuresDialog } from "@/components/SecurityZoneClosuresDialog";
 import { AddAnimalDialog } from "@/components/AddAnimalDialog";
@@ -85,11 +86,14 @@ export const DashboardMenu = ({ isAdmin, isEditor, isHunter, onLogout, onPriceUp
               Profilom
             </Button>
             {isAdmin && (
-              <div className="ml-6">
+              <div className="ml-6 space-y-2">
                 {subscriptionLoading ? (
                   <p className="text-xs text-muted-foreground px-2">Betöltés...</p>
                 ) : isPro ? (
-                  <InviteUserDialog />
+                  <>
+                    <InviteUserDialog />
+                    <AddExistingHunterDialog />
+                  </>
                 ) : (
                   <Alert className="border-yellow-500/50 bg-yellow-500/10 py-2">
                     <AlertDescription className="text-xs flex items-center gap-2">
