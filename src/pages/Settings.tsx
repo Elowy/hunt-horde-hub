@@ -20,6 +20,7 @@ interface NotificationSettings {
   notify_on_registration_approved: boolean;
   notify_on_registration_rejected: boolean;
   notify_on_announcement: boolean;
+  notify_on_membership_fee: boolean;
 }
 
 const Settings = () => {
@@ -38,6 +39,7 @@ const Settings = () => {
     notify_on_registration_approved: true,
     notify_on_registration_rejected: true,
     notify_on_announcement: true,
+    notify_on_membership_fee: true,
   });
 
   useEffect(() => {
@@ -78,6 +80,7 @@ const Settings = () => {
           notify_on_registration_approved: data.notify_on_registration_approved ?? true,
           notify_on_registration_rejected: data.notify_on_registration_rejected ?? true,
           notify_on_announcement: data.notify_on_announcement ?? true,
+          notify_on_membership_fee: data.notify_on_membership_fee ?? true,
         });
       }
     } catch (error: any) {
@@ -463,6 +466,24 @@ const Settings = () => {
                   onCheckedChange={(checked) => updateSetting("notify_on_announcement", checked)}
                 />
               </div>
+            </div>
+
+            <Separator />
+
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5 flex-1">
+                <Label htmlFor="notify-membership-fee" className="text-base">
+                  Tagdíj értesítés
+                </Label>
+                <p className="text-sm text-muted-foreground">
+                  Értesítés amikor új tagdíj fizetési kötelezettség kerül kiküldésre
+                </p>
+              </div>
+              <Switch
+                id="notify-membership-fee"
+                checked={settings.notify_on_membership_fee}
+                onCheckedChange={(checked) => updateSetting("notify_on_membership_fee", checked)}
+              />
             </div>
 
             <div className="pt-4">

@@ -57,6 +57,9 @@ const MembershipPayments = () => {
   const [amount, setAmount] = useState("");
   const [notes, setNotes] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [bulkDialogOpen, setBulkDialogOpen] = useState(false);
+  const [bulkPeriod, setBulkPeriod] = useState<"first_half" | "second_half" | "full_year">("first_half");
+  const [bulkCreating, setBulkCreating] = useState(false);
 
   useEffect(() => {
     checkAuth();
@@ -194,9 +197,12 @@ const MembershipPayments = () => {
 
       if (error) throw error;
 
+      // Send notification
+      await sendPaymentNotification(selectedMember, user.id);
+
       toast({
         title: "Sikeres létrehozás",
-        description: "A tagdíj bejegyzés sikeresen létrehozva.",
+        description: "A tagdíj bejegyzés sikeresen létrehozva és értesítés elküldve.",
       });
 
       setDialogOpen(false);
@@ -210,6 +216,133 @@ const MembershipPayments = () => {
         description: error.message,
         variant: "destructive",
       });
+    }
+  };
+
+  const sendPaymentNotification = async (memberId: string, societyId: string) => {
+    try {
+      const { data: memberData } = await supabase
+        .from("profiles")
+        .select("contact_name, contact_email")
+        .eq("id", memberId)
+        .single();
+
+      const { data: societyData } = await supabase
+        .from("profiles")
+        .select("company_name")
+        .eq("id", societyId)
+        .single();
+
+      if (!memberData?.contact_email) {
+        console.log("Tagnak nincs email címe, értesítés nem került elküldésre");
+        return;
+      }
+
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      await supabase.functions.invoke("send-membership-fee-notification", {
+        body: {
+          user_email: memberData.contact_email,
+          user_name: memberData.contact_name || "Tag",
+          period: selectedPeriod,
+          amount: parseFloat(amount),
+          season_year: currentSeasonYear,
+          hunter_society_name: societyData?.company_name || "Vadásztársaság",
+        },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
+    } catch (error) {
+      console.error("Értesítés küldési hiba:", error);
+    }
+  };
+
+  const handleCreateAllPayments = async () => {
+    if (!feeSettings) {
+      toast({
+        title: "Hiba",
+        description: "Nincs beállítva tagdíj az aktuális idényre",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setBulkCreating(true);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Nincs bejelentkezve");
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("id, company_name")
+        .eq("id", user.id)
+        .single();
+
+      if (!profile) throw new Error("Profil nem található");
+
+      const bulkAmount = bulkPeriod === "first_half" 
+        ? feeSettings.first_half_amount 
+        : bulkPeriod === "second_half" 
+        ? feeSettings.second_half_amount 
+        : feeSettings.full_year_amount;
+
+      const paymentsToCreate = members.map(member => ({
+        user_id: member.id,
+        hunter_society_id: profile.id,
+        season_year: currentSeasonYear,
+        period: bulkPeriod,
+        amount: bulkAmount,
+      }));
+
+      const { error } = await supabase
+        .from("membership_payments")
+        .insert(paymentsToCreate);
+
+      if (error) throw error;
+
+      // Send notifications to all members
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        for (const member of members) {
+          if (member.contact_email) {
+            try {
+              await supabase.functions.invoke("send-membership-fee-notification", {
+                body: {
+                  user_email: member.contact_email,
+                  user_name: member.contact_name || "Tag",
+                  period: bulkPeriod,
+                  amount: bulkAmount,
+                  season_year: currentSeasonYear,
+                  hunter_society_name: profile.company_name || "Vadásztársaság",
+                },
+                headers: {
+                  Authorization: `Bearer ${session.access_token}`,
+                },
+              });
+            } catch (notifError) {
+              console.error(`Értesítés küldési hiba ${member.contact_email}:`, notifError);
+            }
+          }
+        }
+      }
+
+      toast({
+        title: "Sikeres létrehozás",
+        description: `${members.length} tagdíj bejegyzés létrehozva és értesítések elküldve.`,
+      });
+
+      setBulkDialogOpen(false);
+      fetchPayments(currentSeasonYear);
+    } catch (error: any) {
+      toast({
+        title: "Hiba",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setBulkCreating(false);
     }
   };
 
@@ -347,8 +480,8 @@ const MembershipPayments = () => {
           </Card>
         </div>
 
-        {/* Add Payment Button */}
-        <div className="mb-4">
+        {/* Add Payment Buttons */}
+        <div className="mb-4 flex gap-2">
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
               <Button>
@@ -430,7 +563,60 @@ const MembershipPayments = () => {
               </div>
             </DialogContent>
           </Dialog>
-        </div>
+
+          <Dialog open={bulkDialogOpen} onOpenChange={setBulkDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline">
+                <Users className="h-4 w-4 mr-2" />
+                Kiküldés minden tagnak
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Tagdíj kiküldése minden tagnak</DialogTitle>
+                <DialogDescription>
+                  A rendszer automatikusan létrehoz egy-egy tagdíj bejegyzést minden tag számára a beállított tagdíj összegekkel, és értesítést küld nekik.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Időszak</Label>
+                  <Select value={bulkPeriod} onValueChange={(val: any) => setBulkPeriod(val)}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="first_half">
+                        Első félév - {feeSettings?.first_half_amount.toLocaleString() || 0} Ft
+                      </SelectItem>
+                      <SelectItem value="second_half">
+                        Második félév - {feeSettings?.second_half_amount.toLocaleString() || 0} Ft
+                      </SelectItem>
+                      <SelectItem value="full_year">
+                        Egész év - {feeSettings?.full_year_amount.toLocaleString() || 0} Ft
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="bg-muted p-4 rounded-lg space-y-1">
+                  <p className="text-sm font-medium">Érintett tagok: {members.length}</p>
+                  <p className="text-sm text-muted-foreground">
+                    Email címmel rendelkező tagok értesítést kapnak a tagdíjról.
+                  </p>
+                </div>
+
+                <Button 
+                  onClick={handleCreateAllPayments} 
+                  className="w-full"
+                  disabled={bulkCreating}
+                >
+                  {bulkCreating ? "Létrehozás és értesítések küldése..." : "Kiküldés mindenkinek"}
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+         </div>
 
         {/* Payments Table */}
         <Card>
