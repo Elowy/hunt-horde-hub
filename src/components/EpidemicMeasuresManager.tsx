@@ -37,6 +37,7 @@ interface EpidemicMeasure {
   affected_species: string[];
   shooting_fee: number;
   sampling_fee: number;
+  price_per_unit: number;
   is_active: boolean;
   created_at: string;
 }
@@ -75,6 +76,7 @@ export const EpidemicMeasuresManager = () => {
     affected_species: string[];
     shooting_fee: number;
     sampling_fee: number;
+    price_per_unit: number;
     is_active: boolean;
   }>({
     name: "",
@@ -82,6 +84,7 @@ export const EpidemicMeasuresManager = () => {
     affected_species: [],
     shooting_fee: 0,
     sampling_fee: 0,
+    price_per_unit: 0,
     is_active: true,
   });
 
@@ -117,6 +120,7 @@ export const EpidemicMeasuresManager = () => {
       affected_species: [],
       shooting_fee: 0,
       sampling_fee: 0,
+      price_per_unit: 0,
       is_active: true,
     });
     setEditingMeasure(null);
@@ -130,6 +134,7 @@ export const EpidemicMeasuresManager = () => {
       affected_species: measure.affected_species,
       shooting_fee: measure.shooting_fee,
       sampling_fee: measure.sampling_fee,
+      price_per_unit: measure.price_per_unit,
       is_active: measure.is_active,
     });
     setDialogOpen(true);
@@ -167,6 +172,7 @@ export const EpidemicMeasuresManager = () => {
             affected_species: formData.affected_species,
             shooting_fee: formData.shooting_fee,
             sampling_fee: formData.sampling_fee,
+            price_per_unit: formData.price_per_unit,
             is_active: formData.is_active,
             user_id: user.id,
           }]);
@@ -343,6 +349,20 @@ export const EpidemicMeasuresManager = () => {
                       onChange={(e) => setFormData({ ...formData, sampling_fee: parseFloat(e.target.value) || 0 })}
                     />
                   </div>
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="price_per_unit">Állat darabonkénti ára (Ft)</Label>
+                  <Input
+                    id="price_per_unit"
+                    type="number"
+                    min="0"
+                    value={formData.price_per_unit}
+                    onChange={(e) => setFormData({ ...formData, price_per_unit: parseFloat(e.target.value) || 0 })}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Az érintett vadfajok esetén ez az ár + kilövési díj + mintavételi díj összege lesz a végső ár
+                  </p>
                 </div>
 
                 <div className="flex items-center justify-between">

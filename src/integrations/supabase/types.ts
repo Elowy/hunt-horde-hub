@@ -420,6 +420,7 @@ export type Database = {
           id: string
           is_active: boolean
           name: string
+          price_per_unit: number
           sampling_fee: number
           severity: Database["public"]["Enums"]["epidemic_severity"]
           shooting_fee: number
@@ -432,6 +433,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           name: string
+          price_per_unit?: number
           sampling_fee?: number
           severity: Database["public"]["Enums"]["epidemic_severity"]
           shooting_fee?: number
@@ -444,6 +446,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           name?: string
+          price_per_unit?: number
           sampling_fee?: number
           severity?: Database["public"]["Enums"]["epidemic_severity"]
           shooting_fee?: number

@@ -79,6 +79,17 @@ interface PriceSetting {
   price_per_kg: number;
 }
 
+interface EpidemicMeasure {
+  id: string;
+  name: string;
+  severity: string;
+  affected_species: string[];
+  shooting_fee: number;
+  sampling_fee: number;
+  price_per_unit: number;
+  is_active: boolean;
+}
+
 interface EditAnimalDialogProps {
   animal: Animal;
   locations: StorageLocation[];
@@ -90,6 +101,7 @@ export const EditAnimalDialog = ({ animal, locations, onAnimalUpdated }: EditAni
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [priceSettings, setPriceSettings] = useState<PriceSetting[]>([]);
+  const [epidemicMeasures, setEpidemicMeasures] = useState<EpidemicMeasure[]>([]);
   const [securityZones, setSecurityZones] = useState<SecurityZone[]>([]);
   const [hunters, setHunters] = useState<Hunter[]>([]);
   const [isCustomHunter, setIsCustomHunter] = useState(false);
@@ -162,6 +174,7 @@ export const EditAnimalDialog = ({ animal, locations, onAnimalUpdated }: EditAni
     if (open) {
       fetchPriceSettings();
       fetchVatRate();
+      fetchEpidemicMeasures();
     }
   }, [open]);
 
@@ -181,7 +194,29 @@ export const EditAnimalDialog = ({ animal, locations, onAnimalUpdated }: EditAni
       return;
     }
 
-    if (!formData.weight || !formData.species || !formData.class) {
+    if (!formData.species) {
+      setCalculatedPrice({ net: 0, gross: 0 });
+      return;
+    }
+
+    // Check for active epidemic measure for this species
+    const activeMeasure = epidemicMeasures.find(
+      measure => measure.is_active && measure.affected_species.includes(formData.species)
+    );
+
+    if (activeMeasure) {
+      // For epidemic measures, calculate per unit (not by weight)
+      const netPrice = activeMeasure.price_per_unit + activeMeasure.shooting_fee + activeMeasure.sampling_fee;
+      const grossPrice = netPrice * (1 + vatRate / 100);
+      setCalculatedPrice({
+        net: Math.round(netPrice),
+        gross: Math.round(grossPrice),
+      });
+      return;
+    }
+
+    // Normal calculation by weight
+    if (!formData.weight || !formData.class) {
       setCalculatedPrice({ net: 0, gross: 0 });
       return;
     }
@@ -212,7 +247,7 @@ export const EditAnimalDialog = ({ animal, locations, onAnimalUpdated }: EditAni
 
   useEffect(() => {
     calculatePrice();
-  }, [formData.weight, formData.species, formData.class, priceSettings, vatRate]);
+  }, [formData.weight, formData.species, formData.class, priceSettings, vatRate, epidemicMeasures]);
 
   const fetchSecurityZones = async () => {
     try {
@@ -320,6 +355,24 @@ export const EditAnimalDialog = ({ animal, locations, onAnimalUpdated }: EditAni
       }
     } catch (error: any) {
       console.error("Error fetching VAT rate:", error);
+    }
+  };
+
+  const fetchEpidemicMeasures = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from("epidemic_measures")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("is_active", true);
+
+      if (error) throw error;
+      setEpidemicMeasures(data || []);
+    } catch (error: any) {
+      console.error("Error fetching epidemic measures:", error);
     }
   };
 
