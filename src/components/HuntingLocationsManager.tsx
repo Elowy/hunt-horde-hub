@@ -41,6 +41,7 @@ export function HuntingLocationsManager({ securityZoneId, securityZoneName }: Hu
     type: "fedett_les",
     latitude: "",
     longitude: "",
+    google_maps_link: "",
   });
 
   useEffect(() => {
@@ -79,7 +80,7 @@ export function HuntingLocationsManager({ securityZoneId, securityZoneName }: Hu
   };
 
   const resetForm = () => {
-    setFormData({ name: "", type: "fedett_les", latitude: "", longitude: "" });
+    setFormData({ name: "", type: "fedett_les", latitude: "", longitude: "", google_maps_link: "" });
     setEditingLocation(null);
     setShowAddForm(false);
   };
@@ -100,6 +101,7 @@ export function HuntingLocationsManager({ securityZoneId, securityZoneName }: Hu
       type: formData.type as "fedett_les" | "nem_fedett_les" | "magan_szoro" | "kozponti_szoro" | "csapda",
       latitude: formData.latitude ? parseFloat(formData.latitude) : null,
       longitude: formData.longitude ? parseFloat(formData.longitude) : null,
+      google_maps_link: formData.google_maps_link || null,
       security_zone_id: securityZoneId,
       user_id: user.id,
     };
@@ -144,6 +146,7 @@ export function HuntingLocationsManager({ securityZoneId, securityZoneName }: Hu
       type: location.type,
       latitude: location.latitude?.toString() || "",
       longitude: location.longitude?.toString() || "",
+      google_maps_link: (location as any).google_maps_link || "",
     });
     setShowAddForm(true);
   };
@@ -258,6 +261,17 @@ export function HuntingLocationsManager({ securityZoneId, securityZoneName }: Hu
                 </div>
               </div>
 
+              <div className="space-y-2">
+                <Label htmlFor="google_maps_link">Google Maps link (opcionális)</Label>
+                <Input
+                  id="google_maps_link"
+                  type="url"
+                  value={formData.google_maps_link}
+                  onChange={(e) => setFormData({ ...formData, google_maps_link: e.target.value })}
+                  placeholder="https://maps.google.com/..."
+                />
+              </div>
+
               <div className="flex gap-2 justify-end">
                 <Button type="button" variant="outline" onClick={resetForm}>
                   Mégse
@@ -284,7 +298,20 @@ export function HuntingLocationsManager({ securityZoneId, securityZoneName }: Hu
                   <div className="font-medium">{location.name}</div>
                   <div className="text-sm text-muted-foreground">
                     {locationTypeLabels[location.type]}
-                    {location.latitude && location.longitude && (
+                    {(location as any).google_maps_link && (
+                      <>
+                        {" • "}
+                        <a 
+                          href={(location as any).google_maps_link} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-primary hover:underline"
+                        >
+                          Térkép megnyitása
+                        </a>
+                      </>
+                    )}
+                    {location.latitude && location.longitude && !(location as any).google_maps_link && (
                       <> • GPS: {location.latitude.toFixed(6)}, {location.longitude.toFixed(6)}</>
                     )}
                   </div>

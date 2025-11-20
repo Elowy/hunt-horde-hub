@@ -80,8 +80,6 @@ export const StorageLocationCarousel = ({
               <StorageLocationQRDialog
                 locationId={location.id}
                 locationName={location.name}
-                qrCode={location.qr_code}
-                qrEnabled={location.qr_enabled}
                 onUpdate={onLocationUpdated}
               />
               <EditStorageLocationDialog location={location} onLocationUpdated={onLocationUpdated} />
