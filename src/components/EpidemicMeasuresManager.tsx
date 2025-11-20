@@ -10,6 +10,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Plus, Edit, Trash2, AlertTriangle, Shield } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { SPECIES_OPTIONS } from "@/lib/speciesConstants";
 import {
   Dialog,
   DialogContent,
@@ -47,19 +48,6 @@ const SEVERITY_LEVELS = [
   { value: "magas", label: "Magas", color: "bg-orange-500" },
   { value: "fertozott", label: "Fertőzött", color: "bg-red-500" },
   { value: "szigoruan_korlatozott", label: "Szigorúan korlátozott terület", color: "bg-purple-500" },
-];
-
-const AVAILABLE_SPECIES = [
-  "Vaddisznó",
-  "Gímszarvas",
-  "Dámszarvas",
-  "Őz",
-  "Muflon",
-  "Róka",
-  "Borz",
-  "Nyúl",
-  "Fácán",
-  "Fogoly",
 ];
 
 export const EpidemicMeasuresManager = () => {
@@ -311,15 +299,15 @@ export const EpidemicMeasuresManager = () => {
                 <div className="grid gap-2">
                   <Label>Érintett vadfajok *</Label>
                   <div className="grid grid-cols-2 gap-2">
-                    {AVAILABLE_SPECIES.map((species) => (
-                      <label key={species} className="flex items-center gap-2 cursor-pointer">
+                    {SPECIES_OPTIONS.map((species) => (
+                      <label key={species.value} className="flex items-center gap-2 cursor-pointer">
                         <input
                           type="checkbox"
-                          checked={formData.affected_species.includes(species)}
-                          onChange={() => toggleSpecies(species)}
+                          checked={formData.affected_species.includes(species.value)}
+                          onChange={() => toggleSpecies(species.value)}
                           className="rounded border-input"
                         />
-                        <span className="text-sm">{species}</span>
+                        <span className="text-sm">{species.label}</span>
                       </label>
                     ))}
                   </div>

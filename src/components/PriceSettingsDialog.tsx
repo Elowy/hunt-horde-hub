@@ -14,6 +14,7 @@ import { Settings, Plus, Archive, Calendar } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
+import { SPECIES_OPTIONS } from "@/lib/speciesConstants";
 import {
   Table,
   TableBody,
@@ -36,15 +37,6 @@ interface PriceSetting {
   is_archived: boolean;
 }
 
-const speciesOptions = [
-  { value: "🐏 Őz", label: "🐏 Őz" },
-  { value: "🦌 Dám Szarvas", label: "🦌 Dám Szarvas" },
-  { value: "🦌 Szika Szarvas", label: "🦌 Szika Szarvas" },
-  { value: "🦌 Gím Szarvas", label: "🦌 Gím Szarvas" },
-  { value: "🐗 Vaddisznó", label: "🐗 Vaddisznó" },
-  { value: "🐏 Muflon", label: "🐏 Muflon" },
-];
-
 const classOptions = ["I", "II", "III", "IV"];
 
 export const PriceSettingsDialog = ({ onPriceUpdated }: { onPriceUpdated: () => void }) => {
@@ -65,7 +57,7 @@ export const PriceSettingsDialog = ({ onPriceUpdated }: { onPriceUpdated: () => 
       fetchPrices();
       // Initialize temp prices with empty values
       const initialPrices: Record<string, string> = {};
-      speciesOptions.forEach(species => {
+      SPECIES_OPTIONS.forEach(species => {
         classOptions.forEach(cls => {
           const key = `${species.value}_${cls}`;
           initialPrices[key] = "";
@@ -172,7 +164,7 @@ export const PriceSettingsDialog = ({ onPriceUpdated }: { onPriceUpdated: () => 
         vat: "27"
       });
       const initialPrices: Record<string, string> = {};
-      speciesOptions.forEach(species => {
+      SPECIES_OPTIONS.forEach(species => {
         classOptions.forEach(cls => {
           const key = `${species.value}_${cls}`;
           initialPrices[key] = "";
@@ -366,7 +358,7 @@ export const PriceSettingsDialog = ({ onPriceUpdated }: { onPriceUpdated: () => 
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {speciesOptions.map(species => (
+                  {SPECIES_OPTIONS.map(species => (
                     <TableRow key={species.value}>
                       <TableCell className="font-medium">{species.label}</TableCell>
                       {classOptions.map(cls => {
