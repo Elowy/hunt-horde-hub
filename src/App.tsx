@@ -29,6 +29,7 @@ import Documents from "./pages/Documents";
 import MembershipPayments from "./pages/MembershipPayments";
 import QRAnimalSubmit from "./pages/QRAnimalSubmit";
 import PendingAnimals from "./pages/PendingAnimals";
+import HunterDashboard from "./pages/HunterDashboard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -65,6 +66,7 @@ const App = () => (
             <Route path="/membership-payments" element={<MembershipPayments />} />
             <Route path="/qr-animal-submit/:qrCode" element={<QRAnimalSubmit />} />
             <Route path="/pending-animals" element={<PendingAnimals />} />
+            <Route path="/hunter-dashboard" element={<HunterDashboard />} />
             <Route path="/zone-statistics" element={<ZoneStatistics />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />

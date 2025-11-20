@@ -416,6 +416,38 @@ export type Database = {
         }
         Relationships: []
       }
+      hunter_society_members: {
+        Row: {
+          created_at: string
+          hunter_id: string
+          hunter_society_id: string
+          id: string
+          joined_at: string
+        }
+        Insert: {
+          created_at?: string
+          hunter_id: string
+          hunter_society_id: string
+          id?: string
+          joined_at?: string
+        }
+        Update: {
+          created_at?: string
+          hunter_id?: string
+          hunter_society_id?: string
+          id?: string
+          joined_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hunter_society_members_hunter_society_id_fkey"
+            columns: ["hunter_society_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hunting_locations: {
         Row: {
           created_at: string
