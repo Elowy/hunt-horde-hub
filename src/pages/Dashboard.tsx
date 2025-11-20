@@ -289,9 +289,16 @@ const Dashboard = () => {
     // IMPORTANT: This does NOT change actual permissions or data access
     const testRole = userIsSuperAdmin ? getTestRole() : null;
     if (userIsSuperAdmin && testRole && testRole !== "super_admin") {
+      const isHunterTest = testRole === "hunter";
       setIsAdmin(testRole === "admin");
       setIsEditor(testRole === "editor");
-      setIsHunter(testRole === "hunter");
+      setIsHunter(isHunterTest);
+
+      // When super admin tests the hunter role, also redirect to hunter dashboard
+      if (isHunterTest) {
+        navigate("/hunter-dashboard");
+      }
+
       return;
     }
 
