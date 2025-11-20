@@ -21,6 +21,7 @@ interface NotificationSettings {
   notify_on_announcement: boolean;
   notify_on_membership_fee: boolean;
   notify_on_ticket_status_change: boolean;
+  notify_on_pending_animal: boolean;
 }
 
 const Settings = () => {
@@ -41,6 +42,7 @@ const Settings = () => {
     notify_on_announcement: true,
     notify_on_membership_fee: true,
     notify_on_ticket_status_change: true,
+    notify_on_pending_animal: true,
   });
 
   useEffect(() => {
@@ -84,6 +86,7 @@ const Settings = () => {
           notify_on_announcement: data.notify_on_announcement ?? true,
           notify_on_membership_fee: data.notify_on_membership_fee ?? true,
           notify_on_ticket_status_change: data.notify_on_ticket_status_change ?? true,
+          notify_on_pending_animal: data.notify_on_pending_animal ?? true,
         });
       }
 
@@ -488,6 +491,24 @@ const Settings = () => {
                 id="notify-membership-fee"
                 checked={settings.notify_on_membership_fee}
                 onCheckedChange={(checked) => updateSetting("notify_on_membership_fee", checked)}
+              />
+            </div>
+
+            <Separator />
+
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5 flex-1">
+                <Label htmlFor="notify-pending-animal" className="text-base">
+                  QR kód alapú állat regisztráció
+                </Label>
+                <p className="text-sm text-muted-foreground">
+                  Értesítés amikor új állat kerül jóváhagyásra QR kód segítségével
+                </p>
+              </div>
+              <Switch
+                id="notify-pending-animal"
+                checked={settings.notify_on_pending_animal}
+                onCheckedChange={(checked) => updateSetting("notify_on_pending_animal", checked)}
               />
             </div>
 
