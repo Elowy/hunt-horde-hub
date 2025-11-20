@@ -532,6 +532,7 @@ export type Database = {
         Row: {
           created_at: string
           display_order: number
+          google_maps_link: string | null
           id: string
           latitude: number | null
           longitude: number | null
@@ -544,6 +545,7 @@ export type Database = {
         Insert: {
           created_at?: string
           display_order?: number
+          google_maps_link?: string | null
           id?: string
           latitude?: number | null
           longitude?: number | null
@@ -556,6 +558,7 @@ export type Database = {
         Update: {
           created_at?: string
           display_order?: number
+          google_maps_link?: string | null
           id?: string
           latitude?: number | null
           longitude?: number | null

@@ -7,7 +7,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { AnnouncementBanner } from "@/components/AnnouncementBanner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar, Package, BarChart, Bell } from "lucide-react";
+import { Building2, Calendar, Package, BarChart, Bell } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 import { format } from "date-fns";
 import { hu } from "date-fns/locale";
 
@@ -131,8 +133,24 @@ export default function HunterDashboard() {
 
     const hunterCategory = profileData?.hunter_category;
 
+    // Fetch subscription status for the selected society
+    const { data: subscriptionData } = await supabase
+      .from("trial_subscriptions")
+      .select("*")
+      .eq("user_id", selectedSociety)
+      .maybeSingle();
+
+    const { data: lifetimeData } = await supabase
+      .from("lifetime_subscriptions")
+      .select("*")
+      .eq("user_id", selectedSociety)
+      .maybeSingle();
+
+    const hasActiveSubscription = subscriptionData && new Date(subscriptionData.expires_at) > new Date();
+    const hasLifetimeSubscription = !!lifetimeData;
+
     // Fetch permissions for this hunter's category
-    if (hunterCategory) {
+    if (hunterCategory && (hasActiveSubscription || hasLifetimeSubscription)) {
       const { data: permissionsData } = await supabase
         .from("hunter_feature_permissions")
         .select("*")
@@ -149,6 +167,15 @@ export default function HunterDashboard() {
           allow_view_announcements: permissionsData.allow_view_announcements,
         });
       }
+    } else {
+      // No active subscription - disable all features
+      setPermissions({
+        allow_registrations: false,
+        allow_view_cooled_animals: false,
+        allow_reserve_animals: false,
+        allow_view_statistics: false,
+        allow_view_announcements: false,
+      });
     }
 
     // Fetch animals in storage from selected society (only if allowed)

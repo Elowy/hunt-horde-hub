@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { BanUserDialog } from "@/components/BanUserDialog";
 import { InviteUserDialog } from "@/components/InviteUserDialog";
 import { AddExistingHunterDialog } from "@/components/AddExistingHunterDialog";
+import { HunterFeaturePermissions } from "@/components/HunterFeaturePermissions";
 import {
   Table,
   TableBody,
@@ -551,6 +552,9 @@ const Users = () => {
 
       <div className="container mx-auto px-6 py-8 max-w-6xl">
         <div className="grid gap-6">
+          {/* Vadász jogosultságkezelés */}
+          <HunterFeaturePermissions />
+
           {/* Jóváhagyásra váró vadászok */}
           {pendingHunters.length > 0 && (
             <Card>

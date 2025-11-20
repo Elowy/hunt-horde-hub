@@ -18,6 +18,7 @@ import { useToast } from "@/hooks/use-toast";
 import { CreateSubscriptionCodeDialog } from "@/components/CreateSubscriptionCodeDialog";
 import { InviteSuperAdminDialog } from "@/components/InviteSuperAdminDialog";
 import { CreateGlobalAnnouncementDialog } from "@/components/CreateGlobalAnnouncementDialog";
+import { EditAnnouncementDialog } from "@/components/EditAnnouncementDialog";
 import { SuperAdminRoleSwitcher } from "@/components/admin/SuperAdminRoleSwitcher";
 import { SuperAdminSubscriptionSwitcher } from "@/components/admin/SuperAdminSubscriptionSwitcher";
 import { SuperAdminCompanySwitcher } from "@/components/admin/SuperAdminCompanySwitcher";
@@ -771,6 +772,10 @@ const SuperAdminDashboard = () => {
                                 </CardDescription>
                               </div>
                               <div className="flex gap-2">
+                                <EditAnnouncementDialog 
+                                  announcement={announcement as any} 
+                                  onSuccess={loadAllData} 
+                                />
                                 <Button
                                   variant="ghost"
                                   size="sm"
