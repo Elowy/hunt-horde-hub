@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { AnnouncementBanner } from "@/components/AnnouncementBanner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Building2, Calendar, Package, BarChart, Bell } from "lucide-react";
+import { Building2, Calendar, BarChart, Bell } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { format } from "date-fns";
@@ -16,17 +16,6 @@ import { hu } from "date-fns/locale";
 interface HunterSociety {
   id: string;
   company_name: string;
-}
-
-interface Animal {
-  id: string;
-  animal_id: string;
-  species: string;
-  weight: number | null;
-  cooling_date: string | null;
-  storage_locations: {
-    name: string;
-  };
 }
 
 interface HuntingRegistration {
@@ -51,7 +40,6 @@ export default function HunterDashboard() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [societies, setSocieties] = useState<HunterSociety[]>([]);
-  const [animals, setAnimals] = useState<Animal[]>([]);
   const [registrations, setRegistrations] = useState<HuntingRegistration[]>([]);
   const [payments, setPayments] = useState<MembershipPayment[]>([]);
   const [selectedSociety, setSelectedSociety] = useState<string | null>(null);
@@ -179,27 +167,6 @@ export default function HunterDashboard() {
     }
 
     // Fetch animals in storage from selected society (only if allowed)
-    if (permissions.allow_view_cooled_animals) {
-      const { data: animalsData } = await supabase
-        .from("animals")
-        .select(`
-          id,
-          animal_id,
-          species,
-          weight,
-          cooling_date,
-          storage_locations (
-            name
-          )
-        `)
-        .eq("user_id", selectedSociety)
-        .eq("is_transported", false)
-        .order("cooling_date", { ascending: false })
-        .limit(10);
-
-      if (animalsData) setAnimals(animalsData);
-    }
-
     // Fetch hunting registrations
     const { data: regData } = await supabase
       .from("hunting_registrations")
@@ -334,44 +301,6 @@ export default function HunterDashboard() {
               >
                 Összes beiratkozás megtekintése
               </Button>
-            </CardContent>
-          </Card>
-
-          {/* Animals in Storage */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Package className="h-5 w-5" />
-                Állatok a hűtőben
-              </CardTitle>
-              <CardDescription>
-                Jelenleg tárolt állatok a kiválasztott társaságnál
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {animals.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Nincs állat a hűtőben</p>
-              ) : (
-                <div className="space-y-3">
-                  {animals.slice(0, 5).map((animal) => (
-                    <div key={animal.id} className="flex items-center justify-between border-b pb-2">
-                      <div>
-                        <p className="font-medium">{animal.species}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {animal.storage_locations.name}
-                          {animal.weight && ` - ${animal.weight} kg`}
-                        </p>
-                      </div>
-                      <Badge variant="secondary">{animal.animal_id}</Badge>
-                    </div>
-                  ))}
-                  {animals.length > 5 && (
-                    <p className="text-sm text-muted-foreground text-center">
-                      és még {animals.length - 5} állat...
-                    </p>
-                  )}
-                </div>
-              )}
             </CardContent>
           </Card>
 
