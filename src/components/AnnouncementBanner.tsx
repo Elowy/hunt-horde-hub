@@ -13,6 +13,9 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import { Database } from "@/integrations/supabase/types";
+
+type HunterCategory = Database["public"]["Enums"]["hunter_category"];
 
 interface Announcement {
   id: string;
@@ -23,6 +26,7 @@ interface Announcement {
   updated_at: string;
   expires_at: string | null;
   is_global: boolean;
+  hunter_categories: HunterCategory[] | null;
 }
 
 interface AnnouncementBannerProps {
@@ -47,6 +51,18 @@ export const AnnouncementBanner = ({ isAdmin = false, isEditor = false }: Announ
       const { data: { user } } = await supabase.auth.getUser();
       setCurrentUserId(user?.id || null);
 
+      // Check if user is a hunter and get their category
+      let hunterCategory: HunterCategory | null = null;
+      if (user) {
+        const { data: profileData } = await supabase
+          .from("profiles")
+          .select("hunter_category")
+          .eq("id", user.id)
+          .single();
+        
+        hunterCategory = profileData?.hunter_category || null;
+      }
+
       const now = new Date().toISOString();
       const { data, error } = await supabase
         .from("announcements")
@@ -58,8 +74,21 @@ export const AnnouncementBanner = ({ isAdmin = false, isEditor = false }: Announ
 
       if (error) throw error;
 
+      // Filter announcements based on hunter category
+      let filteredData = data || [];
+      if (hunterCategory) {
+        filteredData = filteredData.filter(announcement => {
+          // If no categories specified, show to everyone
+          if (!announcement.hunter_categories || announcement.hunter_categories.length === 0) {
+            return true;
+          }
+          // Otherwise, only show if hunter's category is included
+          return announcement.hunter_categories.includes(hunterCategory);
+        });
+      }
+
       // Sort: global announcements first, then by created_at
-      const sortedData = (data || []).sort((a, b) => {
+      const sortedData = filteredData.sort((a, b) => {
         if (a.is_global && !b.is_global) return -1;
         if (!a.is_global && b.is_global) return 1;
         return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();

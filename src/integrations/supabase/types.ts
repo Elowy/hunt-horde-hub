@@ -200,6 +200,9 @@ export type Database = {
           content: string
           created_at: string
           expires_at: string | null
+          hunter_categories:
+            | Database["public"]["Enums"]["hunter_category"][]
+            | null
           id: string
           is_archived: boolean | null
           is_global: boolean | null
@@ -211,6 +214,9 @@ export type Database = {
           content: string
           created_at?: string
           expires_at?: string | null
+          hunter_categories?:
+            | Database["public"]["Enums"]["hunter_category"][]
+            | null
           id?: string
           is_archived?: boolean | null
           is_global?: boolean | null
@@ -222,6 +228,9 @@ export type Database = {
           content?: string
           created_at?: string
           expires_at?: string | null
+          hunter_categories?:
+            | Database["public"]["Enums"]["hunter_category"][]
+            | null
           id?: string
           is_archived?: boolean | null
           is_global?: boolean | null
@@ -415,6 +424,53 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      hunter_feature_permissions: {
+        Row: {
+          allow_registrations: boolean
+          allow_reserve_animals: boolean
+          allow_view_announcements: boolean
+          allow_view_cooled_animals: boolean
+          allow_view_statistics: boolean
+          created_at: string
+          hunter_category: Database["public"]["Enums"]["hunter_category"]
+          hunter_society_id: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          allow_registrations?: boolean
+          allow_reserve_animals?: boolean
+          allow_view_announcements?: boolean
+          allow_view_cooled_animals?: boolean
+          allow_view_statistics?: boolean
+          created_at?: string
+          hunter_category: Database["public"]["Enums"]["hunter_category"]
+          hunter_society_id: string
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          allow_registrations?: boolean
+          allow_reserve_animals?: boolean
+          allow_view_announcements?: boolean
+          allow_view_cooled_animals?: boolean
+          allow_view_statistics?: boolean
+          created_at?: string
+          hunter_category?: Database["public"]["Enums"]["hunter_category"]
+          hunter_society_id?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hunter_feature_permissions_hunter_society_id_fkey"
+            columns: ["hunter_society_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       hunter_society_members: {
         Row: {
