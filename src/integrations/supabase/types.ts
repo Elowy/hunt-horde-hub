@@ -197,6 +197,9 @@ export type Database = {
       }
       announcements: {
         Row: {
+          announcement_type:
+            | Database["public"]["Enums"]["announcement_type"]
+            | null
           content: string
           created_at: string
           expires_at: string | null
@@ -206,11 +209,19 @@ export type Database = {
           id: string
           is_archived: boolean | null
           is_global: boolean | null
+          maintenance_end: string | null
+          maintenance_start: string | null
+          maintenance_status:
+            | Database["public"]["Enums"]["maintenance_status"]
+            | null
           title: string
           updated_at: string
           user_id: string
         }
         Insert: {
+          announcement_type?:
+            | Database["public"]["Enums"]["announcement_type"]
+            | null
           content: string
           created_at?: string
           expires_at?: string | null
@@ -220,11 +231,19 @@ export type Database = {
           id?: string
           is_archived?: boolean | null
           is_global?: boolean | null
+          maintenance_end?: string | null
+          maintenance_start?: string | null
+          maintenance_status?:
+            | Database["public"]["Enums"]["maintenance_status"]
+            | null
           title: string
           updated_at?: string
           user_id: string
         }
         Update: {
+          announcement_type?:
+            | Database["public"]["Enums"]["announcement_type"]
+            | null
           content?: string
           created_at?: string
           expires_at?: string | null
@@ -234,6 +253,11 @@ export type Database = {
           id?: string
           is_archived?: boolean | null
           is_global?: boolean | null
+          maintenance_end?: string | null
+          maintenance_start?: string | null
+          maintenance_status?:
+            | Database["public"]["Enums"]["maintenance_status"]
+            | null
           title?: string
           updated_at?: string
           user_id?: string
@@ -1910,6 +1934,7 @@ export type Database = {
       }
     }
     Enums: {
+      announcement_type: "news" | "maintenance" | "outage"
       app_role: "admin" | "editor" | "viewer" | "hunter" | "super_admin"
       hunter_category:
         | "tag"
@@ -1924,6 +1949,12 @@ export type Database = {
         | "magan_szoro"
         | "kozponti_szoro"
         | "csapda"
+      maintenance_status:
+        | "unknown"
+        | "investigating"
+        | "fixing"
+        | "fixed"
+        | "testing"
       membership_period: "first_half" | "second_half" | "full_year"
       ticket_status: "open" | "in_progress" | "closed"
     }
@@ -2053,6 +2084,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      announcement_type: ["news", "maintenance", "outage"],
       app_role: ["admin", "editor", "viewer", "hunter", "super_admin"],
       hunter_category: [
         "tag",
@@ -2068,6 +2100,13 @@ export const Constants = {
         "magan_szoro",
         "kozponti_szoro",
         "csapda",
+      ],
+      maintenance_status: [
+        "unknown",
+        "investigating",
+        "fixing",
+        "fixed",
+        "testing",
       ],
       membership_period: ["first_half", "second_half", "full_year"],
       ticket_status: ["open", "in_progress", "closed"],

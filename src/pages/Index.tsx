@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import heroImage from "@/assets/hero-forest.jpg";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { GlobalAnnouncementsBanner } from "@/components/GlobalAnnouncementsBanner";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -179,6 +180,13 @@ const Index = () => {
               Bejelentkezés
             </Button>
           </div>
+        </div>
+      </section>
+
+      {/* Global Announcements */}
+      <section className="py-12 bg-background">
+        <div className="container mx-auto px-6">
+          <GlobalAnnouncementsBanner />
         </div>
       </section>
 

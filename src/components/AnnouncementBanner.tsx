@@ -7,7 +7,7 @@ import { EditAnnouncementDialog } from "./EditAnnouncementDialog";
 import { CreateAnnouncementDialog } from "./CreateAnnouncementDialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, AlertTriangle, Wrench } from "lucide-react";
 import {
   Collapsible,
   CollapsibleContent,
@@ -16,6 +16,8 @@ import {
 import { Database } from "@/integrations/supabase/types";
 
 type HunterCategory = Database["public"]["Enums"]["hunter_category"];
+type AnnouncementType = Database["public"]["Enums"]["announcement_type"];
+type MaintenanceStatus = Database["public"]["Enums"]["maintenance_status"];
 
 interface Announcement {
   id: string;
@@ -27,6 +29,10 @@ interface Announcement {
   expires_at: string | null;
   is_global: boolean;
   hunter_categories: HunterCategory[] | null;
+  announcement_type: Database["public"]["Enums"]["announcement_type"];
+  maintenance_start: string | null;
+  maintenance_end: string | null;
+  maintenance_status: Database["public"]["Enums"]["maintenance_status"] | null;
 }
 
 interface AnnouncementBannerProps {
@@ -123,6 +129,18 @@ export const AnnouncementBanner = ({ isAdmin = false, isEditor = false }: Announ
     };
   }, []);
 
+  const getStatusLabel = (status: MaintenanceStatus | null) => {
+    if (!status) return "";
+    const labels: Record<MaintenanceStatus, string> = {
+      unknown: "Ismeretlen",
+      investigating: "Vizsgálat alatt",
+      fixing: "Javítás alatt",
+      fixed: "Javítva",
+      testing: "Tesztelés alatt",
+    };
+    return labels[status];
+  };
+
   const canCreateAnnouncement = isAdmin || isEditor;
 
   if (announcements.length === 0 && !canCreateAnnouncement) {
@@ -158,50 +176,86 @@ export const AnnouncementBanner = ({ isAdmin = false, isEditor = false }: Announ
           </Card>
         ) : (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {announcements.map((announcement) => (
-              <Card 
-                key={announcement.id} 
-                className={`p-6 hover:shadow-lg transition-shadow ${
-                  announcement.is_global 
-                    ? 'border-2 border-primary bg-gradient-to-br from-primary/5 to-transparent' 
-                    : ''
-                }`}
-              >
-                <div className="space-y-4">
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <h3 className="font-semibold text-lg">{announcement.title}</h3>
-                        {announcement.is_global && (
-                          <Badge variant="default" className="text-xs">
-                            Globális
-                          </Badge>
+            {announcements.map((announcement) => {
+              const isOutage = announcement.announcement_type === "outage";
+              const isMaintenance = announcement.announcement_type === "maintenance";
+              
+              return (
+                <Card 
+                  key={announcement.id} 
+                  className={`p-6 hover:shadow-lg transition-shadow ${
+                    isOutage
+                      ? 'border-2 border-destructive bg-destructive/5'
+                      : isMaintenance
+                      ? 'border-2 border-yellow-500 bg-yellow-500/5'
+                      : announcement.is_global 
+                      ? 'border-2 border-primary bg-gradient-to-br from-primary/5 to-transparent' 
+                      : ''
+                  }`}
+                >
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2 flex-wrap">
+                          {(isMaintenance || isOutage) && (
+                            <div className={isOutage ? "text-destructive" : "text-yellow-600 dark:text-yellow-400"}>
+                              {isOutage ? <AlertTriangle className="h-4 w-4" /> : <Wrench className="h-4 w-4" />}
+                            </div>
+                          )}
+                          <h3 className="font-semibold text-lg">{announcement.title}</h3>
+                          {announcement.is_global && (
+                            <Badge variant="default" className="text-xs">
+                              Globális
+                            </Badge>
+                          )}
+                          {(isMaintenance || isOutage) && announcement.maintenance_status && (
+                            <Badge
+                              variant={isOutage ? "destructive" : "default"}
+                              className={isMaintenance ? "bg-yellow-500 hover:bg-yellow-600" : ""}
+                            >
+                              {getStatusLabel(announcement.maintenance_status)}
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-sm text-muted-foreground mb-4 line-clamp-3">
+                          {announcement.content}
+                        </p>
+                        {(isMaintenance || isOutage) && announcement.maintenance_start && (
+                          <div className="text-xs text-muted-foreground space-y-1 mb-2">
+                            <div>
+                              <span className="font-semibold">Kezdés:</span>{" "}
+                              {format(new Date(announcement.maintenance_start), "PPP HH:mm", { locale: hu })}
+                            </div>
+                            {announcement.maintenance_end && (
+                              <div>
+                                <span className="font-semibold">Befejezés:</span>{" "}
+                                {format(new Date(announcement.maintenance_end), "PPP HH:mm", { locale: hu })}
+                              </div>
+                            )}
+                          </div>
                         )}
                       </div>
-                      <p className="text-sm text-muted-foreground mb-4 line-clamp-3">
-                        {announcement.content}
-                      </p>
+                    </div>
+                    <div className="flex items-center justify-between pt-4 border-t">
+                      <span className="text-xs text-muted-foreground">
+                        {format(new Date(announcement.created_at), "yyyy. MM. dd.", { locale: hu })}
+                        {announcement.expires_at && (
+                          <span className="ml-2">
+                            • Lejár: {format(new Date(announcement.expires_at), "yyyy. MM. dd.", { locale: hu })}
+                          </span>
+                        )}
+                      </span>
+                      {currentUserId === announcement.user_id && !announcement.is_global && (
+                        <EditAnnouncementDialog
+                          announcement={announcement}
+                          onSuccess={fetchAnnouncements}
+                        />
+                      )}
                     </div>
                   </div>
-                  <div className="flex items-center justify-between pt-4 border-t">
-                    <span className="text-xs text-muted-foreground">
-                      {format(new Date(announcement.created_at), "yyyy. MM. dd.", { locale: hu })}
-                      {announcement.expires_at && (
-                        <span className="ml-2">
-                          • Lejár: {format(new Date(announcement.expires_at), "yyyy. MM. dd.", { locale: hu })}
-                        </span>
-                      )}
-                    </span>
-                    {currentUserId === announcement.user_id && !announcement.is_global && (
-                      <EditAnnouncementDialog
-                        announcement={announcement}
-                        onSuccess={fetchAnnouncements}
-                      />
-                    )}
-                  </div>
-                </div>
-              </Card>
-            ))}
+                </Card>
+              );
+            })}
           </div>
         )}
       </CollapsibleContent>
