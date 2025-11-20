@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Menu, X, User, Users, FileText, Truck, Settings, LogOut, UserPlus, Crown, MapPin, CalendarCheck, Shield, BarChart, Trophy, Clock, Archive, Package, MessageSquare, History, File } from "lucide-react";
+import { Menu, X, User, Users, FileText, Truck, Settings, LogOut, UserPlus, Crown, MapPin, CalendarCheck, Shield, BarChart, Trophy, Clock, Archive, Package, MessageSquare, History, File, CheckSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -210,6 +210,16 @@ export const DashboardMenu = ({ isAdmin, isEditor, isHunter, onLogout, onPriceUp
                 <p className="text-sm font-medium text-muted-foreground px-2">Nyilvántartás</p>
                 <div className="space-y-2">
                   <AddAnimalDialog onAnimalAdded={onPriceUpdated} />
+                  {(isAdmin || isEditor) && (
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-start"
+                      onClick={() => handleNavigation("/pending-animals")}
+                    >
+                      <CheckSquare className="mr-2 h-4 w-4" />
+                      Jóváhagyásra váró állatok
+                    </Button>
+                  )}
                 </div>
               </div>
 
