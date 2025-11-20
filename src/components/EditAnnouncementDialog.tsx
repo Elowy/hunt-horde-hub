@@ -25,8 +25,21 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { Database } from "@/integrations/supabase/types";
+
+type HunterCategory = Database["public"]["Enums"]["hunter_category"];
+
+const HUNTER_CATEGORIES: { value: HunterCategory; label: string }[] = [
+  { value: "tag", label: "Tag" },
+  { value: "vendeg", label: "Vendég" },
+  { value: "bervadasz", label: "Bérvadász" },
+  { value: "ib_vendeg", label: "IB Vendég" },
+  { value: "trofeas_vadasz", label: "Trófeás Vadász" },
+  { value: "egyeb", label: "Egyéb" },
+];
 
 interface Announcement {
   id: string;
@@ -34,6 +47,7 @@ interface Announcement {
   content: string;
   user_id: string;
   expires_at: string | null;
+  hunter_categories: HunterCategory[] | null;
 }
 
 interface EditAnnouncementDialogProps {
@@ -58,6 +72,7 @@ export const EditAnnouncementDialog = ({ announcement, onSuccess }: EditAnnounce
   const [title, setTitle] = useState(announcement.title);
   const [content, setContent] = useState(announcement.content);
   const [expiryType, setExpiryType] = useState(getExpiryType(announcement.expires_at));
+  const [selectedCategories, setSelectedCategories] = useState<HunterCategory[]>(announcement.hunter_categories || []);
   const [loading, setLoading] = useState(false);
 
   const calculateExpiryDate = (type: string): string | null => {
@@ -83,6 +98,7 @@ export const EditAnnouncementDialog = ({ announcement, onSuccess }: EditAnnounce
         title,
         content,
         expires_at: calculateExpiryDate(expiryType),
+        hunter_categories: selectedCategories.length > 0 ? selectedCategories : null,
       })
       .eq("id", announcement.id);
 

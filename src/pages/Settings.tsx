@@ -11,6 +11,7 @@ import { Separator } from "@/components/ui/separator";
 import { useIsSuperAdmin } from "@/hooks/useIsSuperAdmin";
 import { MembershipFeeSettings } from "@/components/MembershipFeeSettings";
 import { QRCodeManagement } from "@/components/QRCodeManagement";
+import { HunterFeaturePermissions } from "@/components/HunterFeaturePermissions";
 
 interface NotificationSettings {
   notify_on_transport: boolean;
@@ -565,6 +566,13 @@ const Settings = () => {
         <div className="mt-6">
           <MembershipFeeSettings />
         </div>
+
+        {/* Hunter Feature Permissions - Only for hunter societies */}
+        {userType === "hunter_society" && (
+          <div className="mt-6">
+            <HunterFeaturePermissions />
+          </div>
+        )}
 
         {/* Membership Discount Setting - Only for hunter societies */}
         {userType === "hunter_society" && (

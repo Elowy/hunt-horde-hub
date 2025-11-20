@@ -53,6 +53,13 @@ export default function HunterDashboard() {
   const [registrations, setRegistrations] = useState<HuntingRegistration[]>([]);
   const [payments, setPayments] = useState<MembershipPayment[]>([]);
   const [selectedSociety, setSelectedSociety] = useState<string | null>(null);
+  const [permissions, setPermissions] = useState({
+    allow_registrations: true,
+    allow_view_cooled_animals: true,
+    allow_reserve_animals: true,
+    allow_view_statistics: true,
+    allow_view_announcements: true,
+  });
 
   useEffect(() => {
     checkAuth();
@@ -115,25 +122,56 @@ export default function HunterDashboard() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    // Fetch animals in storage from selected society
-    const { data: animalsData } = await supabase
-      .from("animals")
-      .select(`
-        id,
-        animal_id,
-        species,
-        weight,
-        cooling_date,
-        storage_locations (
-          name
-        )
-      `)
-      .eq("user_id", selectedSociety)
-      .eq("is_transported", false)
-      .order("cooling_date", { ascending: false })
-      .limit(10);
+    // Fetch user's hunter category
+    const { data: profileData } = await supabase
+      .from("profiles")
+      .select("hunter_category")
+      .eq("id", user.id)
+      .single();
 
-    if (animalsData) setAnimals(animalsData);
+    const hunterCategory = profileData?.hunter_category;
+
+    // Fetch permissions for this hunter's category
+    if (hunterCategory) {
+      const { data: permissionsData } = await supabase
+        .from("hunter_feature_permissions")
+        .select("*")
+        .eq("hunter_society_id", selectedSociety)
+        .eq("hunter_category", hunterCategory)
+        .single();
+
+      if (permissionsData) {
+        setPermissions({
+          allow_registrations: permissionsData.allow_registrations,
+          allow_view_cooled_animals: permissionsData.allow_view_cooled_animals,
+          allow_reserve_animals: permissionsData.allow_reserve_animals,
+          allow_view_statistics: permissionsData.allow_view_statistics,
+          allow_view_announcements: permissionsData.allow_view_announcements,
+        });
+      }
+    }
+
+    // Fetch animals in storage from selected society (only if allowed)
+    if (permissions.allow_view_cooled_animals) {
+      const { data: animalsData } = await supabase
+        .from("animals")
+        .select(`
+          id,
+          animal_id,
+          species,
+          weight,
+          cooling_date,
+          storage_locations (
+            name
+          )
+        `)
+        .eq("user_id", selectedSociety)
+        .eq("is_transported", false)
+        .order("cooling_date", { ascending: false })
+        .limit(10);
+
+      if (animalsData) setAnimals(animalsData);
+    }
 
     // Fetch hunting registrations
     const { data: regData } = await supabase
