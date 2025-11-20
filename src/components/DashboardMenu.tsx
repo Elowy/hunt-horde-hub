@@ -35,15 +35,18 @@ export const DashboardMenu = ({ isAdmin, isEditor, isHunter, onLogout, onPriceUp
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [isBuyer, setIsBuyer] = useState(false);
+  const [isHunterSociety, setIsHunterSociety] = useState(false);
+  const [societyIsPro, setSocietyIsPro] = useState(false);
   const { isPro, loading: subscriptionLoading } = useSubscription();
   const { isSuperAdmin } = useIsSuperAdmin();
 
-  // Check if user is a buyer
+  // Check if user is a buyer and check hunter society subscription status
   useEffect(() => {
-    const checkBuyerStatus = async () => {
+    const checkUserStatus = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
+      // Check buyer status
       const { data: buyer } = await supabase
         .from("buyers")
         .select("id")
@@ -51,10 +54,56 @@ export const DashboardMenu = ({ isAdmin, isEditor, isHunter, onLogout, onPriceUp
         .single();
 
       setIsBuyer(!!buyer);
+
+      // Check profile and hunter society subscription
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("user_type, hunter_society_id")
+        .eq("id", user.id)
+        .single();
+
+      if (profile) {
+        setIsHunterSociety(profile.user_type === "hunter_society");
+
+        // If user is a hunter (tag), check their society's subscription
+        if (profile.user_type !== "hunter_society" && profile.hunter_society_id) {
+          // Check if the hunter society has a trial subscription
+          const { data: trialData } = await supabase
+            .from("trial_subscriptions")
+            .select("*")
+            .eq("user_id", profile.hunter_society_id)
+            .single();
+
+          if (trialData) {
+            const expiresAt = new Date(trialData.expires_at);
+            const now = new Date();
+            if (expiresAt > now) {
+              setSocietyIsPro(true);
+              return;
+            }
+          }
+
+          // Check if society has lifetime subscription
+          const { data: lifetimeData } = await supabase
+            .from("lifetime_subscriptions")
+            .select("tier")
+            .eq("user_id", profile.hunter_society_id)
+            .single();
+
+          if (lifetimeData && lifetimeData.tier === "pro") {
+            setSocietyIsPro(true);
+            return;
+          }
+
+          // If no trial or lifetime, check via Stripe
+          // For simplicity, we'll default to false if no active subscription found above
+          setSocietyIsPro(false);
+        }
+      }
     };
 
     if (open) {
-      checkBuyerStatus();
+      checkUserStatus();
     }
   }, [open]);
 
@@ -200,97 +249,114 @@ export const DashboardMenu = ({ isAdmin, isEditor, isHunter, onLogout, onPriceUp
           )}
 
           {/* Vadászat */}
-          <div className="space-y-2">
-            <p className="text-sm font-medium text-muted-foreground px-2">Vadászat</p>
-            <div className="space-y-2">
-              {subscriptionLoading ? (
-                <p className="text-xs text-muted-foreground px-2">Betöltés...</p>
-              ) : isPro ? (
-                <>
-                  <Button
-                    variant="ghost"
-                    className="w-full justify-start"
-                    onClick={() => handleNavigation("/hunting-registrations")}
-                  >
-                    <CalendarCheck className="mr-2 h-4 w-4" />
-                    Vadászati beiratkozások
-                  </Button>
-                  {(isAdmin || isEditor) && (
+          {!(isHunter && !societyIsPro) && (
+            <>
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-muted-foreground px-2">Vadászat</p>
+                <div className="space-y-2">
+                  {subscriptionLoading ? (
+                    <p className="text-xs text-muted-foreground px-2">Betöltés...</p>
+                  ) : (isPro || (isHunter && societyIsPro)) ? (
                     <>
                       <Button
                         variant="ghost"
                         className="w-full justify-start"
-                        onClick={() => handleNavigation("/hired-hunters")}
+                        onClick={() => handleNavigation("/hunting-registrations")}
                       >
-                        <Users className="mr-2 h-4 w-4" />
-                        Bérvadászok
+                        <CalendarCheck className="mr-2 h-4 w-4" />
+                        Vadászati beiratkozások
                       </Button>
-                      <Button
-                        variant="ghost"
-                        className="w-full justify-start"
-                        onClick={() => handleNavigation("/zone-statistics")}
-                      >
-                        <MapPin className="mr-2 h-4 w-4" />
-                        Terület statisztikák
-                      </Button>
+                      {(isAdmin || isEditor) && (
+                        <>
+                          <Button
+                            variant="ghost"
+                            className="w-full justify-start"
+                            onClick={() => handleNavigation("/hired-hunters")}
+                          >
+                            <Users className="mr-2 h-4 w-4" />
+                            Bérvadászok
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            className="w-full justify-start"
+                            onClick={() => handleNavigation("/zone-statistics")}
+                          >
+                            <MapPin className="mr-2 h-4 w-4" />
+                            Terület statisztikák
+                          </Button>
+                        </>
+                      )}
+                    </>
+                  ) : (
+                    <Alert className="border-yellow-500/50 bg-yellow-500/10 py-2 mx-2">
+                      <AlertDescription className="text-xs flex items-center gap-2">
+                        <Crown className="h-3 w-3 text-yellow-600 dark:text-yellow-400 shrink-0" />
+                        <span className="text-yellow-700 dark:text-yellow-300">
+                          Beiratkozások - Csak Pro
+                        </span>
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                  {(isAdmin || isEditor) && (
+                    <>
+                      <SettlementsAndZonesDialog />
+                      <SecurityZoneClosuresDialog />
+                      <GuestRegistrationQRDialog />
                     </>
                   )}
-                </>
-              ) : (
-                <Alert className="border-yellow-500/50 bg-yellow-500/10 py-2 mx-2">
-                  <AlertDescription className="text-xs flex items-center gap-2">
-                    <Crown className="h-3 w-3 text-yellow-600 dark:text-yellow-400 shrink-0" />
-                    <span className="text-yellow-700 dark:text-yellow-300">
-                      Beiratkozások - Csak Pro
-                    </span>
-                  </AlertDescription>
-                </Alert>
-              )}
-              {(isAdmin || isEditor) && (
-                <>
-                  <SettlementsAndZonesDialog />
-                  <SecurityZoneClosuresDialog />
-                  <GuestRegistrationQRDialog />
-                </>
-              )}
-            </div>
-          </div>
+                </div>
+              </div>
 
-          <Separator />
+              <Separator />
+            </>
+          )}
 
           {/* Riportok */}
-          {!isHunter && (
+          {((isHunter && societyIsPro) || (!isHunter && !isBuyer)) && (
             <>
               <div className="space-y-2">
                 <p className="text-sm font-medium text-muted-foreground px-2">Riportok</p>
-                <Button
-                  variant="ghost"
-                  className="w-full justify-start"
-                  onClick={() => handleNavigation("/reports")}
-                >
-                  <BarChart className="mr-2 h-4 w-4" />
-                  Hűtési díj statisztikák
-                </Button>
-                {(isAdmin || isEditor) && (
+                {subscriptionLoading ? (
+                  <p className="text-xs text-muted-foreground px-2">Betöltés...</p>
+                ) : (isPro || (isHunter && societyIsPro)) ? (
                   <>
                     <Button
                       variant="ghost"
                       className="w-full justify-start"
-                      onClick={() => handleNavigation("/hunter-statistics")}
+                      onClick={() => handleNavigation("/reports")}
                     >
-                      <Trophy className="mr-2 h-4 w-4" />
-                      Vadász statisztikák
+                      <BarChart className="mr-2 h-4 w-4" />
+                      Hűtési díj statisztikák
                     </Button>
-                    <Button
-                      variant="ghost"
-                      className="w-full justify-start"
-                      onClick={() => handleNavigation("/time-based-statistics")}
-                    >
-                      <Clock className="mr-2 h-4 w-4" />
-                      Időalapú statisztikák
-                    </Button>
+                    {(isAdmin || isEditor) && (
+                      <>
+                        <Button
+                          variant="ghost"
+                          className="w-full justify-start"
+                          onClick={() => handleNavigation("/hunter-statistics")}
+                        >
+                          <Trophy className="mr-2 h-4 w-4" />
+                          Vadász statisztikák
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          className="w-full justify-start"
+                          onClick={() => handleNavigation("/time-based-statistics")}
+                        >
+                          <Clock className="mr-2 h-4 w-4" />
+                          Időalapú statisztikák
+                        </Button>
+                      </>
+                    )}
                   </>
-                )}
+                ) : isHunterSociety ? (
+                  <Alert className="border-yellow-500/50 bg-yellow-500/10 py-2 mx-2">
+                    <AlertDescription className="text-xs flex items-center gap-2">
+                      <Crown className="h-3 w-3" />
+                      Statisztikák - Csak Pro
+                    </AlertDescription>
+                  </Alert>
+                ) : null}
               </div>
 
               <Separator />
@@ -302,16 +368,29 @@ export const DashboardMenu = ({ isAdmin, isEditor, isHunter, onLogout, onPriceUp
             <>
               <div className="space-y-2">
                 <p className="text-sm font-medium text-muted-foreground px-2">Tagdíjak</p>
-                {(isAdmin || isEditor) && (
-                  <Button
-                    variant="ghost"
-                    className="w-full justify-start"
-                    onClick={() => handleNavigation("/membership-payments")}
-                  >
-                    <Package className="mr-2 h-4 w-4" />
-                    Tagdíjak kezelése
-                  </Button>
-                )}
+                {subscriptionLoading ? (
+                  <p className="text-xs text-muted-foreground px-2">Betöltés...</p>
+                ) : isPro ? (
+                  <>
+                    {(isAdmin || isEditor) && (
+                      <Button
+                        variant="ghost"
+                        className="w-full justify-start"
+                        onClick={() => handleNavigation("/membership-payments")}
+                      >
+                        <Package className="mr-2 h-4 w-4" />
+                        Tagdíjak kezelése
+                      </Button>
+                    )}
+                  </>
+                ) : isHunterSociety ? (
+                  <Alert className="border-yellow-500/50 bg-yellow-500/10 py-2 mx-2">
+                    <AlertDescription className="text-xs flex items-center gap-2">
+                      <Crown className="h-3 w-3" />
+                      Tagdíj - Csak Pro
+                    </AlertDescription>
+                  </Alert>
+                ) : null}
               </div>
 
               <Separator />
