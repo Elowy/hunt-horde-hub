@@ -22,6 +22,8 @@ import { EditAnnouncementDialog } from "@/components/EditAnnouncementDialog";
 import { SuperAdminRoleSwitcher } from "@/components/admin/SuperAdminRoleSwitcher";
 import { SuperAdminSubscriptionSwitcher } from "@/components/admin/SuperAdminSubscriptionSwitcher";
 import { SuperAdminCompanySwitcher } from "@/components/admin/SuperAdminCompanySwitcher";
+import { GlobalActivityLog } from "@/components/GlobalActivityLog";
+import { SuperAdminRegistrations } from "@/components/SuperAdminRegistrations";
 import { format } from "date-fns";
 import { hu } from "date-fns/locale";
 import {
@@ -257,7 +259,13 @@ const SuperAdminDashboard = () => {
   const handleDelete = async () => {
     try {
       let error;
-      if (deleteDialog.type === "animals") {
+      if (deleteDialog.type === "users") {
+        // Call edge function to delete user
+        const { error: deleteError } = await supabase.functions.invoke("delete-user-account", {
+          body: { userId: deleteDialog.id },
+        });
+        error = deleteError;
+      } else if (deleteDialog.type === "animals") {
         const result = await supabase.from("animals").delete().eq("id", deleteDialog.id);
         error = result.error;
       } else if (deleteDialog.type === "storage_locations") {
@@ -601,6 +609,8 @@ const SuperAdminDashboard = () => {
                     </TabsTrigger>
                     <TabsTrigger value="users">Felhasználók</TabsTrigger>
                     <TabsTrigger value="announcements">Globális hírek</TabsTrigger>
+                    <TabsTrigger value="registrations">Beiratkozások</TabsTrigger>
+                    <TabsTrigger value="activity">Tevékenység napló</TabsTrigger>
                     <TabsTrigger value="animals">Állatok</TabsTrigger>
                     <TabsTrigger value="locations">Hűtések</TabsTrigger>
                     <TabsTrigger value="transporters">Szállítók</TabsTrigger>
@@ -718,6 +728,13 @@ const SuperAdminDashboard = () => {
                                 onClick={() => handleViewProfile(profile)}
                               >
                                 <Eye className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="destructive"
+                                size="sm"
+                                onClick={() => openDeleteDialog("users", profile.id, profile.company_name || profile.contact_name || "Felhasználó")}
+                              >
+                                <Trash2 className="h-4 w-4" />
                               </Button>
                             </div>
                           </TableCell>
@@ -841,6 +858,14 @@ const SuperAdminDashboard = () => {
                     </div>
                   )}
                 </div>
+              </TabsContent>
+
+              <TabsContent value="registrations" className="mt-4">
+                <SuperAdminRegistrations />
+              </TabsContent>
+
+              <TabsContent value="activity" className="mt-4">
+                <GlobalActivityLog />
               </TabsContent>
 
               <TabsContent value="animals" className="mt-4">
