@@ -42,6 +42,12 @@ interface HuntingLocation {
   id: string;
   name: string;
   type: string;
+  security_zones?: {
+    name: string;
+    settlements?: {
+      name: string;
+    } | null;
+  } | null;
 }
 
 interface ZoneClosure {
@@ -267,7 +273,15 @@ const HuntingRegistrations = () => {
     try {
       const { data, error } = await supabase
         .from("hunting_locations")
-        .select("id, name, type")
+        .select(`
+          id, 
+          name, 
+          type,
+          security_zones (
+            name,
+            settlements (name)
+          )
+        `)
         .eq("security_zone_id", securityZoneId)
         .order("display_order");
 
@@ -1075,11 +1089,19 @@ const HuntingRegistrations = () => {
                             <SelectValue placeholder="Válasszon helyszínt" />
                           </SelectTrigger>
                         <SelectContent>
-                          {locations.map((location) => (
-                            <SelectItem key={location.id} value={location.id}>
-                              {location.name}
-                            </SelectItem>
-                          ))}
+                          {locations.map((location) => {
+                            const settlement = location.security_zones?.settlements?.name || "";
+                            const zone = location.security_zones?.name || "";
+                            const displayText = settlement && zone 
+                              ? `${settlement} - ${zone} - ${location.name}`
+                              : location.name;
+                            
+                            return (
+                              <SelectItem key={location.id} value={location.id}>
+                                {displayText}
+                              </SelectItem>
+                            );
+                          })}
                         </SelectContent>
                         </Select>
                       </div>
