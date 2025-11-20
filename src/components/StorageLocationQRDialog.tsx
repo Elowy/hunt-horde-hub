@@ -178,14 +178,14 @@ export const StorageLocationQRDialog = ({ locationId, locationName, onUpdate }: 
   const copyURL = () => {
     if (!qrData) return;
     
-    const url = `${window.location.origin}/qr-animal-submit?code=${qrData.code}`;
+    const url = `${window.location.origin}/qr-animal-submit/${qrData.code}`;
     navigator.clipboard.writeText(url);
     setCopied(true);
     toast.success("Link másolva");
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const qrUrl = qrData ? `${window.location.origin}/qr-animal-submit?code=${qrData.code}` : "";
+  const qrUrl = qrData ? `${window.location.origin}/qr-animal-submit/${qrData.code}` : "";
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
