@@ -18,7 +18,26 @@ export const HunterSocietySelector = ({
   selectedSociety,
   onSocietyChange,
 }: HunterSocietySelectorProps) => {
-  if (societies.length <= 1) return null;
+  if (societies.length === 0) return null;
+
+  // If only one society, show it as a display field instead of a dropdown
+  if (societies.length === 1) {
+    return (
+      <div className="mb-6 p-4 bg-card border rounded-lg">
+        <div className="flex items-center gap-4">
+          <Building2 className="h-5 w-5 text-muted-foreground" />
+          <div className="flex-1">
+            <Label className="text-sm text-muted-foreground">
+              Vadásztársaság
+            </Label>
+            <div className="mt-1 text-base font-medium">
+              {societies[0].company_name}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="mb-6 p-4 bg-card border rounded-lg">

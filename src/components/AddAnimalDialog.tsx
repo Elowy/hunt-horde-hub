@@ -45,6 +45,17 @@ interface PriceSetting {
   price_per_kg: number;
 }
 
+interface EpidemicMeasure {
+  id: string;
+  name: string;
+  severity: string;
+  shooting_fee: number;
+  sampling_fee: number;
+  price_per_unit: number;
+  affected_species: string[];
+  is_active: boolean;
+}
+
 interface AddAnimalDialogProps {
   onAnimalAdded?: () => void;
 }
@@ -58,6 +69,7 @@ export const AddAnimalDialog = ({ onAnimalAdded }: AddAnimalDialogProps) => {
   const [hunters, setHunters] = useState<Hunter[]>([]);
   const [isCustomHunter, setIsCustomHunter] = useState(false);
   const [priceSettings, setPriceSettings] = useState<PriceSetting[]>([]);
+  const [epidemicMeasures, setEpidemicMeasures] = useState<EpidemicMeasure[]>([]);
   const [vatRate, setVatRate] = useState<number>(27);
   const [calculatedPrice, setCalculatedPrice] = useState<{ net: number; gross: number }>({ net: 0, gross: 0 });
   const [loading, setLoading] = useState(false);
@@ -91,6 +103,7 @@ export const AddAnimalDialog = ({ onAnimalAdded }: AddAnimalDialogProps) => {
       fetchVatRate();
       fetchSecurityZones();
       fetchHunters();
+      fetchEpidemicMeasures();
     }
   }, [open]);
 
@@ -224,6 +237,24 @@ export const AddAnimalDialog = ({ onAnimalAdded }: AddAnimalDialogProps) => {
     }
   };
 
+  const fetchEpidemicMeasures = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from("epidemic_measures")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("is_active", true);
+
+      if (error) throw error;
+      setEpidemicMeasures(data || []);
+    } catch (error: any) {
+      console.error("Error fetching epidemic measures:", error);
+    }
+  };
+
   const getHunterCategoryDisplay = (category: string | null): string => {
     if (!category) return "";
     const categoryMap: { [key: string]: string } = {
@@ -238,7 +269,30 @@ export const AddAnimalDialog = ({ onAnimalAdded }: AddAnimalDialogProps) => {
   };
 
   const calculatePrice = () => {
-    if (!formData.weight || !formData.type || !formData.class) {
+    if (!formData.type || !formData.class) {
+      setCalculatedPrice({ net: 0, gross: 0 });
+      return;
+    }
+
+    // Check for active epidemic measure
+    const activeMeasure = epidemicMeasures.find(
+      (m) => m.is_active && m.affected_species.includes(formData.type)
+    );
+
+    if (activeMeasure) {
+      // For epidemic measures: shooting_fee + sampling_fee + price_per_unit
+      const netPrice = activeMeasure.shooting_fee + activeMeasure.sampling_fee + activeMeasure.price_per_unit;
+      const grossPrice = netPrice * (1 + vatRate / 100);
+
+      setCalculatedPrice({
+        net: Math.round(netPrice),
+        gross: Math.round(grossPrice),
+      });
+      return;
+    }
+
+    // Regular price calculation
+    if (!formData.weight) {
       setCalculatedPrice({ net: 0, gross: 0 });
       return;
     }
@@ -269,7 +323,7 @@ export const AddAnimalDialog = ({ onAnimalAdded }: AddAnimalDialogProps) => {
 
   useEffect(() => {
     calculatePrice();
-  }, [formData.weight, formData.type, formData.class, priceSettings, vatRate]);
+  }, [formData.weight, formData.type, formData.class, priceSettings, vatRate, epidemicMeasures]);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
