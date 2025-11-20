@@ -35,6 +35,7 @@ const Profile = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [isEditor, setIsEditor] = useState(false);
   const [isHunter, setIsHunter] = useState(false);
+  const [hunterSocieties, setHunterSocieties] = useState<Array<{ id: string; company_name: string }>>([]);
   const [formData, setFormData] = useState({
     companyName: "",
     contactName: "",
@@ -112,6 +113,28 @@ const Profile = () => {
           taxNumber: profile.tax_number || "",
           userType: profile.user_type || "",
         });
+      }
+
+      // If user is hunter, fetch their societies
+      if (profile?.user_type === "hunter") {
+        const { data: membershipData } = await supabase
+          .from("hunter_society_members")
+          .select(`
+            hunter_society_id,
+            profiles!hunter_society_members_hunter_society_id_fkey (
+              id,
+              company_name
+            )
+          `)
+          .eq("hunter_id", user.id);
+
+        if (membershipData && membershipData.length > 0) {
+          const societies = membershipData.map((m: any) => ({
+            id: m.profiles.id,
+            company_name: m.profiles.company_name
+          }));
+          setHunterSocieties(societies);
+        }
       }
     } catch (error: any) {
       toast({
@@ -417,6 +440,33 @@ const Profile = () => {
               </Button>
             </CardContent>
           </Card>
+
+          {/* Hunter Societies - only for hunters */}
+          {isHunter && hunterSocieties.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <User className="h-5 w-5" />
+                  Vadásztársaságok
+                </CardTitle>
+                <CardDescription>
+                  Azok a vadásztársaságok, amelyeknek tagja vagy
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  {hunterSocieties.map((society) => (
+                    <div
+                      key={society.id}
+                      className="p-3 rounded-lg border bg-card"
+                    >
+                      <p className="font-medium">{society.company_name}</p>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Jelszó módosítás */}
           <Card>
