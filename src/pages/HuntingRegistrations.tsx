@@ -79,6 +79,32 @@ interface Animal {
   weight: number | null;
 }
 
+interface WeatherData {
+  timestamp: string;
+  settlement: string;
+  coordinates: {
+    lat: number;
+    lon: number;
+  };
+  current: {
+    temperature: number;
+    humidity: number;
+    precipitation_probability: number;
+    weather_code: number;
+    wind_speed: number;
+    wind_direction: number;
+  };
+  hourly: {
+    time: string[];
+    temperature: number[];
+    humidity: number[];
+    precipitation_probability: number[];
+    weather_code: number[];
+    wind_speed: number[];
+    wind_direction: number[];
+  };
+}
+
 interface HuntingRegistration {
   id: string;
   user_id: string;
@@ -138,7 +164,7 @@ const HuntingRegistrations = () => {
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [weatherData, setWeatherData] = useState<any>(null);
+  const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
   const [loadingWeather, setLoadingWeather] = useState(false);
   const [huntingChance, setHuntingChance] = useState<number | null>(null);
   const [loadingChance, setLoadingChance] = useState(false);
@@ -944,25 +970,67 @@ const HuntingRegistrations = () => {
                     {weatherData && !loadingWeather && formData.security_zone_id && (
                       <Card className="bg-accent/5">
                         <CardHeader className="pb-3">
-                          <CardTitle className="text-sm">Aktuális időjárás - {weatherData.settlement}</CardTitle>
+                          <CardTitle className="text-sm">Időjárás előrejelzés - {weatherData.settlement}</CardTitle>
                         </CardHeader>
-                        <CardContent className="space-y-2 text-sm">
-                          <div className="flex justify-between">
-                            <span>Hőmérséklet:</span>
-                            <span className="font-medium">{weatherData.current.temperature}°C</span>
+                        <CardContent className="space-y-4">
+                          {/* Current weather */}
+                          <div className="border-b pb-3">
+                            <div className="text-xs font-semibold text-muted-foreground mb-2">Most</div>
+                            <div className="grid grid-cols-2 gap-2 text-sm">
+                              <div className="flex justify-between">
+                                <span>Hőmérséklet:</span>
+                                <span className="font-medium">{weatherData.current.temperature}°C</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span>Páratartalom:</span>
+                                <span className="font-medium">{weatherData.current.humidity}%</span>
+                              </div>
+                            </div>
                           </div>
-                          <div className="flex justify-between">
-                            <span>Páratartalom:</span>
-                            <span className="font-medium">{weatherData.current.humidity}%</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span>Csapadék valószínűség:</span>
-                            <span className="font-medium">{weatherData.current.precipitation_probability}%</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span>Szélsebesség:</span>
-                            <span className="font-medium">{weatherData.current.wind_speed} km/h</span>
-                          </div>
+                          
+                          {/* Forecast for 1, 3, 12, 24 hours */}
+                          {[1, 3, 12, 24].map((hours) => {
+                            const currentHour = new Date().getHours();
+                            const targetHour = (currentHour + hours) % weatherData.hourly.time.length;
+                            const getWindDirection = (deg: number) => {
+                              const directions = ['É', 'ÉK', 'K', 'DK', 'D', 'DNy', 'Ny', 'ÉNy'];
+                              return directions[Math.round(deg / 45) % 8];
+                            };
+                            
+                            return (
+                              <div key={hours} className="border-b last:border-0 pb-3 last:pb-0">
+                                <div className="text-xs font-semibold text-muted-foreground mb-2">
+                                  {hours} óra múlva
+                                </div>
+                                <div className="grid grid-cols-2 gap-2 text-xs">
+                                  <div className="flex justify-between">
+                                    <span>Esővalószínűség:</span>
+                                    <span className="font-medium">
+                                      {weatherData.hourly.precipitation_probability[targetHour]}%
+                                    </span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span>Szél iránya:</span>
+                                    <span className="font-medium">
+                                      {getWindDirection(weatherData.hourly.wind_direction[targetHour])}
+                                    </span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span>Szél:</span>
+                                    <span className="font-medium">
+                                      {weatherData.hourly.wind_speed[targetHour]} km/h
+                                    </span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span>Hőmérséklet:</span>
+                                    <span className="font-medium">
+                                      {weatherData.hourly.temperature[targetHour]}°C
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
                         </CardContent>
                       </Card>
                     )}

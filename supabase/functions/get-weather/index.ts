@@ -49,7 +49,7 @@ serve(async (req) => {
 
     // Get weather data from Open-Meteo (free, no API key required)
     const weatherResponse = await fetch(
-      `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=temperature_2m,relative_humidity_2m,precipitation_probability,weather_code,wind_speed_10m&timezone=Europe/Budapest&forecast_days=1`
+      `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=temperature_2m,relative_humidity_2m,precipitation_probability,weather_code,wind_speed_10m,wind_direction_10m&timezone=Europe/Budapest&forecast_days=2`
     );
 
     const weatherData = await weatherResponse.json();
@@ -76,6 +76,7 @@ serve(async (req) => {
         precipitation_probability: weatherData.hourly.precipitation_probability[currentHour],
         weather_code: weatherData.hourly.weather_code[currentHour],
         wind_speed: weatherData.hourly.wind_speed_10m[currentHour],
+        wind_direction: weatherData.hourly.wind_direction_10m[currentHour],
       },
       hourly: {
         time: weatherData.hourly.time,
@@ -84,6 +85,7 @@ serve(async (req) => {
         precipitation_probability: weatherData.hourly.precipitation_probability,
         weather_code: weatherData.hourly.weather_code,
         wind_speed: weatherData.hourly.wind_speed_10m,
+        wind_direction: weatherData.hourly.wind_direction_10m,
       }
     };
 
