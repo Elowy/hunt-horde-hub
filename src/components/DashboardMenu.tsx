@@ -243,6 +243,14 @@ export const DashboardMenu = ({ isAdmin, isEditor, isHunter, onLogout, onPriceUp
                 <Button
                   variant="ghost"
                   className="w-full justify-start"
+                  onClick={() => handleNavigation("/hunter-dashboard")}
+                >
+                  <Trophy className="mr-2 h-4 w-4" />
+                  Vadász Dashboard
+                </Button>
+                <Button
+                  variant="ghost"
+                  className="w-full justify-start"
                   onClick={() => handleNavigation("/users")}
                 >
                   <Users className="mr-2 h-4 w-4" />
