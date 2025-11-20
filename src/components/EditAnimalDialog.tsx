@@ -36,7 +36,7 @@ interface Animal {
   hunter_name: string | null;
   hunter_type: string | null;
   age: string | null;
-  condition: string | null;
+  shooting_date: string | null;
   sample_id: string | null;
   sample_date: string | null;
   expiry_date: string | null;
@@ -114,11 +114,11 @@ export const EditAnimalDialog = ({ animal, locations, onAnimalUpdated }: EditAni
     weight: animal.weight?.toString() || "",
     class: animal.class || "",
     cooling_date: animal.cooling_date?.split('T')[0] || "",
+    shooting_date: animal.shooting_date?.split('T')[0] || "",
     storage_location_id: animal.storage_location_id,
     hunter_name: animal.hunter_name || "",
     hunter_type: animal.hunter_type || "",
     age: animal.age || "",
-    condition: animal.condition || "",
     sample_id: animal.sample_id || "",
     sample_date: animal.sample_date?.split('T')[0] || "",
     expiry_date: animal.expiry_date?.split('T')[0] || "",
@@ -138,14 +138,14 @@ export const EditAnimalDialog = ({ animal, locations, onAnimalUpdated }: EditAni
         species: animal.species,
         gender: animal.gender || "",
         weight: animal.weight?.toString() || "",
-        class: animal.class || "",
-        cooling_date: animal.cooling_date?.split('T')[0] || "",
-        storage_location_id: animal.storage_location_id,
-        hunter_name: animal.hunter_name || "",
-        hunter_type: animal.hunter_type || "",
-        age: animal.age || "",
-        condition: animal.condition || "",
-        sample_id: animal.sample_id || "",
+    class: animal.class || "",
+    cooling_date: animal.cooling_date?.split('T')[0] || "",
+    shooting_date: animal.shooting_date?.split('T')[0] || "",
+    storage_location_id: animal.storage_location_id,
+    hunter_name: animal.hunter_name || "",
+    hunter_type: animal.hunter_type || "",
+    age: animal.age || "",
+    sample_id: animal.sample_id || "",
         sample_date: animal.sample_date?.split('T')[0] || "",
         expiry_date: animal.expiry_date?.split('T')[0] || "",
         vet_check: animal.vet_check || false,
@@ -404,14 +404,14 @@ export const EditAnimalDialog = ({ animal, locations, onAnimalUpdated }: EditAni
           animal_id: formData.animal_id,
           species: formData.species,
           gender: formData.gender || null,
-          weight: formData.weight ? parseFloat(formData.weight) : null,
-          class: formData.class || null,
-          cooling_date: formData.cooling_date || null,
-          storage_location_id: formData.storage_location_id,
-          hunter_name: formData.hunter_name || null,
-          hunter_type: formData.hunter_type || null,
-          age: formData.age || null,
-          condition: formData.condition || null,
+      weight: formData.weight ? parseFloat(formData.weight) : null,
+      class: formData.class || null,
+      cooling_date: formData.cooling_date || null,
+      shooting_date: formData.shooting_date || null,
+      storage_location_id: formData.storage_location_id,
+      hunter_name: formData.hunter_name || null,
+      hunter_type: formData.hunter_type || null,
+      age: formData.age || null,
           sample_id: formData.sample_id || null,
           sample_date: formData.sample_date || null,
           expiry_date: formData.expiry_date || null,
@@ -666,17 +666,18 @@ export const EditAnimalDialog = ({ animal, locations, onAnimalUpdated }: EditAni
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="condition">Állapot</Label>
+              <Label htmlFor="shooting_date">Elejtés dátuma</Label>
               <Input
-                id="condition"
-                value={formData.condition}
-                onChange={(e) => setFormData({ ...formData, condition: e.target.value })}
+                id="shooting_date"
+                type="date"
+                value={formData.shooting_date}
+                onChange={(e) => setFormData({ ...formData, shooting_date: e.target.value })}
                 disabled={loading}
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="cooling_date">Hűtés dátuma</Label>
+              <Label htmlFor="cooling_date">Hűtőbe kerülési dátuma</Label>
               <Input
                 id="cooling_date"
                 type="date"

@@ -101,7 +101,7 @@ interface Animal {
   hunter_name: string | null;
   hunter_type: string | null;
   age: string | null;
-  condition: string | null;
+  shooting_date: string | null;
   sample_id: string | null;
   sample_date: string | null;
   expiry_date: string | null;
@@ -646,11 +646,11 @@ const Dashboard = () => {
       "Osztály": animal.class || "-",
       "Súly (kg)": animal.weight || 0,
       "Kor": animal.age || "-",
-      "Állapot": animal.condition || "-",
+      "Elejtés dátuma": animal.shooting_date ? new Date(animal.shooting_date).toLocaleDateString('hu-HU') : "-",
       "Vadász neve": animal.hunter_name || "-",
       "Vadász típus": animal.hunter_type || "-",
       "Hűtési hely": getLocationName(animal.storage_location_id),
-      "Hűtés dátuma": animal.cooling_date ? new Date(animal.cooling_date).toLocaleDateString('hu-HU') : "-",
+      "Hűtőbe kerülési dátuma": animal.cooling_date ? new Date(animal.cooling_date).toLocaleDateString('hu-HU') : "-",
       "Lejárati dátum": animal.expiry_date ? new Date(animal.expiry_date).toLocaleDateString('hu-HU') : "-",
       "Állatorvosi ellenőrzés": animal.vet_check ? "Igen" : "Nem",
       "Minta ID": animal.sample_id || "-",
