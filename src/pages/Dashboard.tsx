@@ -323,10 +323,10 @@ const Dashboard = () => {
       .eq("role", "hunter")
       .maybeSingle();
 
-    const isHunterOnly = !!hunterRole && !adminRole && !editorRole && !userIsSuperAdmin;
     setIsHunter(!!hunterRole);
 
-    // Redirect hunters to their dedicated dashboard
+    // Redirect hunters to their dedicated dashboard (unless they are admin/editor/super_admin)
+    const isHunterOnly = !!hunterRole && !adminRole && !editorRole && !userIsSuperAdmin;
     if (isHunterOnly) {
       navigate("/hunter-dashboard");
       return;
