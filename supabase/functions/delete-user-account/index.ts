@@ -41,8 +41,25 @@ Deno.serve(async (req) => {
       error: userError,
     } = await supabaseClient.auth.getUser();
 
-    if (userError || !user) {
+    if (userError) {
       console.error('Error getting user:', userError);
+      
+      // If user doesn't exist, they might have already been deleted
+      if (userError.message?.includes('does not exist')) {
+        return new Response(
+          JSON.stringify({ error: 'A fiók már törölve lett' }),
+          { status: 410, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
+      return new Response(
+        JSON.stringify({ error: 'Érvénytelen felhasználó' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (!user) {
+      console.error('No user found');
       return new Response(
         JSON.stringify({ error: 'Érvénytelen felhasználó' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
