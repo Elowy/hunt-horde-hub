@@ -9,8 +9,6 @@ import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Bell, Loader2, Save, Send } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { useIsSuperAdmin } from "@/hooks/useIsSuperAdmin";
-import { MembershipFeeSettings } from "@/components/MembershipFeeSettings";
-import { QRCodeManagement } from "@/components/QRCodeManagement";
 import { HunterFeaturePermissions } from "@/components/HunterFeaturePermissions";
 import { EpidemicMeasuresManager } from "@/components/EpidemicMeasuresManager";
 
@@ -557,16 +555,6 @@ const Settings = () => {
             </div>
           </CardContent>
         </Card>
-
-        {/* QR Code Management */}
-        <div className="mt-6">
-          <QRCodeManagement />
-        </div>
-
-        {/* Membership Fee Settings - Only for hunter societies */}
-        <div className="mt-6">
-          <MembershipFeeSettings />
-        </div>
 
         {/* Hunter Feature Permissions - Only for hunter societies */}
         {userType === "hunter_society" && (

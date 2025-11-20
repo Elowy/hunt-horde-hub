@@ -259,6 +259,14 @@ export const DashboardMenu = ({ isAdmin, isEditor, isHunter, onLogout, onPriceUp
                 <Button
                   variant="ghost"
                   className="w-full justify-start"
+                  onClick={() => handleNavigation("/hunter-society-settings")}
+                >
+                  <Settings className="mr-2 h-4 w-4" />
+                  Vadásztársaság beállítások
+                </Button>
+                <Button
+                  variant="ghost"
+                  className="w-full justify-start"
                   onClick={() => handleNavigation("/activity-log")}
                 >
                   <History className="mr-2 h-4 w-4" />
