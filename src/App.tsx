@@ -31,6 +31,7 @@ import MembershipPayments from "./pages/MembershipPayments";
 import QRAnimalSubmit from "./pages/QRAnimalSubmit";
 import PendingAnimals from "./pages/PendingAnimals";
 import HunterDashboard from "./pages/HunterDashboard";
+import DeleteAllUsers from "./pages/DeleteAllUsers";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -70,6 +71,7 @@ const App = () => (
             <Route path="/pending-animals" element={<PendingAnimals />} />
             <Route path="/hunter-dashboard" element={<HunterDashboard />} />
             <Route path="/zone-statistics" element={<ZoneStatistics />} />
+            <Route path="/delete-all-users" element={<DeleteAllUsers />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
