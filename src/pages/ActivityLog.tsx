@@ -91,14 +91,35 @@ export default function ActivityLog() {
   const fetchLogs = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from("activity_logs")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(100);
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        setLoading(false);
+        return;
+      }
 
-      if (error) throw error;
-      setLogs(data || []);
+      // If super admin, show all logs
+      if (isSuperAdmin) {
+        const { data, error } = await supabase
+          .from("activity_logs")
+          .select("*")
+          .order("created_at", { ascending: false })
+          .limit(100);
+
+        if (error) throw error;
+        setLogs(data || []);
+      } else {
+        // For regular admins, only show logs from their company
+        const { data, error } = await supabase
+          .from("activity_logs")
+          .select("*")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false })
+          .limit(100);
+
+        if (error) throw error;
+        setLogs(data || []);
+      }
     } catch (error) {
       console.error("Error fetching activity logs:", error);
     } finally {
