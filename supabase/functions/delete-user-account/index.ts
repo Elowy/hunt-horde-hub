@@ -63,23 +63,37 @@ Deno.serve(async (req) => {
       }
     );
 
-    // First, delete pending_animals that reference this user as hunter_society
-    console.log('Deleting pending animals...');
-    const { error: pendingAnimalsError } = await supabaseAdmin
-      .from('pending_animals')
-      .delete()
-      .eq('hunter_society_id', user.id);
+    // Delete all related records before deleting profile
+    console.log('Deleting related records...');
 
-    if (pendingAnimalsError) {
-      console.error('Error deleting pending animals:', pendingAnimalsError);
-      return new Response(
-        JSON.stringify({ error: 'Hiba a függőben lévő állatok törlésekor: ' + pendingAnimalsError.message }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    // Delete pending_animals where user is hunter_society or reviewer
+    await supabaseAdmin.from('pending_animals').delete().eq('hunter_society_id', user.id);
+    await supabaseAdmin.from('pending_animals').delete().eq('reviewed_by', user.id);
 
-    // Then, delete the profile (this will cascade delete related data)
-    console.log('Deleting profile and related data...');
+    // Delete buyer_price_proposals
+    await supabaseAdmin.from('buyer_price_proposals').delete().eq('hunter_society_id', user.id);
+    await supabaseAdmin.from('buyer_price_proposals').delete().eq('reviewed_by', user.id);
+
+    // Delete hunter_feature_permissions
+    await supabaseAdmin.from('hunter_feature_permissions').delete().eq('hunter_society_id', user.id);
+
+    // Delete hunter_society_members
+    await supabaseAdmin.from('hunter_society_members').delete().eq('hunter_society_id', user.id);
+    await supabaseAdmin.from('hunter_society_members').delete().eq('hunter_id', user.id);
+
+    // Delete membership_fee_settings
+    await supabaseAdmin.from('membership_fee_settings').delete().eq('hunter_society_id', user.id);
+
+    // Delete membership_payments
+    await supabaseAdmin.from('membership_payments').delete().eq('hunter_society_id', user.id);
+    await supabaseAdmin.from('membership_payments').delete().eq('user_id', user.id);
+    await supabaseAdmin.from('membership_payments').delete().eq('paid_by', user.id);
+
+    // Update profiles that reference this user as hunter_society_id
+    await supabaseAdmin.from('profiles').update({ hunter_society_id: null }).eq('hunter_society_id', user.id);
+
+    // Delete the profile (this will cascade delete other related data)
+    console.log('Deleting profile...');
     const { error: profileError } = await supabaseAdmin
       .from('profiles')
       .delete()
