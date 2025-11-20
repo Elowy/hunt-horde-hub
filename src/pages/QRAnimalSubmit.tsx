@@ -60,8 +60,8 @@ export default function QRAnimalSubmit() {
         // Check if expired
         if (qrData.expires_at && new Date(qrData.expires_at) < new Date()) {
           toast({
-            title: "Érvénytelen QR kód",
-            description: "Ez a QR kód lejárt.",
+            title: "QR kód lejárt",
+            description: "Ez a QR kód már nem érvényes. Kérjük, használjon új QR kódot.",
             variant: "destructive",
           });
           setTimeout(() => navigate("/"), 3000);
@@ -70,6 +70,17 @@ export default function QRAnimalSubmit() {
 
         setStorageLocation(qrData.storage_locations);
         setValidating(false);
+        return;
+      }
+
+      // If no active QR code found
+      if (qrError || !qrData) {
+        toast({
+          title: "Érvénytelen QR kód",
+          description: "Ez a QR kód nem létezik vagy inaktív.",
+          variant: "destructive",
+        });
+        setTimeout(() => navigate("/"), 3000);
         return;
       }
 

@@ -18,23 +18,51 @@ import { QRCodeSVG } from "qrcode.react";
 interface StorageLocationQRDialogProps {
   locationId: string;
   locationName: string;
-  qrCode: string | null;
-  qrEnabled: boolean;
   onUpdate: () => void;
 }
 
-export const StorageLocationQRDialog = ({
-  locationId,
-  locationName,
-  qrCode,
-  qrEnabled,
-  onUpdate,
-}: StorageLocationQRDialogProps) => {
+interface QRCodeData {
+  id: string;
+  code: string;
+  is_active: boolean;
+  expires_at: string | null;
+  created_at: string;
+}
+
+export const StorageLocationQRDialog = ({ locationId, locationName, onUpdate }: StorageLocationQRDialogProps) => {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [enabled, setEnabled] = useState(qrEnabled);
+  const [qrData, setQRData] = useState<QRCodeData | null>(null);
   const [copied, setCopied] = useState(false);
-  const { toast } = useToast();
+  const [expiresAt, setExpiresAt] = useState<string>("");
+
+  useEffect(() => {
+    if (open) {
+      fetchQRCode();
+    }
+  }, [open, locationId]);
+
+  const fetchQRCode = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("qr_codes")
+        .select("*")
+        .eq("storage_location_id", locationId)
+        .eq("type", "storage_location")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (error) throw error;
+      
+      setQRData(data);
+      if (data?.expires_at) {
+        setExpiresAt(new Date(data.expires_at).toISOString().split('T')[0]);
+      }
+    } catch (error) {
+      console.error("Error fetching QR code:", error);
+    }
+  };
 
   const generateQRCode = async () => {
     try {
