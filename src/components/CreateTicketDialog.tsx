@@ -48,6 +48,7 @@ export const CreateTicketDialog = ({ onTicketCreated, isHunter, isAdmin, isEdito
 
     if (isAdmin || isEditor) {
       return [
+        { value: "bug", label: "Informatikai hiba (Bug)" },
         { value: "cooling_location", label: "Hűtési helyszínek hiba" },
         { value: "statistics", label: "Statisztika hiba" },
         { value: "animal_records", label: "Állat nyilvántartás hiba" },
