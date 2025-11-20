@@ -77,7 +77,10 @@ export default function HunterDashboard() {
 
     const userRoles = roles?.map(r => r.role) || [];
     
-    if (!userRoles.includes("hunter")) {
+    // Check if user is hunter OR super_admin
+    const isSuperAdmin = userRoles.includes("super_admin");
+    
+    if (!userRoles.includes("hunter") && !isSuperAdmin) {
       navigate("/dashboard");
       return;
     }
