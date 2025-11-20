@@ -906,6 +906,12 @@ const HuntingRegistrations = () => {
                         onValueChange={(value) => {
                           setFormData({ ...formData, security_zone_id: value, hunting_location_id: "" });
                           fetchLocations(value);
+                          
+                          const selectedZone = zones.find(z => z.id === value);
+                          if (selectedZone?.settlements?.name) {
+                            fetchWeather(selectedZone.settlements.name);
+                          }
+                          fetchHuntingChance(value);
                         }}
                       >
                         <SelectTrigger>
