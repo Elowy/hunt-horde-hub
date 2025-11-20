@@ -33,6 +33,36 @@ Deno.serve(async (req) => {
       }
     );
 
+    // Verify user is super admin
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(token);
+    
+    if (userError || !user) {
+      console.error('Authentication error:', userError);
+      return new Response(
+        JSON.stringify({ error: 'Érvénytelen jogosultság' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Check if user has super_admin role
+    const { data: roles, error: rolesError } = await supabaseAdmin
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user.id)
+      .eq('role', 'super_admin')
+      .single();
+
+    if (rolesError || !roles) {
+      console.error('Authorization check failed:', rolesError);
+      return new Response(
+        JSON.stringify({ error: 'Csak super adminok használhatják ezt a funkciót' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log(`Super admin ${user.email} authorized for delete all users operation`);
+
     // Get all users
     const { data: { users }, error: listError } = await supabaseAdmin.auth.admin.listUsers();
 
