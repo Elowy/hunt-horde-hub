@@ -413,6 +413,45 @@ export type Database = {
           },
         ]
       }
+      epidemic_measures: {
+        Row: {
+          affected_species: string[]
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          sampling_fee: number
+          severity: Database["public"]["Enums"]["epidemic_severity"]
+          shooting_fee: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          affected_species?: string[]
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          sampling_fee?: number
+          severity: Database["public"]["Enums"]["epidemic_severity"]
+          shooting_fee?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          affected_species?: string[]
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          sampling_fee?: number
+          severity?: Database["public"]["Enums"]["epidemic_severity"]
+          shooting_fee?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       hired_hunters: {
         Row: {
           created_at: string
@@ -1939,6 +1978,11 @@ export type Database = {
     Enums: {
       announcement_type: "news" | "maintenance" | "outage"
       app_role: "admin" | "editor" | "viewer" | "hunter" | "super_admin"
+      epidemic_severity:
+        | "kozepes"
+        | "magas"
+        | "fertozott"
+        | "szigoruan_korlatozott"
       hunter_category:
         | "tag"
         | "vendeg"
@@ -2089,6 +2133,12 @@ export const Constants = {
     Enums: {
       announcement_type: ["news", "maintenance", "outage"],
       app_role: ["admin", "editor", "viewer", "hunter", "super_admin"],
+      epidemic_severity: [
+        "kozepes",
+        "magas",
+        "fertozott",
+        "szigoruan_korlatozott",
+      ],
       hunter_category: [
         "tag",
         "vendeg",
