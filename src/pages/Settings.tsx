@@ -12,6 +12,7 @@ import { useIsSuperAdmin } from "@/hooks/useIsSuperAdmin";
 import { MembershipFeeSettings } from "@/components/MembershipFeeSettings";
 import { QRCodeManagement } from "@/components/QRCodeManagement";
 import { HunterFeaturePermissions } from "@/components/HunterFeaturePermissions";
+import { EpidemicMeasuresManager } from "@/components/EpidemicMeasuresManager";
 
 interface NotificationSettings {
   notify_on_transport: boolean;
@@ -571,6 +572,13 @@ const Settings = () => {
         {userType === "hunter_society" && (
           <div className="mt-6">
             <HunterFeaturePermissions />
+          </div>
+        )}
+
+        {/* Epidemic Measures - Only for hunter societies */}
+        {userType === "hunter_society" && (
+          <div className="mt-6">
+            <EpidemicMeasuresManager />
           </div>
         )}
 
