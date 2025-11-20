@@ -63,7 +63,22 @@ Deno.serve(async (req) => {
       }
     );
 
-    // First, delete the profile (this will cascade delete related data)
+    // First, delete pending_animals that reference this user as hunter_society
+    console.log('Deleting pending animals...');
+    const { error: pendingAnimalsError } = await supabaseAdmin
+      .from('pending_animals')
+      .delete()
+      .eq('hunter_society_id', user.id);
+
+    if (pendingAnimalsError) {
+      console.error('Error deleting pending animals:', pendingAnimalsError);
+      return new Response(
+        JSON.stringify({ error: 'Hiba a függőben lévő állatok törlésekor: ' + pendingAnimalsError.message }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Then, delete the profile (this will cascade delete related data)
     console.log('Deleting profile and related data...');
     const { error: profileError } = await supabaseAdmin
       .from('profiles')
