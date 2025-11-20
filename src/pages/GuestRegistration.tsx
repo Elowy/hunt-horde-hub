@@ -228,6 +228,17 @@ export default function GuestRegistration() {
 
   const onSubmit = async (values: FormData) => {
     try {
+      // Get the security zone's user_id (owner) to use as the registration user
+      const { data: securityZone, error: zoneError } = await supabase
+        .from("security_zones")
+        .select("user_id")
+        .eq("id", values.security_zone_id)
+        .single();
+
+      if (zoneError || !securityZone) {
+        throw new Error("Érvénytelen beírókörzet");
+      }
+
       const { error } = await supabase.from("hunting_registrations").insert({
         is_guest: true,
         guest_name: values.guest_name,
@@ -241,7 +252,7 @@ export default function GuestRegistration() {
         end_time: values.end_time.toISOString(),
         requires_admin_approval: true,
         status: "pending",
-        user_id: "00000000-0000-0000-0000-000000000000", // Placeholder for guest
+        user_id: securityZone.user_id, // Use security zone owner's ID
         weather_data: weatherData,
       });
 
@@ -263,35 +274,7 @@ export default function GuestRegistration() {
     );
   }
 
-  if (!limits.canUseElectronicRegistration) {
-    return (
-      <div className="min-h-screen bg-gradient-to-b from-forest-deep to-earth-warm flex items-center justify-center p-4">
-        <Card className="max-w-2xl w-full">
-          <CardHeader>
-            <CardTitle className="text-3xl text-center text-forest-deep">Nincs hozzáférés</CardTitle>
-            <CardDescription className="text-center text-lg">
-              Az elektronikus beiratkozási rendszer csak Pro előfizetéssel érhető el.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertTitle>Pro funkció</AlertTitle>
-              <AlertDescription>
-                Az elektronikus beiratkozási rendszer és vendég vadászok kezelése csak Pro előfizetéssel érhető el. 
-                Váltson Pro előfizetésre ezen funkciók használatához!
-              </AlertDescription>
-            </Alert>
-            <div className="mt-6 flex justify-center">
-              <Button onClick={() => navigate("/subscriptions")}>
-                Előfizetések megtekintése
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
+  // Guest registration is available for everyone, no subscription check needed
 
   if (submitted) {
     return (
