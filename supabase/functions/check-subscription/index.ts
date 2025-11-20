@@ -17,6 +17,22 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Create client with anon key for authentication
+  const supabaseAuthClient = createClient(
+    Deno.env.get("SUPABASE_URL") ?? "",
+    Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+    { 
+      auth: { 
+        persistSession: false,
+        autoRefreshToken: false
+      },
+      global: {
+        headers: { Authorization: req.headers.get('Authorization')! }
+      }
+    }
+  );
+
+  // Create client with service role key for database operations
   const supabaseClient = createClient(
     Deno.env.get("SUPABASE_URL") ?? "",
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
@@ -34,12 +50,11 @@ serve(async (req) => {
     if (!authHeader) throw new Error("No authorization header provided");
     logStep("Authorization header found");
 
-    const token = authHeader.replace("Bearer ", "");
-    logStep("Authenticating user with token");
+    logStep("Authenticating user");
     
-    const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
+    // Use the auth client to get the user
+    const { data: { user }, error: userError } = await supabaseAuthClient.auth.getUser();
     if (userError) throw new Error(`Authentication error: ${userError.message}`);
-    const user = userData.user;
     if (!user?.email) throw new Error("User not authenticated or email not available");
     logStep("User authenticated", { userId: user.id, email: user.email });
 
