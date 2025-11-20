@@ -347,8 +347,17 @@ const Users = () => {
 
   const handleRejectHunter = async (hunterId: string) => {
     try {
-      const { error } = await supabase.auth.admin.deleteUser(hunterId);
-      if (error) throw error;
+      // First, delete the profile to avoid cascade issues
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .delete()
+        .eq("id", hunterId);
+
+      if (profileError) throw profileError;
+
+      // Then delete from auth
+      const { error: authError } = await supabase.auth.admin.deleteUser(hunterId);
+      if (authError) throw authError;
 
       toast({
         title: "Elutasítva!",
