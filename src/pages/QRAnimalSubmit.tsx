@@ -163,20 +163,36 @@ export default function QRAnimalSubmit() {
     setLoading(true);
 
     try {
-      const { error } = await supabase.from("pending_animals").insert({
-        storage_location_id: storageLocation.id,
-        hunter_society_id: storageLocation.user_id,
-        animal_id: formData.animal_id || null,
-        species: formData.species,
-        gender: formData.gender || null,
-        hunter_name: formData.hunter_name,
-        notes: formData.notes || null,
-        security_zone_id: formData.security_zone_id || null,
-        approval_status: "pending",
-        submitted_via: "qr_code",
-      });
+      const { data: insertedData, error } = await supabase
+        .from("pending_animals")
+        .insert({
+          storage_location_id: storageLocation.id,
+          hunter_society_id: storageLocation.user_id,
+          animal_id: formData.animal_id || null,
+          species: formData.species,
+          gender: formData.gender || null,
+          hunter_name: formData.hunter_name,
+          notes: formData.notes || null,
+          security_zone_id: formData.security_zone_id || null,
+          approval_status: "pending",
+          submitted_via: "qr_code",
+        })
+        .select()
+        .single();
 
       if (error) throw error;
+
+      // Send email notifications to admins and editors
+      if (insertedData) {
+        try {
+          await supabase.functions.invoke('send-pending-animal-notification', {
+            body: { pendingAnimalId: insertedData.id },
+          });
+        } catch (emailError) {
+          // Log error but don't fail the submission
+          console.error('Failed to send email notifications:', emailError);
+        }
+      }
 
       setSubmitted(true);
       toast({
