@@ -1,0 +1,371 @@
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { PageHeader } from "@/components/PageHeader";
+import { DashboardMenu } from "@/components/DashboardMenu";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { AnnouncementBanner } from "@/components/AnnouncementBanner";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Calendar, Package, BarChart, Bell } from "lucide-react";
+import { format } from "date-fns";
+import { hu } from "date-fns/locale";
+
+interface HunterSociety {
+  id: string;
+  company_name: string;
+}
+
+interface Animal {
+  id: string;
+  animal_id: string;
+  species: string;
+  weight: number | null;
+  cooling_date: string | null;
+  storage_locations: {
+    name: string;
+  };
+}
+
+interface HuntingRegistration {
+  id: string;
+  start_time: string;
+  end_time: string;
+  status: string;
+  security_zones: {
+    name: string;
+  };
+}
+
+interface MembershipPayment {
+  id: string;
+  amount: number;
+  period: string;
+  season_year: number;
+  paid: boolean;
+}
+
+export default function HunterDashboard() {
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
+  const [societies, setSocieties] = useState<HunterSociety[]>([]);
+  const [animals, setAnimals] = useState<Animal[]>([]);
+  const [registrations, setRegistrations] = useState<HuntingRegistration[]>([]);
+  const [payments, setPayments] = useState<MembershipPayment[]>([]);
+  const [selectedSociety, setSelectedSociety] = useState<string | null>(null);
+
+  useEffect(() => {
+    checkAuth();
+  }, []);
+
+  useEffect(() => {
+    if (selectedSociety) {
+      fetchDashboardData();
+    }
+  }, [selectedSociety]);
+
+  const checkAuth = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (!session) {
+      navigate("/login");
+      return;
+    }
+
+    // Check if user is a hunter
+    const { data: roles } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", session.user.id);
+
+    const userRoles = roles?.map(r => r.role) || [];
+    
+    if (!userRoles.includes("hunter")) {
+      navigate("/dashboard");
+      return;
+    }
+
+    // Fetch hunter's societies
+    const { data: membershipData } = await supabase
+      .from("hunter_society_members")
+      .select(`
+        hunter_society_id,
+        profiles!hunter_society_members_hunter_society_id_fkey (
+          id,
+          company_name
+        )
+      `)
+      .eq("hunter_id", session.user.id);
+
+    if (membershipData && membershipData.length > 0) {
+      const societiesData = membershipData.map((m: any) => ({
+        id: m.profiles.id,
+        company_name: m.profiles.company_name
+      }));
+      setSocieties(societiesData);
+      setSelectedSociety(societiesData[0].id);
+    }
+
+    setLoading(false);
+  };
+
+  const fetchDashboardData = async () => {
+    if (!selectedSociety) return;
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    // Fetch animals in storage from selected society
+    const { data: animalsData } = await supabase
+      .from("animals")
+      .select(`
+        id,
+        animal_id,
+        species,
+        weight,
+        cooling_date,
+        storage_locations (
+          name
+        )
+      `)
+      .eq("user_id", selectedSociety)
+      .eq("is_transported", false)
+      .order("cooling_date", { ascending: false })
+      .limit(10);
+
+    if (animalsData) setAnimals(animalsData);
+
+    // Fetch hunting registrations
+    const { data: regData } = await supabase
+      .from("hunting_registrations")
+      .select(`
+        id,
+        start_time,
+        end_time,
+        status,
+        security_zones (
+          name
+        )
+      `)
+      .eq("user_id", user.id)
+      .gte("end_time", new Date().toISOString())
+      .order("start_time", { ascending: true })
+      .limit(5);
+
+    if (regData) setRegistrations(regData);
+
+    // Fetch membership payments for selected society
+    const { data: paymentsData } = await supabase
+      .from("membership_payments")
+      .select("*")
+      .eq("user_id", user.id)
+      .eq("hunter_society_id", selectedSociety)
+      .eq("paid", false)
+      .order("season_year", { ascending: false });
+
+    if (paymentsData) setPayments(paymentsData);
+  };
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    navigate("/login");
+  };
+
+  const getPeriodLabel = (period: string) => {
+    const labels: Record<string, string> = {
+      first_half: "Első félév",
+      second_half: "Második félév",
+      full_year: "Teljes év"
+    };
+    return labels[period] || period;
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <p className="text-muted-foreground">Betöltés...</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-background">
+      <PageHeader 
+        isHunter={true}
+        onLogout={handleLogout}
+      />
+      
+      <div className="container mx-auto p-4 md:p-6 max-w-7xl">
+        <AnnouncementBanner />
+
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold mb-2">Vadász Dashboard</h1>
+          <p className="text-muted-foreground">
+            Üdvözöllek a vadász dashboardon! Itt találod a legfontosabb információkat.
+          </p>
+        </div>
+
+        {/* Society Selector */}
+        {societies.length > 1 && (
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle>Vadásztársaság kiválasztása</CardTitle>
+              <CardDescription>
+                Több vadásztársaság tagja vagy. Válaszd ki, melyik adatait szeretnéd megtekinteni.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-wrap gap-2">
+                {societies.map((society) => (
+                  <Button
+                    key={society.id}
+                    variant={selectedSociety === society.id ? "default" : "outline"}
+                    onClick={() => setSelectedSociety(society.id)}
+                  >
+                    {society.company_name}
+                  </Button>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        <div className="grid gap-6 md:grid-cols-2">
+          {/* Upcoming Registrations */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Calendar className="h-5 w-5" />
+                Következő beiratkozások
+              </CardTitle>
+              <CardDescription>
+                A következő vadászati beiratkozásaid
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {registrations.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Nincs következő beiratkozás</p>
+              ) : (
+                <div className="space-y-3">
+                  {registrations.map((reg) => (
+                    <div key={reg.id} className="flex items-center justify-between border-b pb-2">
+                      <div>
+                        <p className="font-medium">{reg.security_zones.name}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {format(new Date(reg.start_time), "PPp", { locale: hu })}
+                        </p>
+                      </div>
+                      <Badge variant={reg.status === "approved" ? "default" : "secondary"}>
+                        {reg.status === "approved" ? "Jóváhagyva" : "Függőben"}
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <Button 
+                variant="outline" 
+                className="w-full mt-4"
+                onClick={() => navigate("/hunting-registrations")}
+              >
+                Összes beiratkozás megtekintése
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Animals in Storage */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Package className="h-5 w-5" />
+                Állatok a hűtőben
+              </CardTitle>
+              <CardDescription>
+                Jelenleg tárolt állatok a kiválasztott társaságnál
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {animals.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Nincs állat a hűtőben</p>
+              ) : (
+                <div className="space-y-3">
+                  {animals.slice(0, 5).map((animal) => (
+                    <div key={animal.id} className="flex items-center justify-between border-b pb-2">
+                      <div>
+                        <p className="font-medium">{animal.species}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {animal.storage_locations.name}
+                          {animal.weight && ` - ${animal.weight} kg`}
+                        </p>
+                      </div>
+                      <Badge variant="secondary">{animal.animal_id}</Badge>
+                    </div>
+                  ))}
+                  {animals.length > 5 && (
+                    <p className="text-sm text-muted-foreground text-center">
+                      és még {animals.length - 5} állat...
+                    </p>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Membership Payments */}
+          {payments.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Bell className="h-5 w-5" />
+                  Tagdíjak
+                </CardTitle>
+                <CardDescription>
+                  Befizetésre váró tagdíjak
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {payments.map((payment) => (
+                    <div key={payment.id} className="flex items-center justify-between border-b pb-2">
+                      <div>
+                        <p className="font-medium">{payment.season_year} - {getPeriodLabel(payment.period)}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {payment.amount.toLocaleString()} Ft
+                        </p>
+                      </div>
+                      <Badge variant="destructive">Befizetésre vár</Badge>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Statistics Placeholder */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <BarChart className="h-5 w-5" />
+                Statisztikák
+              </CardTitle>
+              <CardDescription>
+                Vadászati statisztikák
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground mb-4">
+                Részletes statisztikák a vadászati tevékenységedről
+              </p>
+              <Button 
+                variant="outline" 
+                className="w-full"
+                onClick={() => navigate("/hunter-statistics")}
+              >
+                Statisztikák megtekintése
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    </div>
+  );
+}

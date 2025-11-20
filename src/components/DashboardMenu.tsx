@@ -124,7 +124,65 @@ export const DashboardMenu = ({ isAdmin, isEditor, isHunter, onLogout, onPriceUp
           <SheetTitle>Menü</SheetTitle>
         </SheetHeader>
         <div className="mt-6 space-y-4 pb-8">
-          {/* Profil */}
+          {/* For hunters: simplified menu */}
+          {isHunter ? (
+            <>
+              {/* Profil */}
+              <div className="space-y-2">
+                <Button
+                  variant="ghost"
+                  className="w-full justify-start"
+                  onClick={() => handleNavigation("/profile")}
+                >
+                  <User className="mr-2 h-4 w-4" />
+                  Profilom
+                </Button>
+              </div>
+
+              <Separator />
+
+              {/* Beállítások */}
+              <div className="space-y-2">
+                <Button
+                  variant="ghost"
+                  className="w-full justify-start"
+                  onClick={() => handleNavigation("/settings")}
+                >
+                  <Settings className="mr-2 h-4 w-4" />
+                  Beállítások
+                </Button>
+              </div>
+
+              <Separator />
+
+              {/* Támogatás */}
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-muted-foreground px-2">Támogatás</p>
+                <Button
+                  variant="ghost"
+                  className="w-full justify-start"
+                  onClick={() => handleNavigation("/tickets")}
+                >
+                  <MessageSquare className="mr-2 h-4 w-4" />
+                  Támogatási jegyek
+                </Button>
+              </div>
+
+              <Separator />
+
+              {/* Kijelentkezés */}
+              <Button
+                variant="ghost"
+                className="w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10"
+                onClick={onLogout}
+              >
+                <LogOut className="mr-2 h-4 w-4" />
+                Kijelentkezés
+              </Button>
+            </>
+          ) : (
+            <>
+              {/* Full menu for non-hunters */}
           <div className="space-y-2">
             <Button
               variant="ghost"
@@ -440,43 +498,43 @@ export const DashboardMenu = ({ isAdmin, isEditor, isHunter, onLogout, onPriceUp
           )}
 
           {/* Beállítások */}
+          <div className="space-y-2">
+            <p className="text-sm font-medium text-muted-foreground px-2">Beállítások</p>
+            <Button
+              variant="ghost"
+              className="w-full justify-start"
+              onClick={() => handleNavigation("/settings")}
+            >
+              <Settings className="mr-2 h-4 w-4" />
+              Értesítések
+            </Button>
+            <div className="flex items-center justify-between px-2">
+              <span className="text-sm">Nézet</span>
+              <ViewportToggle />
+            </div>
+            <div className="flex items-center justify-between px-2">
+              <span className="text-sm">Téma</span>
+              <ThemeToggle />
+            </div>
+          </div>
+
+          <Separator />
+
+          {/* Támogatás */}
+          <Button
+            variant="ghost"
+            className="w-full justify-start"
+            onClick={() => handleNavigation("/tickets")}
+          >
+            <MessageSquare className="mr-2 h-4 w-4" />
+            Támogatási jegyek
+          </Button>
+
+          <Separator />
+
+          {/* Előfizetések - only for non-hunters */}
           {!isHunter && (
             <>
-              <div className="space-y-2">
-                <p className="text-sm font-medium text-muted-foreground px-2">Beállítások</p>
-                <Button
-                  variant="ghost"
-                  className="w-full justify-start"
-                  onClick={() => handleNavigation("/settings")}
-                >
-                  <Settings className="mr-2 h-4 w-4" />
-                  Értesítések
-                </Button>
-                <div className="flex items-center justify-between px-2">
-                  <span className="text-sm">Nézet</span>
-                  <ViewportToggle />
-                </div>
-                <div className="flex items-center justify-between px-2">
-                  <span className="text-sm">Téma</span>
-                  <ThemeToggle />
-                </div>
-              </div>
-
-              <Separator />
-
-              {/* Támogatás */}
-              <Button
-                variant="ghost"
-                className="w-full justify-start"
-                onClick={() => handleNavigation("/tickets")}
-              >
-                <MessageSquare className="mr-2 h-4 w-4" />
-                Támogatási jegyek
-              </Button>
-
-              <Separator />
-
-              {/* Előfizetések */}
               <Button
                 variant="ghost"
                 className="w-full justify-start bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-600 dark:text-yellow-400"
@@ -502,6 +560,8 @@ export const DashboardMenu = ({ isAdmin, isEditor, isHunter, onLogout, onPriceUp
             <LogOut className="mr-2 h-4 w-4" />
             Kijelentkezés
           </Button>
+            </>
+          )}
         </div>
       </SheetContent>
     </Sheet>

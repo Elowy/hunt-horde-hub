@@ -66,9 +66,39 @@ const Subscriptions = () => {
   const [animalCount, setAnimalCount] = useState(0);
 
   useEffect(() => {
+    checkUserAccess();
     checkSubscription();
     fetchUsageData();
   }, []);
+
+  const checkUserAccess = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        navigate("/login");
+        return;
+      }
+
+      // Check if user is hunter society type
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("user_type")
+        .eq("id", session.user.id)
+        .single();
+
+      if (profile && profile.user_type !== "hunter_society") {
+        toast({
+          title: "Hozzáférés megtagadva",
+          description: "Csak vadásztársaság típusú felhasználók vásárolhatnak előfizetést.",
+          variant: "destructive",
+        });
+        navigate("/dashboard");
+        return;
+      }
+    } catch (error) {
+      console.error("Error checking user access:", error);
+    }
+  };
 
   const fetchUsageData = async () => {
     try {

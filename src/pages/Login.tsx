@@ -77,11 +77,26 @@ const Login = () => {
           console.error("Failed to log login history:", error);
         }
 
+        // Check if user is a hunter
+        const { data: roles } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", data.user.id);
+
+        const userRoles = roles?.map(r => r.role) || [];
+        const isHunter = userRoles.includes("hunter") && !userRoles.includes("admin") && !userRoles.includes("editor");
+
         toast({
           title: "Sikeres bejelentkezés!",
           description: "Üdvözöljük újra!",
         });
-        navigate("/dashboard");
+        
+        // Redirect based on user role
+        if (isHunter) {
+          navigate("/hunter-dashboard");
+        } else {
+          navigate("/dashboard");
+        }
       }
     } catch (error: any) {
       toast({

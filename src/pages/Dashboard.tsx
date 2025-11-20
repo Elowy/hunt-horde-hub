@@ -323,7 +323,14 @@ const Dashboard = () => {
       .eq("role", "hunter")
       .maybeSingle();
 
+    const isHunterOnly = !!hunterRole && !adminRole && !editorRole && !userIsSuperAdmin;
     setIsHunter(!!hunterRole);
+
+    // Redirect hunters to their dedicated dashboard
+    if (isHunterOnly) {
+      navigate("/hunter-dashboard");
+      return;
+    }
   };
 
   const fetchData = async () => {
