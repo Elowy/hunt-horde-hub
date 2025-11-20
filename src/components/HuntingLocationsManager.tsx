@@ -14,6 +14,7 @@ interface HuntingLocation {
   type: string;
   latitude: number | null;
   longitude: number | null;
+  google_maps_link: string | null;
   security_zone_id: string;
   display_order: number;
 }
