@@ -25,15 +25,48 @@ export default function QRAnimalSubmit() {
   const [storageLocation, setStorageLocation] = useState<any>(null);
   const [submitted, setSubmitted] = useState(false);
   const [formData, setFormData] = useState({
+    animal_id: "",
     species: "",
     gender: "",
     hunter_name: "",
     notes: "",
+    security_zone_id: "",
   });
+  const [securityZones, setSecurityZones] = useState<any[]>([]);
 
   useEffect(() => {
     validateQRCode();
   }, [qrCode]);
+
+  useEffect(() => {
+    if (storageLocation) {
+      fetchSecurityZones();
+    }
+  }, [storageLocation]);
+
+  const fetchSecurityZones = async () => {
+    if (!storageLocation?.user_id) return;
+
+    try {
+      const { data, error } = await supabase
+        .from("security_zones")
+        .select(`
+          id,
+          name,
+          settlement_id,
+          settlements (
+            name
+          )
+        `)
+        .eq("user_id", storageLocation.user_id)
+        .order("display_order");
+
+      if (error) throw error;
+      setSecurityZones(data || []);
+    } catch (error: any) {
+      console.error("Error fetching security zones:", error);
+    }
+  };
 
   const validateQRCode = async () => {
     try {
@@ -133,10 +166,12 @@ export default function QRAnimalSubmit() {
       const { error } = await supabase.from("pending_animals").insert({
         storage_location_id: storageLocation.id,
         hunter_society_id: storageLocation.user_id,
+        animal_id: formData.animal_id || null,
         species: formData.species,
         gender: formData.gender || null,
         hunter_name: formData.hunter_name,
         notes: formData.notes || null,
+        security_zone_id: formData.security_zone_id || null,
         approval_status: "pending",
         submitted_via: "qr_code",
       });
@@ -151,10 +186,12 @@ export default function QRAnimalSubmit() {
 
       // Reset form
       setFormData({
+        animal_id: "",
         species: "",
         gender: "",
         hunter_name: "",
         notes: "",
+        security_zone_id: "",
       });
 
       // Auto redirect after 3 seconds
@@ -234,6 +271,16 @@ export default function QRAnimalSubmit() {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
+              <Label htmlFor="animal_id">Vadazonosító</Label>
+              <Input
+                id="animal_id"
+                value={formData.animal_id}
+                onChange={(e) => setFormData({ ...formData, animal_id: e.target.value })}
+                placeholder="pl. VD-2024-001"
+              />
+            </div>
+
+            <div className="space-y-2">
               <Label htmlFor="species">Vadfaj *</Label>
               <Select
                 value={formData.species}
@@ -244,14 +291,12 @@ export default function QRAnimalSubmit() {
                   <SelectValue placeholder="Válasszon vadfajt" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Vaddisznó">Vaddisznó</SelectItem>
-                  <SelectItem value="Őz">Őz</SelectItem>
-                  <SelectItem value="Szarvas">Szarvas</SelectItem>
-                  <SelectItem value="Dámvad">Dámvad</SelectItem>
-                  <SelectItem value="Muflon">Muflon</SelectItem>
-                  <SelectItem value="Róka">Róka</SelectItem>
-                  <SelectItem value="Borz">Borz</SelectItem>
-                  <SelectItem value="Nyúl">Nyúl</SelectItem>
+                  <SelectItem value="🐗 Vaddisznó">🐗 Vaddisznó</SelectItem>
+                  <SelectItem value="🐏 Őz">🐏 Őz</SelectItem>
+                  <SelectItem value="🦌 Gím Szarvas">🦌 Gím Szarvas</SelectItem>
+                  <SelectItem value="🦌 Dám Szarvas">🦌 Dám Szarvas</SelectItem>
+                  <SelectItem value="🦌 Szika Szarvas">🦌 Szika Szarvas</SelectItem>
+                  <SelectItem value="🐏 Muflon">🐏 Muflon</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -266,19 +311,32 @@ export default function QRAnimalSubmit() {
                   <SelectValue placeholder="Válasszon nemet" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Kan">Kan</SelectItem>
-                  <SelectItem value="Süldő">Süldő</SelectItem>
-                  <SelectItem value="Koca">Koca</SelectItem>
-                  <SelectItem value="Bak">Bak</SelectItem>
-                  <SelectItem value="Suta">Suta</SelectItem>
-                  <SelectItem value="Gida">Gida</SelectItem>
-                  <SelectItem value="Bikaborjú">Bikaborjú</SelectItem>
-                  <SelectItem value="Tehénborjú">Tehénborjú</SelectItem>
-                  <SelectItem value="Bika">Bika</SelectItem>
-                  <SelectItem value="Tehén">Tehén</SelectItem>
+                  <SelectItem value="Hím">♂️ Hím</SelectItem>
+                  <SelectItem value="Nőstény">♀️ Nőstény</SelectItem>
                 </SelectContent>
               </Select>
             </div>
+
+            {securityZones.length > 0 && (
+              <div className="space-y-2">
+                <Label htmlFor="security_zone_id">Település - Beírókörzet</Label>
+                <Select
+                  value={formData.security_zone_id}
+                  onValueChange={(value) => setFormData({ ...formData, security_zone_id: value })}
+                >
+                  <SelectTrigger id="security_zone_id">
+                    <SelectValue placeholder="Válasszon helyszínt" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {securityZones.map((zone) => (
+                      <SelectItem key={zone.id} value={zone.id}>
+                        {zone.settlements?.name ? `${zone.settlements.name} - ${zone.name}` : zone.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label htmlFor="hunter_name">Vadász neve *</Label>
