@@ -18,6 +18,7 @@ import HiredHunters from "./pages/HiredHunters";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard";
 import ZoneStatistics from "./pages/ZoneStatistics";
 import Settings from "./pages/Settings";
+import HunterSocietySettings from "./pages/HunterSocietySettings";
 import Reports from "./pages/Reports";
 import HunterStatistics from "./pages/HunterStatistics";
 import TimeBasedStatistics from "./pages/TimeBasedStatistics";
@@ -55,6 +56,7 @@ const App = () => (
             <Route path="/hired-hunters" element={<HiredHunters />} />
             <Route path="/super-admin" element={<SuperAdminDashboard />} />
             <Route path="/settings" element={<Settings />} />
+            <Route path="/hunter-society-settings" element={<HunterSocietySettings />} />
             <Route path="/reports" element={<Reports />} />
             <Route path="/hunter-statistics" element={<HunterStatistics />} />
             <Route path="/time-based-statistics" element={<TimeBasedStatistics />} />
