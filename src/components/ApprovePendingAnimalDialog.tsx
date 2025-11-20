@@ -56,7 +56,7 @@ export const ApprovePendingAnimalDialog = ({
     weight: "",
     class: "",
     age: "",
-    condition: "",
+    shooting_date: format(new Date(), "yyyy-MM-dd"),
     cooling_date: format(new Date(), "yyyy-MM-dd'T'HH:mm"),
     security_zone_id: "",
     rejection_reason: "",
@@ -117,7 +117,7 @@ export const ApprovePendingAnimalDialog = ({
         weight: parseFloat(formData.weight),
         class: formData.class,
         age: formData.age || null,
-        condition: formData.condition || null,
+        shooting_date: formData.shooting_date ? new Date(formData.shooting_date).toISOString() : null,
         hunter_name: animal.hunter_name,
         notes: animal.notes,
         cooling_date: new Date(formData.cooling_date).toISOString(),
@@ -137,7 +137,7 @@ export const ApprovePendingAnimalDialog = ({
           weight: parseFloat(formData.weight),
           class: formData.class,
           age: formData.age || null,
-          condition: formData.condition || null,
+          shooting_date: formData.shooting_date ? new Date(formData.shooting_date).toISOString() : null,
           cooling_date: new Date(formData.cooling_date).toISOString(),
           security_zone_id: formData.security_zone_id || null,
         })
@@ -223,7 +223,7 @@ export const ApprovePendingAnimalDialog = ({
       weight: "",
       class: "",
       age: "",
-      condition: "",
+      shooting_date: format(new Date(), "yyyy-MM-dd"),
       cooling_date: format(new Date(), "yyyy-MM-dd'T'HH:mm"),
       security_zone_id: "",
       rejection_reason: "",
@@ -352,25 +352,18 @@ export const ApprovePendingAnimalDialog = ({
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="condition">Kondíció</Label>
-                  <Select
-                    value={formData.condition}
-                    onValueChange={(value) => setFormData({ ...formData, condition: value })}
-                  >
-                    <SelectTrigger id="condition">
-                      <SelectValue placeholder="Válasszon" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Jó">Jó</SelectItem>
-                      <SelectItem value="Közepes">Közepes</SelectItem>
-                      <SelectItem value="Gyenge">Gyenge</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Label htmlFor="shooting_date">Elejtés dátuma</Label>
+                  <Input
+                    id="shooting_date"
+                    type="date"
+                    value={formData.shooting_date}
+                    onChange={(e) => setFormData({ ...formData, shooting_date: e.target.value })}
+                  />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="cooling_date">Hűtési dátum</Label>
+                <Label htmlFor="cooling_date">Hűtőbe kerülési dátuma</Label>
                 <Input
                   id="cooling_date"
                   type="datetime-local"

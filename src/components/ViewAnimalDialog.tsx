@@ -24,7 +24,7 @@ interface Animal {
   hunter_name: string | null;
   hunter_type: string | null;
   age: string | null;
-  condition: string | null;
+  shooting_date: string | null;
   sample_id: string | null;
   sample_date: string | null;
   expiry_date: string | null;
@@ -102,10 +102,6 @@ export const ViewAnimalDialog = ({ animal, locationName, price, securityZoneName
                 <p className="text-sm text-muted-foreground">Kor</p>
                 <p className="font-medium">{animal.age || "-"}</p>
               </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Állapot</p>
-                <p className="font-medium">{animal.condition || "-"}</p>
-              </div>
             </div>
           </div>
 
@@ -139,7 +135,15 @@ export const ViewAnimalDialog = ({ animal, locationName, price, securityZoneName
             <h3 className="font-semibold mb-3 text-lg">Dátumok</h3>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <p className="text-sm text-muted-foreground">Hűtés dátuma</p>
+                <p className="text-sm text-muted-foreground">Elejtés dátuma</p>
+                <p className="font-medium">
+                  {animal.shooting_date
+                    ? new Date(animal.shooting_date).toLocaleDateString("hu-HU")
+                    : "-"}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Hűtőbe kerülési dátuma</p>
                 <p className="font-medium">
                   {animal.cooling_date
                     ? new Date(animal.cooling_date).toLocaleDateString("hu-HU")

@@ -54,7 +54,6 @@ export type Database = {
           archived: boolean | null
           average_tusk_length: number | null
           class: string | null
-          condition: string | null
           cooling_date: string | null
           created_at: string
           expiry_date: string | null
@@ -73,6 +72,7 @@ export type Database = {
           sample_date: string | null
           sample_id: string | null
           security_zone_id: string | null
+          shooting_date: string | null
           species: string
           storage_location_id: string
           transport_cooling_price: number | null
@@ -95,7 +95,6 @@ export type Database = {
           archived?: boolean | null
           average_tusk_length?: number | null
           class?: string | null
-          condition?: string | null
           cooling_date?: string | null
           created_at?: string
           expiry_date?: string | null
@@ -114,6 +113,7 @@ export type Database = {
           sample_date?: string | null
           sample_id?: string | null
           security_zone_id?: string | null
+          shooting_date?: string | null
           species: string
           storage_location_id: string
           transport_cooling_price?: number | null
@@ -136,7 +136,6 @@ export type Database = {
           archived?: boolean | null
           average_tusk_length?: number | null
           class?: string | null
-          condition?: string | null
           cooling_date?: string | null
           created_at?: string
           expiry_date?: string | null
@@ -155,6 +154,7 @@ export type Database = {
           sample_date?: string | null
           sample_id?: string | null
           security_zone_id?: string | null
+          shooting_date?: string | null
           species?: string
           storage_location_id?: string
           transport_cooling_price?: number | null
@@ -1080,7 +1080,6 @@ export type Database = {
           animal_id: string | null
           approval_status: string
           class: string | null
-          condition: string | null
           cooling_date: string | null
           created_at: string
           gender: string | null
@@ -1092,6 +1091,7 @@ export type Database = {
           reviewed_at: string | null
           reviewed_by: string | null
           security_zone_id: string | null
+          shooting_date: string | null
           species: string
           storage_location_id: string
           submitted_at: string
@@ -1104,7 +1104,6 @@ export type Database = {
           animal_id?: string | null
           approval_status?: string
           class?: string | null
-          condition?: string | null
           cooling_date?: string | null
           created_at?: string
           gender?: string | null
@@ -1116,6 +1115,7 @@ export type Database = {
           reviewed_at?: string | null
           reviewed_by?: string | null
           security_zone_id?: string | null
+          shooting_date?: string | null
           species: string
           storage_location_id: string
           submitted_at?: string
@@ -1128,7 +1128,6 @@ export type Database = {
           animal_id?: string | null
           approval_status?: string
           class?: string | null
-          condition?: string | null
           cooling_date?: string | null
           created_at?: string
           gender?: string | null
@@ -1140,6 +1139,7 @@ export type Database = {
           reviewed_at?: string | null
           reviewed_by?: string | null
           security_zone_id?: string | null
+          shooting_date?: string | null
           species?: string
           storage_location_id?: string
           submitted_at?: string
