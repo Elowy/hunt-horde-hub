@@ -139,6 +139,7 @@ interface PriceSetting {
   species: string;
   class: string;
   price_per_kg: number;
+  is_archived: boolean;
 }
 
 const Dashboard = () => {
@@ -888,6 +889,98 @@ const Dashboard = () => {
     
     // For non-transported animals, don't calculate cooling revenue
     return { net: 0, gross: 0 };
+  };
+
+  const handleUpdatePrices = async () => {
+    if (selectedAnimals.size === 0) {
+      toast({
+        title: "Figyelmeztetés",
+        description: "Válasszon ki legalább egy állatot!",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const selectedAnimalsList = animals.filter(a => selectedAnimals.has(a.id));
+      let updatedCount = 0;
+
+      for (const animal of selectedAnimalsList) {
+        if (!animal.weight || !animal.species || !animal.class) continue;
+
+        const priceSetting = priceSettings.find(
+          (p) => p.species === animal.species && p.class === animal.class && !p.is_archived
+        );
+
+        if (!priceSetting) continue;
+
+        const { error } = await supabase
+          .from("animals")
+          .update({
+            transport_price_per_kg: priceSetting.price_per_kg,
+            transport_vat_rate: vatRate,
+          })
+          .eq("id", animal.id);
+
+        if (error) throw error;
+        updatedCount++;
+      }
+
+      toast({
+        title: "Siker!",
+        description: `${updatedCount} állat árának frissítése sikeres!`,
+      });
+
+      fetchData();
+      setSelectedAnimals(new Set());
+    } catch (error: any) {
+      toast({
+        title: "Hiba",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleUpdateAllPrices = async () => {
+    try {
+      const cooled = animals.filter(animal => !animal.is_transported && !animal.archived);
+      let updatedCount = 0;
+
+      for (const animal of cooled) {
+        if (!animal.weight || !animal.species || !animal.class) continue;
+
+        const priceSetting = priceSettings.find(
+          (p) => p.species === animal.species && p.class === animal.class && !p.is_archived
+        );
+
+        if (!priceSetting) continue;
+
+        const { error } = await supabase
+          .from("animals")
+          .update({
+            transport_price_per_kg: priceSetting.price_per_kg,
+            transport_vat_rate: vatRate,
+          })
+          .eq("id", animal.id);
+
+        if (error) throw error;
+        updatedCount++;
+      }
+
+      toast({
+        title: "Siker!",
+        description: `${updatedCount} állat árának frissítése sikeres!`,
+      });
+
+      fetchData();
+    } catch (error: any) {
+      toast({
+        title: "Hiba",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
   };
 
   const handleCreateTransport = () => {
@@ -2272,6 +2365,10 @@ const Dashboard = () => {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="bg-background border border-border z-50">
+                        <DropdownMenuItem onClick={handleUpdatePrices} className="cursor-pointer">
+                          <TrendingUp className="h-4 w-4 mr-2" />
+                          Árak frissítése
+                        </DropdownMenuItem>
                         <DropdownMenuItem onClick={handleCreateTransport} className="cursor-pointer">
                           <FileDown className="h-4 w-4 mr-2" />
                           Elszállító készítése
@@ -2286,6 +2383,14 @@ const Dashboard = () => {
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
+                  </div>
+                )}
+                {!isHunter && cooledAnimals.length > 0 && selectedAnimals.size === 0 && (
+                  <div className="mb-4 flex justify-end">
+                    <Button onClick={handleUpdateAllPrices} variant="outline">
+                      <TrendingUp className="h-4 w-4 mr-2" />
+                      Összes hűtött állat árának frissítése
+                    </Button>
                   </div>
                 )}
                 <Card>
