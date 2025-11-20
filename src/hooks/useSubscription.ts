@@ -67,7 +67,9 @@ export const useSubscription = () => {
       
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
+        setTier("free");
         setIsPro(false);
+        setLoading(false);
         return;
       }
 
@@ -137,12 +139,29 @@ export const useSubscription = () => {
         return;
       }
 
+      // Validate session token is still valid
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError || !user) {
+        console.log("Session invalid, defaulting to free tier");
+        setTier("free");
+        setIsPro(false);
+        setLoading(false);
+        return;
+      }
+
       // Ellenőrizzük a Stripe előfizetéseket
       const { data, error } = await supabase.functions.invoke("check-subscription", {
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error calling check-subscription:", error);
+        // Ha Stripe hiba van, alapértelmezett free tier
+        setTier("free");
+        setIsPro(false);
+        setLoading(false);
+        return;
+      }
 
       setProductId(data.product_id);
       
