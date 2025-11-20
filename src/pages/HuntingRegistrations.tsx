@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Calendar, Clock, MapPin, CheckCircle, XCircle, AlertCircle, Crown, Package, ChevronDown, Trash2, Ban } from "lucide-react";
+import { Plus, Calendar, Clock, MapPin, CheckCircle, XCircle, AlertCircle, Crown, Package, ChevronDown, Trash2, Ban, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useSubscription } from "@/hooks/useSubscription";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Progress } from "@/components/ui/progress";
 import { PageHeader } from "@/components/PageHeader";
 import { useNotifications } from "@/hooks/useNotifications";
 import {
@@ -139,6 +140,8 @@ const HuntingRegistrations = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [weatherData, setWeatherData] = useState<any>(null);
   const [loadingWeather, setLoadingWeather] = useState(false);
+  const [huntingChance, setHuntingChance] = useState<number | null>(null);
+  const [loadingChance, setLoadingChance] = useState(false);
   
   // Archive filters
   const [archiveFilterZone, setArchiveFilterZone] = useState<string>("");
@@ -177,6 +180,19 @@ const HuntingRegistrations = () => {
     fetchHiredHunters();
     fetchRegistrations();
   }, []);
+
+  useEffect(() => {
+    if (formData.security_zone_id) {
+      const selectedZone = zones.find(z => z.id === formData.security_zone_id);
+      if (selectedZone?.settlements?.name) {
+        fetchWeather(selectedZone.settlements.name);
+      }
+      fetchHuntingChance(formData.security_zone_id);
+    } else {
+      setWeatherData(null);
+      setHuntingChance(null);
+    }
+  }, [formData.security_zone_id, zones]);
 
   const checkUserRole = async () => {
     try {
@@ -263,6 +279,73 @@ const HuntingRegistrations = () => {
         description: error.message,
         variant: "destructive",
       });
+    }
+  };
+
+  const fetchWeather = async (settlementName: string) => {
+    if (!settlementName) return;
+    
+    setLoadingWeather(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('get-weather', {
+        body: { settlementName }
+      });
+
+      if (error) throw error;
+      setWeatherData(data);
+    } catch (error) {
+      console.error('Error fetching weather:', error);
+      toast({
+        title: "Hiba",
+        description: "Nem sikerült lekérdezni az időjárást",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingWeather(false);
+    }
+  };
+
+  const fetchHuntingChance = async (zoneId: string) => {
+    setLoadingChance(true);
+    try {
+      const ninetyDaysAgo = new Date();
+      ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+
+      const { data: registrations, error: regError } = await supabase
+        .from("hunting_registrations")
+        .select("id")
+        .eq("security_zone_id", zoneId)
+        .gte("start_time", ninetyDaysAgo.toISOString());
+
+      if (regError) throw regError;
+
+      const registrationCount = registrations?.length || 0;
+
+      const { data: animals, error: animalsError } = await supabase
+        .from("animals")
+        .select("id, hunting_registrations!inner(security_zone_id, start_time)")
+        .eq("hunting_registrations.security_zone_id", zoneId)
+        .gte("hunting_registrations.start_time", ninetyDaysAgo.toISOString());
+
+      if (animalsError) throw animalsError;
+
+      const shotCount = animals?.length || 0;
+
+      if (registrationCount === 0) {
+        setHuntingChance(0);
+      } else {
+        const chance = (shotCount / registrationCount) * 100;
+        setHuntingChance(Math.round(chance * 10) / 10);
+      }
+    } catch (error) {
+      console.error('Error fetching hunting chance:', error);
+      toast({
+        title: "Hiba",
+        description: "Nem sikerült kiszámítani az elejtési esélyt",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingChance(false);
     }
   };
 
@@ -845,6 +928,67 @@ const HuntingRegistrations = () => {
                         </SelectContent>
                       </Select>
                     </div>
+                    
+                    {loadingWeather && formData.security_zone_id && (
+                      <div className="text-sm text-muted-foreground">
+                        Időjárás betöltése...
+                      </div>
+                    )}
+
+                    {weatherData && !loadingWeather && formData.security_zone_id && (
+                      <Card className="bg-accent/5">
+                        <CardHeader className="pb-3">
+                          <CardTitle className="text-sm">Aktuális időjárás - {weatherData.settlement}</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-2 text-sm">
+                          <div className="flex justify-between">
+                            <span>Hőmérséklet:</span>
+                            <span className="font-medium">{weatherData.current.temperature}°C</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Páratartalom:</span>
+                            <span className="font-medium">{weatherData.current.humidity}%</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Csapadék valószínűség:</span>
+                            <span className="font-medium">{weatherData.current.precipitation_probability}%</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Szélsebesség:</span>
+                            <span className="font-medium">{weatherData.current.wind_speed} km/h</span>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
+
+                    {loadingChance && formData.security_zone_id && (
+                      <div className="text-sm text-muted-foreground">
+                        Elejtési esély számítása...
+                      </div>
+                    )}
+
+                    {huntingChance !== null && !loadingChance && formData.security_zone_id && (
+                      <Card className="bg-accent/5">
+                        <CardHeader className="pb-3">
+                          <CardTitle className="text-sm flex items-center gap-2">
+                            <TrendingUp className="h-4 w-4" />
+                            Elejtési esély
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm text-muted-foreground">Esély</span>
+                              <span className="text-xl font-bold">{huntingChance}%</span>
+                            </div>
+                            <Progress value={huntingChance} className="h-2" />
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            Az elmúlt 90 nap adatai alapján a területen
+                          </p>
+                        </CardContent>
+                      </Card>
+                    )}
                     
                     {formData.security_zone_id && locations.length > 0 && (
                       <div className="space-y-2">
