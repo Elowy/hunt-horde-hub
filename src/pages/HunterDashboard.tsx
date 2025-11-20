@@ -7,9 +7,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { AnnouncementBanner } from "@/components/AnnouncementBanner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Building2, Calendar, BarChart, Bell } from "lucide-react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
+import { Calendar, BarChart, Bell } from "lucide-react";
+import { HunterSocietySelector } from "@/components/HunterSocietySelector";
 import { format } from "date-fns";
 import { hu } from "date-fns/locale";
 
@@ -241,71 +240,55 @@ export default function HunterDashboard() {
         </div>
 
         {/* Society Selector */}
-        {societies.length > 1 && (
-          <Card className="mb-6">
-            <CardHeader>
-              <CardTitle>Vadásztársaság kiválasztása</CardTitle>
-              <CardDescription>
-                Több vadásztársaság tagja vagy. Válaszd ki, melyik adatait szeretnéd megtekinteni.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-wrap gap-2">
-                {societies.map((society) => (
-                  <Button
-                    key={society.id}
-                    variant={selectedSociety === society.id ? "default" : "outline"}
-                    onClick={() => setSelectedSociety(society.id)}
-                  >
-                    {society.company_name}
-                  </Button>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
+        <HunterSocietySelector
+          societies={societies}
+          selectedSociety={selectedSociety}
+          onSocietyChange={setSelectedSociety}
+        />
 
         <div className="grid gap-6 md:grid-cols-2">
-          {/* Upcoming Registrations */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Calendar className="h-5 w-5" />
-                Következő beiratkozások
-              </CardTitle>
-              <CardDescription>
-                A következő vadászati beiratkozásaid
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {registrations.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Nincs következő beiratkozás</p>
-              ) : (
-                <div className="space-y-3">
-                  {registrations.map((reg) => (
-                    <div key={reg.id} className="flex items-center justify-between border-b pb-2">
-                      <div>
-                        <p className="font-medium">{reg.security_zones.name}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {format(new Date(reg.start_time), "PPp", { locale: hu })}
-                        </p>
+          {/* Upcoming Registrations - only if allowed */}
+          {permissions.allow_registrations && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Calendar className="h-5 w-5" />
+                  Következő beiratkozások
+                </CardTitle>
+                <CardDescription>
+                  A következő vadászati beiratkozásaid
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {registrations.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Nincs következő beiratkozás</p>
+                ) : (
+                  <div className="space-y-3">
+                    {registrations.map((reg) => (
+                      <div key={reg.id} className="flex items-center justify-between border-b pb-2">
+                        <div>
+                          <p className="font-medium">{reg.security_zones.name}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {format(new Date(reg.start_time), "PPp", { locale: hu })}
+                          </p>
+                        </div>
+                        <Badge variant={reg.status === "approved" ? "default" : "secondary"}>
+                          {reg.status === "approved" ? "Jóváhagyva" : "Függőben"}
+                        </Badge>
                       </div>
-                      <Badge variant={reg.status === "approved" ? "default" : "secondary"}>
-                        {reg.status === "approved" ? "Jóváhagyva" : "Függőben"}
-                      </Badge>
-                    </div>
-                  ))}
-                </div>
-              )}
-              <Button 
-                variant="outline" 
-                className="w-full mt-4"
-                onClick={() => navigate("/hunting-registrations")}
-              >
-                Összes beiratkozás megtekintése
-              </Button>
-            </CardContent>
-          </Card>
+                    ))}
+                  </div>
+                )}
+                <Button 
+                  variant="outline" 
+                  className="w-full mt-4"
+                  onClick={() => navigate("/hunting-registrations")}
+                >
+                  Összes beiratkozás megtekintése
+                </Button>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Membership Payments */}
           {payments.length > 0 && (
@@ -337,30 +320,32 @@ export default function HunterDashboard() {
             </Card>
           )}
 
-          {/* Statistics Placeholder */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <BarChart className="h-5 w-5" />
-                Statisztikák
-              </CardTitle>
-              <CardDescription>
-                Vadászati statisztikák
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground mb-4">
-                Részletes statisztikák a vadászati tevékenységedről
-              </p>
-              <Button 
-                variant="outline" 
-                className="w-full"
-                onClick={() => navigate("/hunter-statistics")}
-              >
-                Statisztikák megtekintése
-              </Button>
-            </CardContent>
-          </Card>
+          {/* Statistics - only if allowed */}
+          {permissions.allow_view_statistics && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <BarChart className="h-5 w-5" />
+                  Statisztikák
+                </CardTitle>
+                <CardDescription>
+                  Vadászati statisztikák
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Részletes statisztikák a vadászati tevékenységedről
+                </p>
+                <Button 
+                  variant="outline" 
+                  className="w-full"
+                  onClick={() => navigate("/hunter-statistics")}
+                >
+                  Statisztikák megtekintése
+                </Button>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
     </div>
