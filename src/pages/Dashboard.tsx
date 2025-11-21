@@ -139,6 +139,7 @@ interface PriceSetting {
   species: string;
   class: string;
   price_per_kg: number;
+  vat_rate: number;
   is_archived: boolean;
 }
 
@@ -920,6 +921,7 @@ const Dashboard = () => {
         );
 
         let pricePerKg: number;
+        let animalVatRate: number;
         
         if (epidemicMeasure) {
           // For epidemic measures, calculate fixed price: sampling_fee + shooting_fee + price_per_unit
@@ -932,6 +934,7 @@ const Dashboard = () => {
           // so that weight * transport_price_per_kg = total_epidemic_price
           const totalEpidemicPrice = epidemicMeasure.sampling_fee + epidemicMeasure.shooting_fee + epidemicMeasure.price_per_unit;
           pricePerKg = totalEpidemicPrice / animal.weight;
+          animalVatRate = 0;
         } else {
           // Use regular price setting
           if (!animal.weight) continue;
@@ -942,13 +945,21 @@ const Dashboard = () => {
           
           if (!priceSetting) continue;
           pricePerKg = priceSetting.price_per_kg;
+          animalVatRate = priceSetting.vat_rate;
         }
+
+        // Get cooling price from storage location
+        const storage = locations.find(loc => loc.id === animal.storage_location_id);
+        const coolingPrice = storage?.cooling_price_per_kg || null;
+        const coolingVatRate = storage?.cooling_vat_rate || null;
 
         const { error } = await supabase
           .from("animals")
           .update({
             transport_price_per_kg: pricePerKg,
-            transport_vat_rate: vatRate,
+            transport_vat_rate: animalVatRate,
+            transport_cooling_price: coolingPrice,
+            transport_cooling_vat_rate: coolingVatRate,
           })
           .eq("id", animal.id);
 
@@ -992,6 +1003,7 @@ const Dashboard = () => {
         );
 
         let pricePerKg: number;
+        let animalVatRate: number;
         
         if (epidemicMeasure) {
           // For epidemic measures, calculate fixed price: sampling_fee + shooting_fee + price_per_unit
@@ -1004,6 +1016,7 @@ const Dashboard = () => {
           // so that weight * transport_price_per_kg = total_epidemic_price
           const totalEpidemicPrice = epidemicMeasure.sampling_fee + epidemicMeasure.shooting_fee + epidemicMeasure.price_per_unit;
           pricePerKg = totalEpidemicPrice / animal.weight;
+          animalVatRate = 0;
         } else {
           // Use regular price setting
           if (!animal.weight) continue;
@@ -1014,13 +1027,21 @@ const Dashboard = () => {
           
           if (!priceSetting) continue;
           pricePerKg = priceSetting.price_per_kg;
+          animalVatRate = priceSetting.vat_rate;
         }
+
+        // Get cooling price from storage location
+        const storage = locations.find(loc => loc.id === animal.storage_location_id);
+        const coolingPrice = storage?.cooling_price_per_kg || null;
+        const coolingVatRate = storage?.cooling_vat_rate || null;
 
         const { error } = await supabase
           .from("animals")
           .update({
             transport_price_per_kg: pricePerKg,
-            transport_vat_rate: vatRate,
+            transport_vat_rate: animalVatRate,
+            transport_cooling_price: coolingPrice,
+            transport_cooling_vat_rate: coolingVatRate,
           })
           .eq("id", animal.id);
 
