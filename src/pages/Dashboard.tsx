@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Search, Filter, Eye, Edit, Trash2, MapPin, LogOut, Star, Truck, FileDown, Download, TrendingUp, User, Users as UsersIcon, ChevronDown, Settings, CalendarCheck, List, Ticket, FileText, UserCog, CheckSquare, FileSpreadsheet, MoreVertical, Calendar as CalendarIcon, X } from "lucide-react";
+import { Plus, Search, Filter, Eye, Edit, Trash2, MapPin, LogOut, Star, Truck, FileDown, Download, TrendingUp, User, Users as UsersIcon, ChevronDown, Settings, CalendarCheck, List, Ticket, FileText, UserCog, CheckSquare, FileSpreadsheet, MoreVertical, Calendar as CalendarIcon, X, RotateCcw } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -671,131 +671,351 @@ const Dashboard = () => {
   const exportSelectedToExcel = async () => {
     if (selectedAnimals.size === 0) {
       toast({
-        title: "Nincs kiválasztott állat",
-        description: "Kérjük, válasszon ki legalább egy állatot az exportáláshoz.",
+        title: "Figyelmeztetés",
+        description: "Válasszon ki legalább egy állatot!",
         variant: "destructive",
       });
       return;
     }
 
     try {
-      // Fetch user's company name
+      // Get current user
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data: profile } = await supabase
+      // Felhasználó adatainak lekérése
+      const { data: profile, error: profileError } = await supabase
         .from("profiles")
         .select("company_name")
         .eq("id", user.id)
         .single();
 
-      const companyName = profile?.company_name || "-";
-      const selectedData = animals.filter(animal => selectedAnimals.has(animal.id));
+      if (profileError) throw profileError;
 
-      // Collect unique storage locations
-      const storageLocationNames = new Set<string>();
-      selectedData.forEach(animal => {
-        const locationName = getLocationName(animal.storage_location_id);
-        if (locationName) {
-          storageLocationNames.add(locationName);
+      const selectedAnimalsList = animals.filter(a => selectedAnimals.has(a.id) && !a.is_transported);
+
+      // Hűtési helyek összegyűjtése
+      const storageLocations = new Set<string>();
+      selectedAnimalsList.forEach(animal => {
+        const location = locations.find(l => l.id === animal.storage_location_id);
+        if (location) {
+          storageLocations.add(location.name);
         }
       });
 
-      // === SHEET 1: Összefoglaló ===
+      // 1. ÖSSZEFOGLALÓ SHEET
       const summaryData = [
-        ["Vadásztársaság:", companyName],
-        ["Export dátuma:", new Date().toLocaleDateString("hu-HU")],
-        ["Kiválasztott állatok száma:", selectedAnimals.size],
-        ["Hűtési hely(ek):", Array.from(storageLocationNames).join(", ")],
+        ["Vadásztársaság", profile?.company_name || "-"],
+        ["Exportálás dátuma", new Date().toLocaleDateString("hu-HU")],
+        ["Kiválasztott állatok száma", selectedAnimalsList.length],
+        ["Hűtési hely(ek)", Array.from(storageLocations).join(", ")],
       ];
 
-      const summaryWorksheet = XLSX.utils.aoa_to_sheet(summaryData);
-      summaryWorksheet['!cols'] = [{ wch: 30 }, { wch: 50 }];
+      const summarySheet = XLSX.utils.aoa_to_sheet(summaryData);
+      summarySheet["!cols"] = [{ wch: 30 }, { wch: 50 }];
 
-      // === SHEET 2: Állatok részletei ===
-      let totalAnimalNet = 0;
-      let totalAnimalGross = 0;
-      let totalCoolingNet = 0;
-      let totalCoolingGross = 0;
+      // 2. ÁLLATOK RÉSZLETEI SHEET
+      const headers = [
+        "Azonosító",
+        "Faj",
+        "Elejtés dátuma",
+        "Hűtőbe kerülés dátuma",
+        "Súly (kg)",
+        "Állat ár nettó (Ft)",
+        "Állat ár bruttó (Ft)",
+        "Hűtési díj nettó (Ft)",
+        "Hűtési díj bruttó (Ft)",
+      ];
 
-      const detailsData = selectedData.map(animal => {
+      let totalNetPrice = 0;
+      let totalGrossPrice = 0;
+      let totalNetCooling = 0;
+      let totalGrossCooling = 0;
+
+      const rows = selectedAnimalsList.map(animal => {
+        // Állat ára
         const animalPrice = getAnimalPrice(animal);
-        const coolingPrice = getCoolingPrice(animal);
+        
+        // Hűtési díj
+        const coolingPrice = getCoolingRevenue(animal);
+        
+        // Összegek hozzáadása
+        totalNetPrice += animalPrice.net;
+        totalGrossPrice += animalPrice.gross;
+        totalNetCooling += coolingPrice.net;
+        totalGrossCooling += coolingPrice.gross;
 
-        totalAnimalNet += animalPrice.net;
-        totalAnimalGross += animalPrice.gross;
-        totalCoolingNet += coolingPrice.net;
-        totalCoolingGross += coolingPrice.gross;
-
-        return {
-          "Azonosító": animal.animal_id,
-          "Faj": animal.species,
-          "Elejtés dátuma": animal.shooting_date ? new Date(animal.shooting_date).toLocaleDateString('hu-HU') : "-",
-          "Hűtőbe kerülés dátuma": animal.cooling_date ? new Date(animal.cooling_date).toLocaleDateString('hu-HU') : "-",
-          "Súly (kg)": animal.weight || 0,
-          "Állat ár nettó (Ft)": animalPrice.net.toLocaleString("hu-HU"),
-          "Állat ár bruttó (Ft)": animalPrice.gross.toLocaleString("hu-HU"),
-          "Hűtési díj nettó (Ft)": coolingPrice.net.toLocaleString("hu-HU"),
-          "Hűtési díj bruttó (Ft)": coolingPrice.gross.toLocaleString("hu-HU"),
-        };
+        return [
+          animal.animal_id,
+          animal.species,
+          animal.shooting_date ? new Date(animal.shooting_date).toLocaleDateString("hu-HU") : "-",
+          animal.cooling_date ? new Date(animal.cooling_date).toLocaleDateString("hu-HU") : "-",
+          animal.weight || 0,
+          animalPrice.net,
+          animalPrice.gross,
+          coolingPrice.net,
+          coolingPrice.gross,
+        ];
       });
 
-      // Add summary rows
-      detailsData.push({
-        "Azonosító": "",
-        "Faj": "",
-        "Elejtés dátuma": "",
-        "Hűtőbe kerülés dátuma": "ÖSSZESEN:",
-        "Súly (kg)": "" as any,
-        "Állat ár nettó (Ft)": totalAnimalNet.toLocaleString("hu-HU"),
-        "Állat ár bruttó (Ft)": totalAnimalGross.toLocaleString("hu-HU"),
-        "Hűtési díj nettó (Ft)": totalCoolingNet.toLocaleString("hu-HU"),
-        "Hűtési díj bruttó (Ft)": totalCoolingGross.toLocaleString("hu-HU"),
-      });
+      // Összesítő sorok hozzáadása
+      rows.push([
+        "", "", "", "ÖSSZESEN:",
+        "",
+        totalNetPrice,
+        totalGrossPrice,
+        totalNetCooling,
+        totalGrossCooling,
+      ]);
 
-      detailsData.push({
-        "Azonosító": "",
-        "Faj": "",
-        "Elejtés dátuma": "",
-        "Hűtőbe kerülés dátuma": "",
-        "Súly (kg)": "" as any,
-        "Állat ár nettó (Ft)": "",
-        "Állat ár bruttó (Ft)": "VÉGÖSSZEG (Állat + Hűtés):",
-        "Hűtési díj nettó (Ft)": (totalAnimalNet + totalCoolingNet).toLocaleString("hu-HU") + " Ft",
-        "Hűtési díj bruttó (Ft)": (totalAnimalGross + totalCoolingGross).toLocaleString("hu-HU") + " Ft",
-      });
+      rows.push([
+        "", "", "", "VÉGÖSSZEG (Állat + Hűtés):",
+        "",
+        totalNetPrice + totalNetCooling,
+        totalGrossPrice + totalGrossCooling,
+        "",
+        "",
+      ]);
 
-      const detailsWorksheet = XLSX.utils.json_to_sheet(detailsData);
+      const detailsSheet = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+      detailsSheet["!cols"] = [
+        { wch: 15 }, // Azonosító
+        { wch: 20 }, // Faj
+        { wch: 18 }, // Elejtés dátuma
+        { wch: 20 }, // Hűtőbe kerülés
+        { wch: 12 }, // Súly
+        { wch: 20 }, // Állat ár nettó
+        { wch: 20 }, // Állat ár bruttó
+        { wch: 22 }, // Hűtési díj nettó
+        { wch: 22 }, // Hűtési díj bruttó
+      ];
 
-      // Auto-size columns
-      const maxWidth = 50;
-      const colWidths = Object.keys(detailsData[0] || {}).map(key => ({
-        wch: Math.min(
-          maxWidth,
-          Math.max(
-            key.length,
-            ...detailsData.map(row => String(row[key as keyof typeof row]).length)
-          )
-        )
-      }));
-      detailsWorksheet['!cols'] = colWidths;
+      // Workbook létrehozása
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, summarySheet, "Összefoglaló");
+      XLSX.utils.book_append_sheet(wb, detailsSheet, "Állatok részletei");
 
-      // Create workbook with both sheets
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, summaryWorksheet, "Összefoglaló");
-      XLSX.utils.book_append_sheet(workbook, detailsWorksheet, "Állatok részletei");
-
-      XLSX.writeFile(workbook, `allatok_${new Date().toISOString().split('T')[0]}.xlsx`);
+      // Excel fájl mentése
+      const fileName = `hutott_allatok_${new Date().toISOString().split('T')[0]}.xlsx`;
+      XLSX.writeFile(wb, fileName);
 
       toast({
-        title: "Sikeres exportálás",
-        description: `${selectedAnimals.size} állat exportálva Excel fájlba.`,
+        title: "Siker!",
+        description: "Excel fájl sikeresen exportálva!",
       });
     } catch (error: any) {
-      console.error("Excel export error:", error);
       toast({
         title: "Hiba",
-        description: "Hiba történt az exportálás során.",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const exportTransportedToExcel = async () => {
+    if (selectedAnimals.size === 0) {
+      toast({
+        title: "Figyelmeztetés",
+        description: "Válasszon ki legalább egy állatot!",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Felhasználó adatainak lekérése
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("company_name")
+        .eq("id", user.id)
+        .single();
+
+      if (profileError) throw profileError;
+
+      const selectedAnimalsList = animals.filter(a => selectedAnimals.has(a.id) && a.is_transported);
+
+      // Hűtési helyek összegyűjtése
+      const storageLocations = new Set<string>();
+      selectedAnimalsList.forEach(animal => {
+        const location = locations.find(l => l.id === animal.storage_location_id);
+        if (location) {
+          storageLocations.add(location.name);
+        }
+      });
+
+      // 1. ÖSSZEFOGLALÓ SHEET
+      const summaryData = [
+        ["Vadásztársaság", profile?.company_name || "-"],
+        ["Exportálás dátuma", new Date().toLocaleDateString("hu-HU")],
+        ["Kiválasztott állatok száma", selectedAnimalsList.length],
+        ["Hűtési hely(ek)", Array.from(storageLocations).join(", ")],
+      ];
+
+      const summarySheet = XLSX.utils.aoa_to_sheet(summaryData);
+      summarySheet["!cols"] = [{ wch: 30 }, { wch: 50 }];
+
+      // 2. ÁLLATOK RÉSZLETEI SHEET
+      const headers = [
+        "Azonosító",
+        "Faj",
+        "Elejtés dátuma",
+        "Hűtőbe kerülés dátuma",
+        "Elszállítás dátuma",
+        "Súly (kg)",
+        "Állat ár nettó (Ft)",
+        "Állat ár bruttó (Ft)",
+        "Hűtési díj nettó (Ft)",
+        "Hűtési díj bruttó (Ft)",
+      ];
+
+      let totalNetPrice = 0;
+      let totalGrossPrice = 0;
+      let totalNetCooling = 0;
+      let totalGrossCooling = 0;
+
+      const rows = selectedAnimalsList.map(animal => {
+        // Állat ára
+        const animalPrice = getAnimalPrice(animal);
+        
+        // Hűtési díj
+        const coolingPrice = getCoolingRevenue(animal);
+        
+        // Összegek hozzáadása
+        totalNetPrice += animalPrice.net;
+        totalGrossPrice += animalPrice.gross;
+        totalNetCooling += coolingPrice.net;
+        totalGrossCooling += coolingPrice.gross;
+
+        return [
+          animal.animal_id,
+          animal.species,
+          animal.shooting_date ? new Date(animal.shooting_date).toLocaleDateString("hu-HU") : "-",
+          animal.cooling_date ? new Date(animal.cooling_date).toLocaleDateString("hu-HU") : "-",
+          animal.transported_at ? new Date(animal.transported_at).toLocaleDateString("hu-HU") : "-",
+          animal.weight || 0,
+          animalPrice.net,
+          animalPrice.gross,
+          coolingPrice.net,
+          coolingPrice.gross,
+        ];
+      });
+
+      // Összesítő sorok hozzáadása
+      rows.push([
+        "", "", "", "", "ÖSSZESEN:",
+        "",
+        totalNetPrice,
+        totalGrossPrice,
+        totalNetCooling,
+        totalGrossCooling,
+      ]);
+
+      rows.push([
+        "", "", "", "", "VÉGÖSSZEG (Állat + Hűtés):",
+        "",
+        totalNetPrice + totalNetCooling,
+        totalGrossPrice + totalGrossCooling,
+        "",
+        "",
+      ]);
+
+      const detailsSheet = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+      detailsSheet["!cols"] = [
+        { wch: 15 }, // Azonosító
+        { wch: 20 }, // Faj
+        { wch: 18 }, // Elejtés dátuma
+        { wch: 20 }, // Hűtőbe kerülés
+        { wch: 20 }, // Elszállítás dátuma
+        { wch: 12 }, // Súly
+        { wch: 20 }, // Állat ár nettó
+        { wch: 20 }, // Állat ár bruttó
+        { wch: 22 }, // Hűtési díj nettó
+        { wch: 22 }, // Hűtési díj bruttó
+      ];
+
+      // Workbook létrehozása
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, summarySheet, "Összefoglaló");
+      XLSX.utils.book_append_sheet(wb, detailsSheet, "Állatok részletei");
+
+      // Excel fájl mentése
+      const fileName = `elszallitott_allatok_${new Date().toISOString().split('T')[0]}.xlsx`;
+      XLSX.writeFile(wb, fileName);
+
+      toast({
+        title: "Siker!",
+        description: "Excel fájl sikeresen exportálva!",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Hiba",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleCancelTransport = async (animalIds: string[]) => {
+    if (!animalIds.length) return;
+    if (!confirm(`Biztosan sztornózza ${animalIds.length} állat elszállítását?`)) return;
+
+    try {
+      const { error } = await supabase
+        .from("animals")
+        .update({ 
+          is_transported: false,
+          transported_at: null 
+        })
+        .in("id", animalIds);
+
+      if (error) throw error;
+
+      toast({
+        title: "Siker!",
+        description: `${animalIds.length} állat elszállítása sztornózva!`,
+      });
+
+      setSelectedAnimals(new Set());
+      fetchData();
+    } catch (error: any) {
+      toast({
+        title: "Hiba",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleBulkDeleteTransported = async () => {
+    if (selectedAnimals.size === 0) return;
+    
+    const confirmMessage = `FIGYELEM! Biztosan törli a kiválasztott ${selectedAnimals.size} elszállított állatot? Ez a művelet NEM VISSZAVONHATÓ!`;
+    
+    if (!confirm(confirmMessage)) return;
+
+    try {
+      const { error } = await supabase
+        .from("animals")
+        .delete()
+        .in("id", Array.from(selectedAnimals));
+
+      if (error) throw error;
+
+      toast({
+        title: "Siker!",
+        description: `${selectedAnimals.size} állat törölve!`,
+      });
+
+      setSelectedAnimals(new Set());
+      fetchData();
+    } catch (error: any) {
+      toast({
+        title: "Hiba",
+        description: error.message,
         variant: "destructive",
       });
     }
@@ -2851,17 +3071,49 @@ const Dashboard = () => {
               {!isHunter && (
                 <TabsContent value="transported">
                   {/* Archiválás gomb kiválasztott állatokhoz */}
-                  {selectedAnimals.size > 0 && (isEditor || isAdmin) && (
-                    <div className="mb-4 flex justify-end">
-                      <Button 
-                        onClick={() => handleArchiveAnimals(Array.from(selectedAnimals))}
-                        variant="outline"
+              {selectedAnimals.size > 0 && (isEditor || isAdmin) && (
+                <div className="mb-4 flex flex-wrap gap-2 justify-end">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline">
+                        <MoreVertical className="h-4 w-4 mr-2" />
+                        Csoportos műveletek ({selectedAnimals.size})
+                        <ChevronDown className="h-4 w-4 ml-2" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="bg-background border border-border z-50">
+                      <DropdownMenuItem 
+                        onClick={() => handleCancelTransport(Array.from(selectedAnimals))} 
+                        className="cursor-pointer"
+                      >
+                        <RotateCcw className="h-4 w-4 mr-2" />
+                        Elszállítás sztornózása
+                      </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        onClick={() => handleArchiveAnimals(Array.from(selectedAnimals))} 
+                        className="cursor-pointer"
                       >
                         <FileText className="h-4 w-4 mr-2" />
-                        Archiválás ({selectedAnimals.size})
-                      </Button>
-                    </div>
-                  )}
+                        Archiválás
+                      </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        onClick={exportTransportedToExcel} 
+                        className="cursor-pointer"
+                      >
+                        <FileSpreadsheet className="h-4 w-4 mr-2" />
+                        Excel export
+                      </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        onClick={handleBulkDeleteTransported} 
+                        className="text-destructive hover:bg-destructive/10 cursor-pointer"
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Kijelöltek törlése
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              )}
                   
                   <Card>
                     <Table>
