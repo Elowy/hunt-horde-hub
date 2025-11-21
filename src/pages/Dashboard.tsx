@@ -912,7 +912,7 @@ const Dashboard = () => {
       let updatedCount = 0;
 
       for (const animal of selectedAnimalsList) {
-        if (!animal.weight || !animal.species || !animal.class) continue;
+        if (!animal.species || !animal.class) continue;
 
         // Check if there's an active epidemic measure for this species
         const epidemicMeasure = epidemicMeasures?.find(
@@ -922,10 +922,20 @@ const Dashboard = () => {
         let pricePerKg: number;
         
         if (epidemicMeasure) {
-          // Use epidemic measure price
-          pricePerKg = epidemicMeasure.price_per_unit;
+          // For epidemic measures, calculate fixed price: sampling_fee + shooting_fee + price_per_unit
+          // Don't use weight-based pricing
+          if (!animal.weight || animal.weight === 0) {
+            console.warn(`Animal ${animal.id} has no weight, skipping epidemic pricing`);
+            continue;
+          }
+          // Store the total epidemic price divided by weight in transport_price_per_kg
+          // so that weight * transport_price_per_kg = total_epidemic_price
+          const totalEpidemicPrice = epidemicMeasure.sampling_fee + epidemicMeasure.shooting_fee + epidemicMeasure.price_per_unit;
+          pricePerKg = totalEpidemicPrice / animal.weight;
         } else {
           // Use regular price setting
+          if (!animal.weight) continue;
+          
           const priceSetting = priceSettings.find(
             (p) => p.species === animal.species && p.class === animal.class && !p.is_archived
           );
@@ -974,7 +984,7 @@ const Dashboard = () => {
       let updatedCount = 0;
 
       for (const animal of cooled) {
-        if (!animal.weight || !animal.species || !animal.class) continue;
+        if (!animal.species || !animal.class) continue;
 
         // Check if there's an active epidemic measure for this species
         const epidemicMeasure = epidemicMeasures?.find(
@@ -984,10 +994,20 @@ const Dashboard = () => {
         let pricePerKg: number;
         
         if (epidemicMeasure) {
-          // Use epidemic measure price
-          pricePerKg = epidemicMeasure.price_per_unit;
+          // For epidemic measures, calculate fixed price: sampling_fee + shooting_fee + price_per_unit
+          // Don't use weight-based pricing
+          if (!animal.weight || animal.weight === 0) {
+            console.warn(`Animal ${animal.id} has no weight, skipping epidemic pricing`);
+            continue;
+          }
+          // Store the total epidemic price divided by weight in transport_price_per_kg
+          // so that weight * transport_price_per_kg = total_epidemic_price
+          const totalEpidemicPrice = epidemicMeasure.sampling_fee + epidemicMeasure.shooting_fee + epidemicMeasure.price_per_unit;
+          pricePerKg = totalEpidemicPrice / animal.weight;
         } else {
           // Use regular price setting
+          if (!animal.weight) continue;
+          
           const priceSetting = priceSettings.find(
             (p) => p.species === animal.species && p.class === animal.class && !p.is_archived
           );
