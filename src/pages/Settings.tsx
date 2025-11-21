@@ -6,9 +6,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Bell, Loader2, Save, Send } from "lucide-react";
+import { ArrowLeft, Bell, Loader2, Save, Send, Wallet, CreditCard } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { useIsSuperAdmin } from "@/hooks/useIsSuperAdmin";
+import { ApproveDepositsDialog } from "@/components/ApproveDepositsDialog";
+import { Badge } from "@/components/ui/badge";
 
 interface NotificationSettings {
   notify_on_transport: boolean;
@@ -31,6 +33,10 @@ const Settings = () => {
   const [saving, setSaving] = useState(false);
   const [sendingTest, setSendingTest] = useState<string | null>(null);
   const { isSuperAdmin } = useIsSuperAdmin();
+  const [approveDepositsOpen, setApproveDepositsOpen] = useState(false);
+  const [pendingCount, setPendingCount] = useState(0);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [isEditor, setIsEditor] = useState(false);
   const [settings, setSettings] = useState<NotificationSettings>({
     notify_on_transport: true,
     notify_on_storage_full: true,
@@ -48,12 +54,58 @@ const Settings = () => {
   useEffect(() => {
     checkAuth();
     loadSettings();
+    checkAdminRole();
+    fetchPendingCount();
   }, []);
 
   const checkAuth = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       navigate("/login");
+    }
+  };
+
+  const checkAdminRole = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: adminRole } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
+        .eq("role", "admin")
+        .maybeSingle();
+
+      const { data: editorRole } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
+        .eq("role", "editor")
+        .maybeSingle();
+
+      setIsAdmin(!!adminRole);
+      setIsEditor(!!editorRole);
+    } catch (error) {
+      console.error("Error checking admin role:", error);
+    }
+  };
+
+  const fetchPendingCount = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { count } = await supabase
+        .from("user_balance_transactions")
+        .select("*", { count: "exact", head: true })
+        .eq("hunter_society_id", user.id)
+        .eq("status", "pending")
+        .eq("transaction_type", "deposit");
+
+      setPendingCount(count || 0);
+    } catch (error) {
+      console.error("Error fetching pending count:", error);
     }
   };
 
@@ -551,6 +603,38 @@ const Settings = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* Balance Management - csak adminoknak */}
+        {(isAdmin || isEditor) && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Wallet className="h-5 w-5" />
+                Egyenleg kezelés
+              </CardTitle>
+              <CardDescription>
+                Vadászok befizetéseinek jóváhagyása
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button onClick={() => setApproveDepositsOpen(true)}>
+                <CreditCard className="h-4 w-4 mr-2" />
+                Befizetések jóváhagyása
+                {pendingCount > 0 && (
+                  <Badge className="ml-2" variant="destructive">
+                    {pendingCount}
+                  </Badge>
+                )}
+              </Button>
+              
+              <ApproveDepositsDialog
+                open={approveDepositsOpen}
+                onOpenChange={setApproveDepositsOpen}
+                onSuccess={fetchPendingCount}
+              />
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );
