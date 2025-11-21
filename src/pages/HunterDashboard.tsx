@@ -43,12 +43,13 @@ export default function HunterDashboard() {
   const [payments, setPayments] = useState<MembershipPayment[]>([]);
   const [selectedSociety, setSelectedSociety] = useState<string | null>(null);
   const [permissions, setPermissions] = useState({
-    allow_registrations: true,
-    allow_view_cooled_animals: true,
-    allow_reserve_animals: true,
-    allow_view_statistics: true,
-    allow_view_announcements: true,
+    allow_registrations: false,
+    allow_view_cooled_animals: false,
+    allow_reserve_animals: false,
+    allow_view_statistics: false,
+    allow_view_announcements: false,
   });
+  const [fetchingData, setFetchingData] = useState(false);
 
   useEffect(() => {
     checkAuth();
@@ -121,10 +122,19 @@ export default function HunterDashboard() {
   };
 
   const fetchDashboardData = async () => {
-    if (!selectedSociety) return;
+    setFetchingData(true);
+    console.log('🔍 fetchDashboardData called with selectedSociety:', selectedSociety);
+    
+    if (!selectedSociety) {
+      setFetchingData(false);
+      return;
+    }
 
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    if (!user) {
+      setFetchingData(false);
+      return;
+    }
 
     // Fetch user's hunter category
     const { data: profileData } = await supabase
@@ -134,6 +144,7 @@ export default function HunterDashboard() {
       .single();
 
     const hunterCategory = profileData?.hunter_category;
+    console.log('📋 Hunter category:', hunterCategory);
 
     // Fetch subscription status for the selected society
     const { data: subscriptionData } = await supabase
@@ -148,8 +159,17 @@ export default function HunterDashboard() {
       .eq("user_id", selectedSociety)
       .maybeSingle();
 
-    const hasActiveSubscription = subscriptionData && new Date(subscriptionData.expires_at) > new Date();
+    console.log('💳 Subscription data:', subscriptionData);
+    console.log('💎 Lifetime data:', lifetimeData);
+
+    const hasActiveSubscription = subscriptionData && 
+      subscriptionData.expires_at && 
+      new Date(subscriptionData.expires_at).getTime() > Date.now();
     const hasLifetimeSubscription = !!lifetimeData;
+
+    console.log('✅ Has active subscription:', hasActiveSubscription);
+    console.log('✅ Has lifetime subscription:', hasLifetimeSubscription);
+    console.log('🎯 Condition met:', hunterCategory && (hasActiveSubscription || hasLifetimeSubscription));
 
     // Fetch permissions for this hunter's category
     if (hunterCategory && (hasActiveSubscription || hasLifetimeSubscription)) {
@@ -160,6 +180,8 @@ export default function HunterDashboard() {
         .eq("hunter_category", hunterCategory)
         .maybeSingle();
 
+      console.log('🔐 Permissions data:', permissionsData);
+
       // Use fetched permissions or default to all true if no record exists
       setPermissions({
         allow_registrations: permissionsData?.allow_registrations ?? true,
@@ -168,7 +190,14 @@ export default function HunterDashboard() {
         allow_view_statistics: permissionsData?.allow_view_statistics ?? true,
         allow_view_announcements: permissionsData?.allow_view_announcements ?? true,
       });
+      
+      console.log('✨ Permissions successfully set to TRUE');
     } else {
+      console.log('❌ Condition NOT met - setting all permissions to FALSE');
+      console.log('   - hunterCategory:', hunterCategory);
+      console.log('   - hasActiveSubscription:', hasActiveSubscription);
+      console.log('   - hasLifetimeSubscription:', hasLifetimeSubscription);
+      
       // No active subscription - disable all features
       setPermissions({
         allow_registrations: false,
@@ -209,6 +238,8 @@ export default function HunterDashboard() {
       .order("season_year", { ascending: false });
 
     if (paymentsData) setPayments(paymentsData);
+    setLoading(false);
+    setFetchingData(false);
   };
 
   const handleLogout = async () => {
@@ -225,7 +256,7 @@ export default function HunterDashboard() {
     return labels[period] || period;
   };
 
-  if (loading) {
+  if (loading || fetchingData) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <p className="text-muted-foreground">Betöltés...</p>
