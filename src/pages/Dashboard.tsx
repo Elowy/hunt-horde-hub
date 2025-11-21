@@ -193,6 +193,7 @@ const Dashboard = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [isEditor, setIsEditor] = useState(false);
   const [isHunter, setIsHunter] = useState(false);
+  const [redirecting, setRedirecting] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [showLocations, setShowLocations] = useState(() => {
     const saved = localStorage.getItem('dashboard-show-locations');
@@ -362,7 +363,8 @@ const Dashboard = () => {
     // Redirect hunters to their dedicated dashboard (unless they are admin/editor/super_admin)
     const isHunterOnly = !!hunterRole && !adminRole && !editorRole && !userIsSuperAdmin;
     if (isHunterOnly) {
-      navigate("/hunter-dashboard");
+      setRedirecting(true);
+      navigate("/hunter-dashboard", { replace: true });
       return;
     }
   };
@@ -2203,7 +2205,7 @@ const Dashboard = () => {
     }
   };
 
-  if (loading) {
+  if (loading || redirecting) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-lg">Betöltés...</div>
