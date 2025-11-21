@@ -52,6 +52,8 @@ interface EpidemicMeasure {
   shooting_fee: number;
   sampling_fee: number;
   price_per_unit: number;
+  vat_rate: number;
+  cooling_price_per_kg: number | null;
   affected_species: string[];
   is_active: boolean;
 }
@@ -283,7 +285,7 @@ export const AddAnimalDialog = ({ onAnimalAdded }: AddAnimalDialogProps) => {
     if (activeMeasure) {
       // For epidemic measures: shooting_fee + sampling_fee + price_per_unit
       const netPrice = activeMeasure.shooting_fee + activeMeasure.sampling_fee + activeMeasure.price_per_unit;
-      const grossPrice = netPrice * (1 + vatRate / 100);
+      const grossPrice = netPrice * (1 + (activeMeasure.vat_rate || 27) / 100);
 
       setCalculatedPrice({
         net: Math.round(netPrice),
@@ -378,16 +380,6 @@ export const AddAnimalDialog = ({ onAnimalAdded }: AddAnimalDialogProps) => {
         }
       }
 
-      // Lekérjük az aktív hűtési árat
-      const { data: coolingPriceData } = await supabase
-        .from("cooling_prices")
-        .select("cooling_price_per_kg, cooling_vat_rate")
-        .eq("storage_location_id", formData.storageLocationId)
-        .or(`valid_to.is.null,valid_to.gt.${new Date().toISOString()}`)
-        .order("valid_from", { ascending: false })
-        .limit(1)
-        .single();
-
       // Lekérjük az aktív járványügyi intézkedést
       const activeMeasure = epidemicMeasures.find(
         (m) => m.is_active && m.affected_species.includes(formData.type)
@@ -395,11 +387,22 @@ export const AddAnimalDialog = ({ onAnimalAdded }: AddAnimalDialogProps) => {
 
       let transportPrice = null;
       let transportVat = null;
+      let coolingPrice = null;
+      let coolingVat = null;
 
       if (activeMeasure) {
-        // Járványügyi ár használata
-        transportPrice = activeMeasure.price_per_unit;
-        transportVat = vatRate;
+        // Járványügyi árak
+        if (formData.weight) {
+          const totalEpidemicPrice = activeMeasure.shooting_fee + activeMeasure.sampling_fee + activeMeasure.price_per_unit;
+          transportPrice = totalEpidemicPrice / parseFloat(formData.weight);
+          transportVat = activeMeasure.vat_rate || 27;
+        }
+
+        // Járványügyi hűtési díj
+        if (activeMeasure.cooling_price_per_kg) {
+          coolingPrice = activeMeasure.cooling_price_per_kg;
+          coolingVat = activeMeasure.vat_rate || 27;
+        }
       } else if (formData.weight && formData.type && formData.class) {
         // Normál ár használata
         const priceSetting = priceSettings.find(
@@ -408,6 +411,23 @@ export const AddAnimalDialog = ({ onAnimalAdded }: AddAnimalDialogProps) => {
         if (priceSetting) {
           transportPrice = priceSetting.price_per_kg;
           transportVat = vatRate;
+        }
+      }
+
+      // Ha nincs járványügyi hűtési díj, használjuk a normál hűtési árat
+      if (!coolingPrice) {
+        const { data: coolingPriceData } = await supabase
+          .from("cooling_prices")
+          .select("cooling_price_per_kg, cooling_vat_rate")
+          .eq("storage_location_id", formData.storageLocationId)
+          .or(`valid_to.is.null,valid_to.gt.${new Date().toISOString()}`)
+          .order("valid_from", { ascending: false })
+          .limit(1)
+          .single();
+
+        if (coolingPriceData) {
+          coolingPrice = coolingPriceData.cooling_price_per_kg;
+          coolingVat = coolingPriceData.cooling_vat_rate;
         }
       }
 
@@ -434,8 +454,8 @@ export const AddAnimalDialog = ({ onAnimalAdded }: AddAnimalDialogProps) => {
         judgement_number: formData.judgementNumber || null,
         cooling_date: new Date().toISOString(),
         reservation_status: formData.type === "Vaddisznó" ? "atev" : "available",
-        transport_cooling_price: coolingPriceData?.cooling_price_per_kg || null,
-        transport_cooling_vat_rate: coolingPriceData?.cooling_vat_rate || null,
+        transport_cooling_price: coolingPrice,
+        transport_cooling_vat_rate: coolingVat,
         transport_price_per_kg: transportPrice,
         transport_vat_rate: transportVat,
       });
