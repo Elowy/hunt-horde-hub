@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Save, User, Mail, Crown, Trash2, AlertTriangle } from "lucide-react";
+import { Save, User, Mail, Crown, Trash2, AlertTriangle, Wallet, CreditCard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,6 +14,9 @@ import { useSubscription } from "@/hooks/useSubscription";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { MembershipDiscountInfo } from "@/components/MembershipDiscountInfo";
 import { UserTickets } from "@/components/UserTickets";
+import { UserBalanceCard } from "@/components/UserBalanceCard";
+import { BalanceTransactionsTable } from "@/components/BalanceTransactionsTable";
+import { DepositDialog } from "@/components/DepositDialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,6 +28,131 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+
+// Financial Summary Section Component
+function FinancialSummarySection() {
+  const [balances, setBalances] = useState<any[]>([]);
+  const [transactions, setTransactions] = useState<any[]>([]);
+  const [societies, setSocieties] = useState<any[]>([]);
+  const [depositDialogOpen, setDepositDialogOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchFinancialData();
+  }, []);
+
+  const fetchFinancialData = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: memberships } = await supabase
+        .from("hunter_society_members")
+        .select(`
+          hunter_society_id,
+          profiles!hunter_society_members_hunter_society_id_fkey (
+            id,
+            company_name
+          )
+        `)
+        .eq("hunter_id", user.id);
+
+      const societiesData = memberships?.map(m => ({
+        id: m.hunter_society_id,
+        company_name: (m.profiles as any)?.company_name || "Ismeretlen",
+      })) || [];
+
+      setSocieties(societiesData);
+
+      const balanceData = [];
+      for (const society of societiesData) {
+        const { data: balance } = await supabase
+          .from("user_balances")
+          .select("*")
+          .eq("user_id", user.id)
+          .eq("hunter_society_id", society.id)
+          .single();
+
+        balanceData.push({
+          society_name: society.company_name,
+          current_balance: balance?.current_balance || 0,
+          last_transaction_at: balance?.last_transaction_at || null,
+        });
+      }
+
+      setBalances(balanceData);
+
+      const { data: transactionsData } = await supabase
+        .from("user_balance_transactions")
+        .select(`
+          *,
+          profiles!user_balance_transactions_hunter_society_id_fkey (
+            company_name
+          )
+        `)
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(50);
+
+      setTransactions(transactionsData || []);
+    } catch (error) {
+      console.error("Error fetching financial data:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Pénzügyi összesítő</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-muted-foreground">Betöltés...</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Wallet className="h-5 w-5" />
+          Pénzügyi összesítő
+        </CardTitle>
+        <CardDescription>
+          Egyenlegek, tranzakciók és befizetések kezelése
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        <div>
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="font-medium">Egyenlegek társaságonként</h3>
+            <Button onClick={() => setDepositDialogOpen(true)}>
+              <CreditCard className="h-4 w-4 mr-2" />
+              Befizetés rögzítése
+            </Button>
+          </div>
+          <UserBalanceCard balances={balances} />
+        </div>
+
+        <div>
+          <h3 className="font-medium mb-4">Összes tranzakció</h3>
+          <BalanceTransactionsTable transactions={transactions} societies={societies} />
+        </div>
+
+        <DepositDialog
+          open={depositDialogOpen}
+          onOpenChange={setDepositDialogOpen}
+          societies={societies}
+          onSuccess={fetchFinancialData}
+        />
+      </CardContent>
+    </Card>
+  );
+}
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -590,6 +718,9 @@ const Profile = () => {
               </CardContent>
             </Card>
           )}
+
+          {/* Financial Summary - only for hunters */}
+          {isHunter && <FinancialSummarySection />}
 
           {/* Membership and Discount Info */}
           <MembershipDiscountInfo />

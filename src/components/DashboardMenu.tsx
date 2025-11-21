@@ -22,6 +22,64 @@ import { useSubscription } from "@/hooks/useSubscription";
 import { useIsSuperAdmin } from "@/hooks/useIsSuperAdmin";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { supabase } from "@/integrations/supabase/client";
+import { UserBalanceCard } from "@/components/UserBalanceCard";
+
+// Hunter balance section component
+function HunterBalanceSection() {
+  const [balances, setBalances] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchBalances();
+  }, []);
+
+  const fetchBalances = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Get all societies
+      const { data: memberships } = await supabase
+        .from("hunter_society_members")
+        .select(`
+          hunter_society_id,
+          profiles!hunter_society_members_hunter_society_id_fkey (
+            company_name
+          )
+        `)
+        .eq("hunter_id", user.id);
+
+      if (!memberships) return;
+
+      // Fetch balances for each society
+      const balanceData = [];
+      for (const membership of memberships) {
+        const { data: balance } = await supabase
+          .from("user_balances")
+          .select("*")
+          .eq("user_id", user.id)
+          .eq("hunter_society_id", membership.hunter_society_id)
+          .single();
+
+        balanceData.push({
+          society_name: (membership.profiles as any)?.company_name || "Ismeretlen",
+          current_balance: balance?.current_balance || 0,
+          last_transaction_at: balance?.last_transaction_at || null,
+        });
+      }
+
+      setBalances(balanceData);
+    } catch (error) {
+      console.error("Error fetching balances:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) return null;
+
+  return <UserBalanceCard balances={balances} compact={false} />;
+}
 
 interface DashboardMenuProps {
   isAdmin: boolean;
@@ -124,9 +182,14 @@ export const DashboardMenu = ({ isAdmin, isEditor, isHunter, onLogout, onPriceUp
           <SheetTitle>Menü</SheetTitle>
         </SheetHeader>
         <div className="mt-6 space-y-4 pb-8">
+          {/* For hunters: show balance at top */}
+          {isHunter && <HunterBalanceSection />}
+
           {/* For hunters: simplified menu */}
           {isHunter ? (
             <>
+              {isHunter && <Separator />}
+              
               {/* Profil */}
               <div className="space-y-2">
                 <Button

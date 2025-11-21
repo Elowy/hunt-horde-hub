@@ -1916,6 +1916,126 @@ export type Database = {
         }
         Relationships: []
       }
+      user_balance_transactions: {
+        Row: {
+          amount: number
+          approved_at: string | null
+          approved_by: string | null
+          balance_after: number
+          created_at: string | null
+          hunter_society_id: string
+          id: string
+          notes: string | null
+          payment_proof_url: string | null
+          reference_number: string | null
+          rejection_reason: string | null
+          related_animal_id: string | null
+          related_payment_id: string | null
+          status: string
+          transaction_type: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          approved_at?: string | null
+          approved_by?: string | null
+          balance_after?: number
+          created_at?: string | null
+          hunter_society_id: string
+          id?: string
+          notes?: string | null
+          payment_proof_url?: string | null
+          reference_number?: string | null
+          rejection_reason?: string | null
+          related_animal_id?: string | null
+          related_payment_id?: string | null
+          status?: string
+          transaction_type: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          approved_at?: string | null
+          approved_by?: string | null
+          balance_after?: number
+          created_at?: string | null
+          hunter_society_id?: string
+          id?: string
+          notes?: string | null
+          payment_proof_url?: string | null
+          reference_number?: string | null
+          rejection_reason?: string | null
+          related_animal_id?: string | null
+          related_payment_id?: string | null
+          status?: string
+          transaction_type?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_balance_transactions_hunter_society_id_fkey"
+            columns: ["hunter_society_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_balance_transactions_related_animal_id_fkey"
+            columns: ["related_animal_id"]
+            isOneToOne: false
+            referencedRelation: "animals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_balance_transactions_related_payment_id_fkey"
+            columns: ["related_payment_id"]
+            isOneToOne: false
+            referencedRelation: "membership_payments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_balances: {
+        Row: {
+          created_at: string | null
+          current_balance: number
+          hunter_society_id: string
+          id: string
+          last_transaction_at: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          current_balance?: number
+          hunter_society_id: string
+          id?: string
+          last_transaction_at?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          current_balance?: number
+          hunter_society_id?: string
+          id?: string
+          last_transaction_at?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_balances_hunter_society_id_fkey"
+            columns: ["hunter_society_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_login_history: {
         Row: {
           created_at: string | null
