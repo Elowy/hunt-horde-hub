@@ -81,6 +81,53 @@ function HunterBalanceSection() {
   return <UserBalanceCard balances={balances} compact={false} />;
 }
 
+// Admin balance section component
+function AdminBalanceSection() {
+  const [totalBalance, setTotalBalance] = useState(0);
+  const [hunterCount, setHunterCount] = useState(0);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchAdminBalance();
+  }, []);
+
+  const fetchAdminBalance = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Get all balances for hunters in this society
+      const { data: balances } = await supabase
+        .from("user_balances")
+        .select("current_balance, user_id")
+        .eq("hunter_society_id", user.id);
+
+      if (balances) {
+        const total = balances.reduce((sum, b) => sum + (b.current_balance || 0), 0);
+        setTotalBalance(total);
+        setHunterCount(balances.length);
+      }
+    } catch (error) {
+      console.error("Error fetching admin balance:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) return null;
+
+  return (
+    <UserBalanceCard 
+      balances={[{
+        society_name: "Összes vadász",
+        current_balance: totalBalance,
+        last_transaction_at: null,
+      }]} 
+      compact={false}
+    />
+  );
+}
+
 interface DashboardMenuProps {
   isAdmin: boolean;
   isEditor: boolean;
@@ -182,13 +229,14 @@ export const DashboardMenu = ({ isAdmin, isEditor, isHunter, onLogout, onPriceUp
           <SheetTitle>Menü</SheetTitle>
         </SheetHeader>
         <div className="mt-6 space-y-4 pb-8">
-          {/* For hunters: show balance at top */}
-          {isHunter && <HunterBalanceSection />}
+          {/* Balance display */}
+          {isHunter && !isAdmin && !isEditor && <HunterBalanceSection />}
+          {(isAdmin || isEditor) && <AdminBalanceSection />}
 
-          {/* For hunters: simplified menu */}
-          {isHunter ? (
+          {/* For hunters: simplified menu (no admin/editor privileges) */}
+          {isHunter && !isAdmin && !isEditor ? (
             <>
-              {isHunter && <Separator />}
+              <Separator />
               
               {/* Profil */}
               <div className="space-y-2">
@@ -213,21 +261,6 @@ export const DashboardMenu = ({ isAdmin, isEditor, isHunter, onLogout, onPriceUp
                 >
                   <Settings className="mr-2 h-4 w-4" />
                   Beállítások
-                </Button>
-              </div>
-
-              <Separator />
-
-              {/* Támogatás */}
-              <div className="space-y-2">
-                <p className="text-sm font-medium text-muted-foreground px-2">Támogatás</p>
-                <Button
-                  variant="ghost"
-                  className="w-full justify-start"
-                  onClick={() => handleNavigation("/tickets")}
-                >
-                  <MessageSquare className="mr-2 h-4 w-4" />
-                  Támogatási jegyek
                 </Button>
               </div>
 
