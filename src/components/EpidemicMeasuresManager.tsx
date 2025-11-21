@@ -403,7 +403,11 @@ export const EpidemicMeasuresManager = () => {
                           <span className="font-medium">Érintett vadfajok:</span>{" "}
                           {measure.affected_species.join(", ")}
                         </div>
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-3 gap-4">
+                          <div>
+                            <span className="font-medium">Állat ára:</span>{" "}
+                            {measure.price_per_unit.toLocaleString()} Ft/db
+                          </div>
                           <div>
                             <span className="font-medium">Kilövési díj:</span>{" "}
                             {measure.shooting_fee.toLocaleString()} Ft
