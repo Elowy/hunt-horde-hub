@@ -416,6 +416,7 @@ export type Database = {
       epidemic_measures: {
         Row: {
           affected_species: string[]
+          cooling_price_per_kg: number | null
           created_at: string
           id: string
           is_active: boolean
@@ -426,9 +427,11 @@ export type Database = {
           shooting_fee: number
           updated_at: string
           user_id: string
+          vat_rate: number
         }
         Insert: {
           affected_species?: string[]
+          cooling_price_per_kg?: number | null
           created_at?: string
           id?: string
           is_active?: boolean
@@ -439,9 +442,11 @@ export type Database = {
           shooting_fee?: number
           updated_at?: string
           user_id: string
+          vat_rate?: number
         }
         Update: {
           affected_species?: string[]
+          cooling_price_per_kg?: number | null
           created_at?: string
           id?: string
           is_active?: boolean
@@ -452,6 +457,7 @@ export type Database = {
           shooting_fee?: number
           updated_at?: string
           user_id?: string
+          vat_rate?: number
         }
         Relationships: []
       }

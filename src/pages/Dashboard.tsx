@@ -153,6 +153,19 @@ interface CoolingPrice {
   is_archived: boolean;
 }
 
+interface EpidemicMeasure {
+  id: string;
+  name: string;
+  severity: string;
+  affected_species: string[];
+  shooting_fee: number;
+  sampling_fee: number;
+  price_per_unit: number;
+  vat_rate: number;
+  cooling_price_per_kg: number | null;
+  is_active: boolean;
+}
+
 const Dashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -171,6 +184,7 @@ const Dashboard = () => {
   const [locations, setLocations] = useState<StorageLocation[]>([]);
   const [priceSettings, setPriceSettings] = useState<PriceSetting[]>([]);
   const [coolingPrices, setCoolingPrices] = useState<CoolingPrice[]>([]);
+  const [epidemicMeasures, setEpidemicMeasures] = useState<EpidemicMeasure[]>([]);
   const [vatRate, setVatRate] = useState<number>(27);
   const [loading, setLoading] = useState(true);
   const [selectedAnimals, setSelectedAnimals] = useState<Set<string>>(new Set());
@@ -383,7 +397,7 @@ const Dashboard = () => {
       }
 
       // Fetch data - super admins viewing specific company see that company's data
-      const [locationsResult, animalsResult, pricesResult, coolingPricesResult, transportDocsResult, profileResult] = await Promise.all([
+      const [locationsResult, animalsResult, pricesResult, coolingPricesResult, epidemicMeasuresResult, transportDocsResult, profileResult] = await Promise.all([
         supabase
           .from("storage_locations")
           .select("*")
@@ -404,6 +418,11 @@ const Dashboard = () => {
           .in("user_id", userIds)
           .eq("is_archived", false)
           .order("valid_from", { ascending: false }),
+        supabase
+          .from("epidemic_measures")
+          .select("*")
+          .in("user_id", userIds)
+          .eq("is_active", true),
         supabase
           .from("transport_documents")
           .select(`
@@ -433,6 +452,7 @@ const Dashboard = () => {
       setAnimals(animalsResult.data || []);
       setPriceSettings(pricesResult.data || []);
       setCoolingPrices(coolingPricesResult.data || []);
+      setEpidemicMeasures(epidemicMeasuresResult.data || []);
 
       // Build map of animal_id -> transporter_name
       const transportMap: Record<string, string> = {};
@@ -938,12 +958,6 @@ const Dashboard = () => {
     }
 
     try {
-      // Fetch active epidemic measures
-      const { data: epidemicMeasures } = await supabase
-        .from("epidemic_measures")
-        .select("*")
-        .eq("is_active", true);
-
       const selectedAnimalsList = animals.filter(a => selectedAnimals.has(a.id));
       let updatedCount = 0;
 
@@ -957,19 +971,24 @@ const Dashboard = () => {
 
         let pricePerKg: number;
         let animalVatRate: number;
+        let coolingPrice: number | null = null;
+        let coolingVat: number | null = null;
         
         if (epidemicMeasure) {
-          // For epidemic measures, calculate fixed price: sampling_fee + shooting_fee + price_per_unit
-          // Don't use weight-based pricing
+          // Járványügyi árak
           if (!animal.weight || animal.weight === 0) {
             console.warn(`Animal ${animal.id} has no weight, skipping epidemic pricing`);
             continue;
           }
-          // Store the total epidemic price divided by weight in transport_price_per_kg
-          // so that weight * transport_price_per_kg = total_epidemic_price
           const totalEpidemicPrice = epidemicMeasure.sampling_fee + epidemicMeasure.shooting_fee + epidemicMeasure.price_per_unit;
           pricePerKg = totalEpidemicPrice / animal.weight;
-          animalVatRate = 0;
+          animalVatRate = epidemicMeasure.vat_rate || 27;
+
+          // Járványügyi hűtési díj
+          if (epidemicMeasure.cooling_price_per_kg) {
+            coolingPrice = epidemicMeasure.cooling_price_per_kg;
+            coolingVat = epidemicMeasure.vat_rate || 27;
+          }
         } else {
           // Use regular price setting
           if (!animal.weight) continue;
@@ -983,13 +1002,17 @@ const Dashboard = () => {
           animalVatRate = priceSetting.vat_rate;
         }
 
-        // Get cooling price from storage location's active cooling prices
-        const activeCoolingPrice = coolingPrices.find(
-          cp => cp.storage_location_id === animal.storage_location_id && 
-          (cp.valid_to === null || new Date(cp.valid_to) > new Date())
-        );
-        const coolingPrice = activeCoolingPrice?.cooling_price_per_kg || null;
-        const coolingVatRate = activeCoolingPrice?.cooling_vat_rate || null;
+        // Ha nincs járványügyi hűtési díj, használjuk a normál hűtési díjat
+        if (!coolingPrice) {
+          const activeCoolingPrice = coolingPrices.find(
+            cp => cp.storage_location_id === animal.storage_location_id && 
+            (cp.valid_to === null || new Date(cp.valid_to) > new Date())
+          );
+          if (activeCoolingPrice) {
+            coolingPrice = activeCoolingPrice.cooling_price_per_kg;
+            coolingVat = activeCoolingPrice.cooling_vat_rate || 27;
+          }
+        }
 
         const { error } = await supabase
           .from("animals")
@@ -997,7 +1020,7 @@ const Dashboard = () => {
             transport_price_per_kg: pricePerKg,
             transport_vat_rate: animalVatRate,
             transport_cooling_price: coolingPrice,
-            transport_cooling_vat_rate: coolingVatRate,
+            transport_cooling_vat_rate: coolingVat,
           })
           .eq("id", animal.id);
 
@@ -1023,12 +1046,6 @@ const Dashboard = () => {
 
   const handleUpdateAllPrices = async () => {
     try {
-      // Fetch active epidemic measures
-      const { data: epidemicMeasures } = await supabase
-        .from("epidemic_measures")
-        .select("*")
-        .eq("is_active", true);
-
       const cooled = animals.filter(animal => !animal.is_transported && !animal.archived);
       let updatedCount = 0;
 
@@ -1042,19 +1059,24 @@ const Dashboard = () => {
 
         let pricePerKg: number;
         let animalVatRate: number;
+        let coolingPrice: number | null = null;
+        let coolingVat: number | null = null;
         
         if (epidemicMeasure) {
-          // For epidemic measures, calculate fixed price: sampling_fee + shooting_fee + price_per_unit
-          // Don't use weight-based pricing
+          // Járványügyi árak
           if (!animal.weight || animal.weight === 0) {
             console.warn(`Animal ${animal.id} has no weight, skipping epidemic pricing`);
             continue;
           }
-          // Store the total epidemic price divided by weight in transport_price_per_kg
-          // so that weight * transport_price_per_kg = total_epidemic_price
           const totalEpidemicPrice = epidemicMeasure.sampling_fee + epidemicMeasure.shooting_fee + epidemicMeasure.price_per_unit;
           pricePerKg = totalEpidemicPrice / animal.weight;
-          animalVatRate = 0;
+          animalVatRate = epidemicMeasure.vat_rate || 27;
+
+          // Járványügyi hűtési díj
+          if (epidemicMeasure.cooling_price_per_kg) {
+            coolingPrice = epidemicMeasure.cooling_price_per_kg;
+            coolingVat = epidemicMeasure.vat_rate || 27;
+          }
         } else {
           // Use regular price setting
           if (!animal.weight) continue;
@@ -1068,13 +1090,17 @@ const Dashboard = () => {
           animalVatRate = priceSetting.vat_rate;
         }
 
-        // Get cooling price from storage location's active cooling prices
-        const activeCoolingPrice = coolingPrices.find(
-          cp => cp.storage_location_id === animal.storage_location_id && 
-          (cp.valid_to === null || new Date(cp.valid_to) > new Date())
-        );
-        const coolingPrice = activeCoolingPrice?.cooling_price_per_kg || null;
-        const coolingVatRate = activeCoolingPrice?.cooling_vat_rate || null;
+        // Ha nincs járványügyi hűtési díj, használjuk a normál hűtési díjat
+        if (!coolingPrice) {
+          const activeCoolingPrice = coolingPrices.find(
+            cp => cp.storage_location_id === animal.storage_location_id && 
+            (cp.valid_to === null || new Date(cp.valid_to) > new Date())
+          );
+          if (activeCoolingPrice) {
+            coolingPrice = activeCoolingPrice.cooling_price_per_kg;
+            coolingVat = activeCoolingPrice.cooling_vat_rate || 27;
+          }
+        }
 
         const { error } = await supabase
           .from("animals")
@@ -1082,7 +1108,7 @@ const Dashboard = () => {
             transport_price_per_kg: pricePerKg,
             transport_vat_rate: animalVatRate,
             transport_cooling_price: coolingPrice,
-            transport_cooling_vat_rate: coolingVatRate,
+            transport_cooling_vat_rate: coolingVat,
           })
           .eq("id", animal.id);
 
@@ -1619,7 +1645,19 @@ const Dashboard = () => {
   const getCoolingPrice = (animal: Animal) => {
     if (!animal.weight) return { net: 0, gross: 0 };
     
-    // Először ellenőrizzük, hogy már van-e mentett hűtési ár
+    // Először ellenőrizzük a járványügyi intézkedést
+    const epidemicMeasure = epidemicMeasures?.find(
+      (m) => m.is_active && m.affected_species.includes(animal.species)
+    );
+
+    if (epidemicMeasure && epidemicMeasure.cooling_price_per_kg) {
+      // Járványügyi hűtési ár
+      const net = animal.weight * epidemicMeasure.cooling_price_per_kg;
+      const gross = net * (1 + (epidemicMeasure.vat_rate || 27) / 100);
+      return { net: Math.round(net), gross: Math.round(gross) };
+    }
+    
+    // Ha már van mentett hűtési ár
     if (animal.transport_cooling_price && animal.transport_cooling_price > 0) {
       const net = animal.weight * animal.transport_cooling_price;
       const vatRate = animal.transport_cooling_vat_rate || 27;
@@ -1627,7 +1665,7 @@ const Dashboard = () => {
       return { net: Math.round(net), gross: Math.round(gross) };
     }
     
-    // Ha nincs mentett ár, keressük meg az aktív hűtési árat a coolingPrices állapotból
+    // Normál hűtési ár a tárolóhelyről
     const activeCoolingPrice = coolingPrices.find(
       cp => cp.storage_location_id === animal.storage_location_id && 
       (cp.valid_to === null || new Date(cp.valid_to) > new Date())

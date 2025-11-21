@@ -39,6 +39,8 @@ interface EpidemicMeasure {
   shooting_fee: number;
   sampling_fee: number;
   price_per_unit: number;
+  vat_rate: number;
+  cooling_price_per_kg: number | null;
   is_active: boolean;
   created_at: string;
 }
@@ -65,6 +67,8 @@ export const EpidemicMeasuresManager = () => {
     shooting_fee: number;
     sampling_fee: number;
     price_per_unit: number;
+    vat_rate: number;
+    cooling_price_per_kg: number | null;
     is_active: boolean;
   }>({
     name: "",
@@ -73,6 +77,8 @@ export const EpidemicMeasuresManager = () => {
     shooting_fee: 0,
     sampling_fee: 0,
     price_per_unit: 0,
+    vat_rate: 27,
+    cooling_price_per_kg: null,
     is_active: true,
   });
 
@@ -109,6 +115,8 @@ export const EpidemicMeasuresManager = () => {
       shooting_fee: 0,
       sampling_fee: 0,
       price_per_unit: 0,
+      vat_rate: 27,
+      cooling_price_per_kg: null,
       is_active: true,
     });
     setEditingMeasure(null);
@@ -123,6 +131,8 @@ export const EpidemicMeasuresManager = () => {
       shooting_fee: measure.shooting_fee,
       sampling_fee: measure.sampling_fee,
       price_per_unit: measure.price_per_unit,
+      vat_rate: measure.vat_rate,
+      cooling_price_per_kg: measure.cooling_price_per_kg,
       is_active: measure.is_active,
     });
     setDialogOpen(true);
@@ -353,6 +363,40 @@ export const EpidemicMeasuresManager = () => {
                   </p>
                 </div>
 
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="vat_rate">ÁFA tartalom (%)</Label>
+                    <Input
+                      id="vat_rate"
+                      type="number"
+                      min="0"
+                      max="100"
+                      value={formData.vat_rate}
+                      onChange={(e) => setFormData({ ...formData, vat_rate: parseFloat(e.target.value) || 27 })}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Ez az ÁFA vonatkozik minden járványügyi tételre
+                    </p>
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="cooling_price_per_kg">Hűtési díj (Ft/kg)</Label>
+                    <Input
+                      id="cooling_price_per_kg"
+                      type="number"
+                      min="0"
+                      value={formData.cooling_price_per_kg || ""}
+                      onChange={(e) => setFormData({ 
+                        ...formData, 
+                        cooling_price_per_kg: e.target.value ? parseFloat(e.target.value) : null 
+                      })}
+                      placeholder="Opcionális"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Ha nincs megadva, a tárolóhely hűtési díja lesz használva
+                    </p>
+                  </div>
+                </div>
+
                 <div className="flex items-center justify-between">
                   <Label htmlFor="is_active">Aktív intézkedés</Label>
                   <Switch
@@ -403,7 +447,7 @@ export const EpidemicMeasuresManager = () => {
                           <span className="font-medium">Érintett vadfajok:</span>{" "}
                           {measure.affected_species.join(", ")}
                         </div>
-                        <div className="grid grid-cols-3 gap-4">
+                        <div className="grid grid-cols-4 gap-4">
                           <div>
                             <span className="font-medium">Állat ára:</span>{" "}
                             {measure.price_per_unit.toLocaleString()} Ft/db
@@ -416,6 +460,15 @@ export const EpidemicMeasuresManager = () => {
                             <span className="font-medium">Mintavételi díj:</span>{" "}
                             {measure.sampling_fee.toLocaleString()} Ft
                           </div>
+                          <div>
+                            <span className="font-medium">Hűtési díj:</span>{" "}
+                            {measure.cooling_price_per_kg 
+                              ? `${measure.cooling_price_per_kg.toLocaleString()} Ft/kg` 
+                              : 'Nincs megadva'}
+                          </div>
+                        </div>
+                        <div className="mt-2">
+                          <span className="font-medium">ÁFA tartalom:</span> {measure.vat_rate}%
                         </div>
                       </div>
                     </div>
