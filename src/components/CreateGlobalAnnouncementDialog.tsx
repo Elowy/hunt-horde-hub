@@ -38,7 +38,7 @@ export function CreateGlobalAnnouncementDialog({ onSuccess }: CreateGlobalAnnoun
   const [expiresAt, setExpiresAt] = useState<Date>();
   const [maintenanceStart, setMaintenanceStart] = useState<Date>();
   const [maintenanceEnd, setMaintenanceEnd] = useState<Date>();
-  const [maintenanceStatus, setMaintenanceStatus] = useState<MaintenanceStatus>("bejelentve");
+  const [maintenanceStatus, setMaintenanceStatus] = useState<MaintenanceStatus>("bejelentett");
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -95,7 +95,7 @@ export function CreateGlobalAnnouncementDialog({ onSuccess }: CreateGlobalAnnoun
       setExpiresAt(undefined);
       setMaintenanceStart(undefined);
       setMaintenanceEnd(undefined);
-      setMaintenanceStatus("bejelentve");
+      setMaintenanceStatus("bejelentett");
       
       if (onSuccess) {
         onSuccess();
@@ -114,9 +114,10 @@ export function CreateGlobalAnnouncementDialog({ onSuccess }: CreateGlobalAnnoun
 
 const getStatusLabel = (status: MaintenanceStatus) => {
   const labels: Record<MaintenanceStatus, string> = {
-    bejelentve: "Bejelentve",
+    bejelentett: "Bejelentett",
     folyamatban: "Folyamatban",
-    elvegezve: "Elvégezve",
+    varatlan_hiba: "Váratlan Hiba",
+    befejezett: "Befejezett",
   };
   return labels[status];
 };
@@ -184,9 +185,10 @@ const getStatusLabel = (status: MaintenanceStatus) => {
                       <SelectValue placeholder="Válassz státuszt" />
                     </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="bejelentve">{getStatusLabel("bejelentve")}</SelectItem>
+                        <SelectItem value="bejelentett">{getStatusLabel("bejelentett")}</SelectItem>
                         <SelectItem value="folyamatban">{getStatusLabel("folyamatban")}</SelectItem>
-                        <SelectItem value="elvegezve">{getStatusLabel("elvegezve")}</SelectItem>
+                        <SelectItem value="varatlan_hiba">{getStatusLabel("varatlan_hiba")}</SelectItem>
+                        <SelectItem value="befejezett">{getStatusLabel("befejezett")}</SelectItem>
                       </SelectContent>
                   </Select>
                 </div>

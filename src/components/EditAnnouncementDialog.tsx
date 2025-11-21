@@ -67,9 +67,10 @@ interface EditAnnouncementDialogProps {
 
 const getStatusLabel = (status: MaintenanceStatus) => {
   const labels: Record<MaintenanceStatus, string> = {
-    bejelentve: "Bejelentve",
+    bejelentett: "Bejelentett",
     folyamatban: "Folyamatban",
-    elvegezve: "Elvégezve",
+    varatlan_hiba: "Váratlan Hiba",
+    befejezett: "Befejezett",
   };
   return labels[status];
 };
@@ -89,7 +90,7 @@ export const EditAnnouncementDialog = ({ announcement, onSuccess }: EditAnnounce
     announcement.maintenance_end ? new Date(announcement.maintenance_end) : undefined
   );
   const [maintenanceStatus, setMaintenanceStatus] = useState<MaintenanceStatus>(
-    announcement.maintenance_status || "bejelentve"
+    announcement.maintenance_status || "bejelentett"
   );
   const [selectedCategories, setSelectedCategories] = useState<HunterCategory[]>(announcement.hunter_categories || []);
   const [loading, setLoading] = useState(false);
@@ -218,9 +219,10 @@ export const EditAnnouncementDialog = ({ announcement, onSuccess }: EditAnnounce
                         <SelectValue placeholder="Válassz státuszt" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="bejelentve">{getStatusLabel("bejelentve")}</SelectItem>
+                        <SelectItem value="bejelentett">{getStatusLabel("bejelentett")}</SelectItem>
                         <SelectItem value="folyamatban">{getStatusLabel("folyamatban")}</SelectItem>
-                        <SelectItem value="elvegezve">{getStatusLabel("elvegezve")}</SelectItem>
+                        <SelectItem value="varatlan_hiba">{getStatusLabel("varatlan_hiba")}</SelectItem>
+                        <SelectItem value="befejezett">{getStatusLabel("befejezett")}</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
