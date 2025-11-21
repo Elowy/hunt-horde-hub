@@ -902,22 +902,42 @@ const Dashboard = () => {
     }
 
     try {
+      // Fetch active epidemic measures
+      const { data: epidemicMeasures } = await supabase
+        .from("epidemic_measures")
+        .select("*")
+        .eq("is_active", true);
+
       const selectedAnimalsList = animals.filter(a => selectedAnimals.has(a.id));
       let updatedCount = 0;
 
       for (const animal of selectedAnimalsList) {
         if (!animal.weight || !animal.species || !animal.class) continue;
 
-        const priceSetting = priceSettings.find(
-          (p) => p.species === animal.species && p.class === animal.class && !p.is_archived
+        // Check if there's an active epidemic measure for this species
+        const epidemicMeasure = epidemicMeasures?.find(
+          (m) => m.affected_species.includes(animal.species)
         );
 
-        if (!priceSetting) continue;
+        let pricePerKg: number;
+        
+        if (epidemicMeasure) {
+          // Use epidemic measure price
+          pricePerKg = epidemicMeasure.price_per_unit;
+        } else {
+          // Use regular price setting
+          const priceSetting = priceSettings.find(
+            (p) => p.species === animal.species && p.class === animal.class && !p.is_archived
+          );
+          
+          if (!priceSetting) continue;
+          pricePerKg = priceSetting.price_per_kg;
+        }
 
         const { error } = await supabase
           .from("animals")
           .update({
-            transport_price_per_kg: priceSetting.price_per_kg,
+            transport_price_per_kg: pricePerKg,
             transport_vat_rate: vatRate,
           })
           .eq("id", animal.id);
@@ -944,22 +964,42 @@ const Dashboard = () => {
 
   const handleUpdateAllPrices = async () => {
     try {
+      // Fetch active epidemic measures
+      const { data: epidemicMeasures } = await supabase
+        .from("epidemic_measures")
+        .select("*")
+        .eq("is_active", true);
+
       const cooled = animals.filter(animal => !animal.is_transported && !animal.archived);
       let updatedCount = 0;
 
       for (const animal of cooled) {
         if (!animal.weight || !animal.species || !animal.class) continue;
 
-        const priceSetting = priceSettings.find(
-          (p) => p.species === animal.species && p.class === animal.class && !p.is_archived
+        // Check if there's an active epidemic measure for this species
+        const epidemicMeasure = epidemicMeasures?.find(
+          (m) => m.affected_species.includes(animal.species)
         );
 
-        if (!priceSetting) continue;
+        let pricePerKg: number;
+        
+        if (epidemicMeasure) {
+          // Use epidemic measure price
+          pricePerKg = epidemicMeasure.price_per_unit;
+        } else {
+          // Use regular price setting
+          const priceSetting = priceSettings.find(
+            (p) => p.species === animal.species && p.class === animal.class && !p.is_archived
+          );
+          
+          if (!priceSetting) continue;
+          pricePerKg = priceSetting.price_per_kg;
+        }
 
         const { error } = await supabase
           .from("animals")
           .update({
-            transport_price_per_kg: priceSetting.price_per_kg,
+            transport_price_per_kg: pricePerKg,
             transport_vat_rate: vatRate,
           })
           .eq("id", animal.id);
