@@ -57,6 +57,27 @@ const Login = () => {
       }
 
       if (data.user) {
+        // Check if user is a hunter with pending approval
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("user_type, registration_approved, hunter_society_id")
+          .eq("id", data.user.id)
+          .single();
+
+        // If hunter and not approved, sign out and show message
+        if (profile?.user_type === "hunter" && profile?.registration_approved === false) {
+          await supabase.auth.signOut();
+          
+          toast({
+            title: "Jóváhagyás folyamatban",
+            description: "Regisztrációját még a vadásztársaság adminisztrátorai nem hagyták jóvá. Email értesítést fog kapni, ha jóváhagyásra került.",
+            variant: "destructive",
+          });
+          
+          setLoading(false);
+          return;
+        }
+
         // Log login history
         try {
           let ipAddress = "Unknown";

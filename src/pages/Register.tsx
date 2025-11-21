@@ -147,6 +147,17 @@ const Register = () => {
       if (data.user) {
         // Trial subscription is now automatically created by database trigger
         if (formData.userType === "hunter") {
+          // Send notification to admins about new hunter registration
+          try {
+            await supabase.functions.invoke("send-new-hunter-registration", {
+              body: { hunterId: data.user.id },
+            });
+            console.log("Admin notification sent");
+          } catch (emailError) {
+            console.error("Failed to send admin notification:", emailError);
+            // Don't fail the whole operation if email fails
+          }
+
           toast({
             title: "Regisztráció beküldve!",
             description: "Regisztrációja beküldésre került. Az adminisztrátor jóváhagyása után léphet be a rendszerbe.",

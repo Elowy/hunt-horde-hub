@@ -331,25 +331,14 @@ const Users = () => {
 
       if (error) throw error;
 
-      // Get the registration details to send notification
-      const { data: registrations } = await supabase
-        .from("hunting_registrations")
-        .select("id")
-        .eq("user_id", hunterId)
-        .eq("status", "pending")
-        .order("created_at", { ascending: false })
-        .limit(1);
-
-      // Send approval notification email if there's a pending registration
-      if (registrations && registrations.length > 0) {
-        try {
-          await supabase.functions.invoke("send-registration-approval", {
-            body: { registrationId: registrations[0].id },
-          });
-        } catch (emailError) {
-          console.error("Failed to send approval email:", emailError);
-          // Don't fail the whole operation if email fails
-        }
+      // Send approval notification email to hunter
+      try {
+        await supabase.functions.invoke("send-registration-approval", {
+          body: { hunterId: hunterId },
+        });
+      } catch (emailError) {
+        console.error("Failed to send approval email:", emailError);
+        // Don't fail the whole operation if email fails
       }
 
       toast({

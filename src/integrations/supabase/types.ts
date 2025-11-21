@@ -1061,6 +1061,7 @@ export type Database = {
           notify_on_animal_update: boolean | null
           notify_on_announcement: boolean | null
           notify_on_membership_fee: boolean | null
+          notify_on_new_hunter_registration: boolean | null
           notify_on_pending_animal: boolean | null
           notify_on_registration_approved: boolean | null
           notify_on_registration_rejected: boolean | null
@@ -1078,6 +1079,7 @@ export type Database = {
           notify_on_animal_update?: boolean | null
           notify_on_announcement?: boolean | null
           notify_on_membership_fee?: boolean | null
+          notify_on_new_hunter_registration?: boolean | null
           notify_on_pending_animal?: boolean | null
           notify_on_registration_approved?: boolean | null
           notify_on_registration_rejected?: boolean | null
@@ -1095,6 +1097,7 @@ export type Database = {
           notify_on_animal_update?: boolean | null
           notify_on_announcement?: boolean | null
           notify_on_membership_fee?: boolean | null
+          notify_on_new_hunter_registration?: boolean | null
           notify_on_pending_animal?: boolean | null
           notify_on_registration_approved?: boolean | null
           notify_on_registration_rejected?: boolean | null
