@@ -1619,14 +1619,29 @@ const Dashboard = () => {
   const getCoolingPrice = (animal: Animal) => {
     if (!animal.weight) return { net: 0, gross: 0 };
     
-    const location = locations.find(loc => loc.id === animal.storage_location_id);
-    if (!location || !location.cooling_price_per_kg) return { net: 0, gross: 0 };
+    // Először ellenőrizzük, hogy már van-e mentett hűtési ár
+    if (animal.transport_cooling_price && animal.transport_cooling_price > 0) {
+      const net = animal.weight * animal.transport_cooling_price;
+      const vatRate = animal.transport_cooling_vat_rate || 27;
+      const gross = net * (1 + vatRate / 100);
+      return { net: Math.round(net), gross: Math.round(gross) };
+    }
     
-    const net = animal.weight * location.cooling_price_per_kg;
-    const vatRate = location.cooling_vat_rate || 27;
+    // Ha nincs mentett ár, keressük meg az aktív hűtési árat a coolingPrices állapotból
+    const activeCoolingPrice = coolingPrices.find(
+      cp => cp.storage_location_id === animal.storage_location_id && 
+      (cp.valid_to === null || new Date(cp.valid_to) > new Date())
+    );
+    
+    if (!activeCoolingPrice || !activeCoolingPrice.cooling_price_per_kg) {
+      return { net: 0, gross: 0 };
+    }
+    
+    const net = animal.weight * activeCoolingPrice.cooling_price_per_kg;
+    const vatRate = activeCoolingPrice.cooling_vat_rate || 27;
     const gross = net * (1 + vatRate / 100);
     
-    return { net, gross };
+    return { net: Math.round(net), gross: Math.round(gross) };
   };
 
   const formatMonthLabel = (monthKey: string) => {
