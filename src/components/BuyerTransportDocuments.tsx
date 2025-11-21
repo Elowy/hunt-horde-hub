@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/table";
 import { Card } from "@/components/ui/card";
 import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 interface TransportDocument {
   id: string;
@@ -42,6 +43,16 @@ interface TransportDocumentItem {
     species: string;
     weight: number;
     class: string;
+    shooting_date: string | null;
+    cooling_date: string | null;
+    transport_price_per_kg: number | null;
+    transport_vat_rate: number | null;
+    transport_cooling_price: number | null;
+    transport_cooling_vat_rate: number | null;
+    storage_locations: {
+      name: string;
+      address: string | null;
+    } | null;
   };
 }
 
@@ -132,7 +143,17 @@ export const BuyerTransportDocuments = () => {
             animal_id,
             species,
             weight,
-            class
+            class,
+            shooting_date,
+            cooling_date,
+            transport_price_per_kg,
+            transport_vat_rate,
+            transport_cooling_price,
+            transport_cooling_vat_rate,
+            storage_locations (
+              name,
+              address
+            )
           )
         `)
         .eq("transport_document_id", doc.id);
@@ -141,50 +162,173 @@ export const BuyerTransportDocuments = () => {
 
       // PDF generálás
       const pdf = new jsPDF();
-      
+
+      // === ELSŐ OLDAL FEJLÉC ===
       pdf.setFontSize(20);
-      pdf.text("Elszallito", 105, 20, { align: "center" });
-      
-      pdf.setFontSize(12);
-      pdf.text(`Vadasztarsasag: ${doc.company_name}`, 20, 35);
-      pdf.text(`Bizonylat szam: ${doc.document_number}`, 20, 45);
-      pdf.text(`Datum: ${new Date(doc.transport_date).toLocaleDateString("hu-HU")}`, 20, 55);
-      if (doc.transporter_name) {
-        pdf.text(`Szallito: ${doc.transporter_name}`, 20, 65);
-      }
+      pdf.setFont("helvetica", "bold");
+      pdf.text("Elszállító dokumentum", 105, 20, { align: "center" });
+
+      // Alapadatok táblázat
+      let yPos = 35;
+      pdf.setFontSize(11);
+      pdf.setFont("helvetica", "normal");
+
+      // Elszállító, Vadásztársaság, Hűtési helyek megjelenítése táblázatban
+      const headerData = [
+        ["Elszállító:", doc.transporter_name || "-"],
+        ["Vadásztársaság:", doc.company_name],
+        ["Bizonylat szám:", doc.document_number],
+        ["Szállítás dátuma:", new Date(doc.transport_date).toLocaleDateString("hu-HU")],
+      ];
+
       if (doc.vehicle_plate) {
-        pdf.text(`Rendszam: ${doc.vehicle_plate}`, 20, 75);
+        headerData.push(["Rendszám:", doc.vehicle_plate]);
       }
-      
-      let yPos = 90;
-      pdf.setFontSize(10);
-      pdf.text("Azonosito", 20, yPos);
-      pdf.text("Faj", 60, yPos);
-      pdf.text("Osztaly", 90, yPos);
-      pdf.text("Suly (kg)", 120, yPos);
-      
-      yPos += 10;
-      
+
+      // Hűtési helyek összegyűjtése
+      const storageLocations = new Set<string>();
       (items as TransportDocumentItem[])?.forEach((item) => {
-        const animal = item.animals;
-        pdf.text(animal.animal_id, 20, yPos);
-        pdf.text(animal.species, 60, yPos);
-        pdf.text(animal.class || "-", 90, yPos);
-        pdf.text((animal.weight || 0).toString(), 120, yPos);
-        
-        yPos += 8;
-        
-        if (yPos > 270) {
-          pdf.addPage();
-          yPos = 20;
+        const location = item.animals.storage_locations;
+        if (location) {
+          storageLocations.add(location.name);
         }
       });
-      
-      yPos += 10;
-      pdf.setFontSize(12);
-      pdf.text(`Osszes suly: ${doc.total_weight.toFixed(2)} kg`, 20, yPos);
-      pdf.text(`Osszes ar: ${Math.round(doc.total_price).toLocaleString("hu-HU")} Ft`, 20, yPos + 10);
-      
+
+      if (storageLocations.size > 0) {
+        headerData.push(["Hűtési hely(ek):", Array.from(storageLocations).join(", ")]);
+      }
+
+      autoTable(pdf, {
+        startY: yPos,
+        body: headerData,
+        theme: 'grid',
+        styles: {
+          fontSize: 10,
+          cellPadding: 4,
+        },
+        columnStyles: {
+          0: { cellWidth: 50, fontStyle: 'bold', fillColor: [240, 240, 240] },
+          1: { cellWidth: 140 },
+        },
+      });
+
+      // === ÁLLATOK TÁBLÁZATA ===
+      yPos = (pdf as any).lastAutoTable.finalY + 10;
+
+      // Táblázat fejléc készítése
+      const tableHeaders = [
+        'Azonosító',
+        'Faj',
+        'Elejtés',
+        'Hűtés',
+        'Súly (kg)',
+        'Ár nettó (Ft)',
+        'Ár bruttó (Ft)',
+        'Hűtési díj nettó (Ft)',
+        'Hűtési díj bruttó (Ft)'
+      ];
+
+      // Táblázat sorok készítése
+      const tableRows: any[] = [];
+      let totalNetPrice = 0;
+      let totalGrossPrice = 0;
+      let totalNetCooling = 0;
+      let totalGrossCooling = 0;
+
+      (items as TransportDocumentItem[])?.forEach((item) => {
+        const animal = item.animals;
+        
+        // Dátumok formázása
+        const shootingDate = animal.shooting_date 
+          ? new Date(animal.shooting_date).toLocaleDateString("hu-HU")
+          : "-";
+        const coolingDate = animal.cooling_date
+          ? new Date(animal.cooling_date).toLocaleDateString("hu-HU")
+          : "-";
+        
+        // Állat ára
+        const animalNetPrice = (animal.weight || 0) * (animal.transport_price_per_kg || 0);
+        const animalVatRate = animal.transport_vat_rate || 27;
+        const animalGrossPrice = animalNetPrice * (1 + animalVatRate / 100);
+        
+        // Hűtési díj
+        const coolingNetPrice = (animal.weight || 0) * (animal.transport_cooling_price || 0);
+        const coolingVatRate = animal.transport_cooling_vat_rate || 27;
+        const coolingGrossPrice = coolingNetPrice * (1 + coolingVatRate / 100);
+        
+        // Összegek hozzáadása
+        totalNetPrice += animalNetPrice;
+        totalGrossPrice += animalGrossPrice;
+        totalNetCooling += coolingNetPrice;
+        totalGrossCooling += coolingGrossPrice;
+        
+        tableRows.push([
+          animal.animal_id,
+          animal.species,
+          shootingDate,
+          coolingDate,
+          (animal.weight || 0).toFixed(2),
+          Math.round(animalNetPrice).toLocaleString("hu-HU"),
+          Math.round(animalGrossPrice).toLocaleString("hu-HU"),
+          Math.round(coolingNetPrice).toLocaleString("hu-HU"),
+          Math.round(coolingGrossPrice).toLocaleString("hu-HU"),
+        ]);
+      });
+
+      // Összesítő sorok
+      tableRows.push([
+        { content: 'ÖSSZESEN', colSpan: 5, styles: { fontStyle: 'bold', fillColor: [240, 240, 240] } },
+        { content: Math.round(totalNetPrice).toLocaleString("hu-HU"), styles: { fontStyle: 'bold', fillColor: [240, 240, 240] } },
+        { content: Math.round(totalGrossPrice).toLocaleString("hu-HU"), styles: { fontStyle: 'bold', fillColor: [240, 240, 240] } },
+        { content: Math.round(totalNetCooling).toLocaleString("hu-HU"), styles: { fontStyle: 'bold', fillColor: [240, 240, 240] } },
+        { content: Math.round(totalGrossCooling).toLocaleString("hu-HU"), styles: { fontStyle: 'bold', fillColor: [240, 240, 240] } },
+      ]);
+
+      tableRows.push([
+        { content: 'VÉGÖSSZEG (Állat + Hűtés)', colSpan: 6, styles: { fontStyle: 'bold', fillColor: [220, 220, 220], halign: 'right' } },
+        { content: Math.round(totalNetPrice + totalNetCooling).toLocaleString("hu-HU") + ' Ft', styles: { fontStyle: 'bold', fillColor: [220, 220, 220] } },
+        { content: '', styles: { fillColor: [220, 220, 220] } },
+        { content: Math.round(totalGrossPrice + totalGrossCooling).toLocaleString("hu-HU") + ' Ft', styles: { fontStyle: 'bold', fillColor: [220, 220, 220] } },
+      ]);
+
+      // Táblázat kirajzolása autoTable-lel (automatikus oldaltörés)
+      autoTable(pdf, {
+        startY: yPos,
+        head: [tableHeaders],
+        body: tableRows,
+        theme: 'grid',
+        styles: {
+          fontSize: 8,
+          cellPadding: 2,
+          overflow: 'linebreak',
+        },
+        headStyles: {
+          fillColor: [41, 128, 185],
+          textColor: [255, 255, 255],
+          fontStyle: 'bold',
+          halign: 'center',
+        },
+        columnStyles: {
+          0: { cellWidth: 20 },
+          1: { cellWidth: 20 },
+          2: { cellWidth: 20 },
+          3: { cellWidth: 20 },
+          4: { cellWidth: 15, halign: 'right' },
+          5: { cellWidth: 20, halign: 'right' },
+          6: { cellWidth: 20, halign: 'right' },
+          7: { cellWidth: 25, halign: 'right' },
+          8: { cellWidth: 25, halign: 'right' },
+        },
+        didDrawPage: (data) => {
+          if (data.pageNumber > 1) {
+            pdf.setFontSize(10);
+            pdf.setFont("helvetica", "bold");
+            pdf.text(`Elszállító - ${doc.document_number} (folytatás)`, 105, 15, { align: "center" });
+          }
+        }
+      });
+
+      // PDF mentése
       pdf.save(`elszallito_${doc.document_number}.pdf`);
 
       toast({
