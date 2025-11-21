@@ -143,6 +143,10 @@ interface Announcement {
   expires_at: string | null;
   is_global: boolean;
   is_archived: boolean;
+  announcement_type: string | null;
+  maintenance_start: string | null;
+  maintenance_end: string | null;
+  maintenance_status: string | null;
 }
 
 const SuperAdminDashboard = () => {
@@ -775,16 +779,52 @@ const SuperAdminDashboard = () => {
                                 <div className="flex items-center gap-2 mb-2">
                                   <CardTitle className="text-lg">{announcement.title}</CardTitle>
                                   <Badge variant="default">Globális</Badge>
+                                  {announcement.announcement_type === "maintenance" && (
+                                    <Badge variant="outline" className="bg-yellow-500/10 text-yellow-700 border-yellow-500/20">
+                                      Karbantartás
+                                    </Badge>
+                                  )}
+                                  {announcement.announcement_type === "outage" && (
+                                    <Badge variant="outline" className="bg-red-500/10 text-red-700 border-red-500/20">
+                                      Szolgáltatáskiesés
+                                    </Badge>
+                                  )}
                                   {announcement.is_archived && (
                                     <Badge variant="secondary">Archivált</Badge>
                                   )}
                                 </div>
                                 <CardDescription>
                                   {format(new Date(announcement.created_at), "yyyy. MM. dd. HH:mm", { locale: hu })}
-                                  {announcement.expires_at && (
+                                  {announcement.announcement_type === "news" && announcement.expires_at && (
                                     <span className="ml-2">
                                       • Lejár: {format(new Date(announcement.expires_at), "yyyy. MM. dd.", { locale: hu })}
                                     </span>
+                                  )}
+                                  {(announcement.announcement_type === "maintenance" || announcement.announcement_type === "outage") && (
+                                    <>
+                                      {announcement.maintenance_start && (
+                                        <span className="ml-2">
+                                          • Kezdés: {format(new Date(announcement.maintenance_start), "yyyy. MM. dd. HH:mm", { locale: hu })}
+                                        </span>
+                                      )}
+                                      {announcement.maintenance_end && (
+                                        <span className="ml-2">
+                                          • Vége: {format(new Date(announcement.maintenance_end), "yyyy. MM. dd. HH:mm", { locale: hu })}
+                                        </span>
+                                      )}
+                                      {announcement.maintenance_status && (
+                                        <span className="ml-2">
+                                          • Státusz: {
+                                            announcement.maintenance_status === "unknown" ? "Ismeretlen" :
+                                            announcement.maintenance_status === "investigating" ? "Vizsgálat alatt" :
+                                            announcement.maintenance_status === "fixing" ? "Javítás alatt" :
+                                            announcement.maintenance_status === "fixed" ? "Javítva" :
+                                            announcement.maintenance_status === "testing" ? "Tesztelés alatt" :
+                                            announcement.maintenance_status
+                                          }
+                                        </span>
+                                      )}
+                                    </>
                                   )}
                                 </CardDescription>
                               </div>
