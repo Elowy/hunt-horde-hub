@@ -38,7 +38,7 @@ export function CreateGlobalAnnouncementDialog({ onSuccess }: CreateGlobalAnnoun
   const [expiresAt, setExpiresAt] = useState<Date>();
   const [maintenanceStart, setMaintenanceStart] = useState<Date>();
   const [maintenanceEnd, setMaintenanceEnd] = useState<Date>();
-  const [maintenanceStatus, setMaintenanceStatus] = useState<MaintenanceStatus>("unknown");
+  const [maintenanceStatus, setMaintenanceStatus] = useState<MaintenanceStatus>("bejelentve");
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -95,7 +95,7 @@ export function CreateGlobalAnnouncementDialog({ onSuccess }: CreateGlobalAnnoun
       setExpiresAt(undefined);
       setMaintenanceStart(undefined);
       setMaintenanceEnd(undefined);
-      setMaintenanceStatus("unknown");
+      setMaintenanceStatus("bejelentve");
       
       if (onSuccess) {
         onSuccess();
@@ -112,16 +112,14 @@ export function CreateGlobalAnnouncementDialog({ onSuccess }: CreateGlobalAnnoun
     }
   };
 
-  const getStatusLabel = (status: MaintenanceStatus) => {
-    const labels: Record<MaintenanceStatus, string> = {
-      unknown: "Ismeretlen",
-      investigating: "Vizsgálat alatt",
-      fixing: "Javítás alatt",
-      fixed: "Javítva",
-      testing: "Tesztelés alatt",
-    };
-    return labels[status];
+const getStatusLabel = (status: MaintenanceStatus) => {
+  const labels: Record<MaintenanceStatus, string> = {
+    bejelentve: "Bejelentve",
+    folyamatban: "Folyamatban",
+    elvegezve: "Elvégezve",
   };
+  return labels[status];
+};
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -185,13 +183,11 @@ export function CreateGlobalAnnouncementDialog({ onSuccess }: CreateGlobalAnnoun
                     <SelectTrigger>
                       <SelectValue placeholder="Válassz státuszt" />
                     </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="unknown">{getStatusLabel("unknown")}</SelectItem>
-                      <SelectItem value="investigating">{getStatusLabel("investigating")}</SelectItem>
-                      <SelectItem value="fixing">{getStatusLabel("fixing")}</SelectItem>
-                      <SelectItem value="fixed">{getStatusLabel("fixed")}</SelectItem>
-                      <SelectItem value="testing">{getStatusLabel("testing")}</SelectItem>
-                    </SelectContent>
+                      <SelectContent>
+                        <SelectItem value="bejelentve">{getStatusLabel("bejelentve")}</SelectItem>
+                        <SelectItem value="folyamatban">{getStatusLabel("folyamatban")}</SelectItem>
+                        <SelectItem value="elvegezve">{getStatusLabel("elvegezve")}</SelectItem>
+                      </SelectContent>
                   </Select>
                 </div>
 

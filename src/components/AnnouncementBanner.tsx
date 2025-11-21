@@ -132,11 +132,9 @@ export const AnnouncementBanner = ({ isAdmin = false, isEditor = false }: Announ
   const getStatusLabel = (status: MaintenanceStatus | null) => {
     if (!status) return "";
     const labels: Record<MaintenanceStatus, string> = {
-      unknown: "Ismeretlen",
-      investigating: "Vizsgálat alatt",
-      fixing: "Javítás alatt",
-      fixed: "Javítva",
-      testing: "Tesztelés alatt",
+      bejelentve: "Bejelentve",
+      folyamatban: "Folyamatban",
+      elvegezve: "Elvégezve",
     };
     return labels[status];
   };

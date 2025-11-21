@@ -815,11 +815,9 @@ const SuperAdminDashboard = () => {
                                       {announcement.maintenance_status && (
                                         <span className="ml-2">
                                           • Státusz: {
-                                            announcement.maintenance_status === "unknown" ? "Ismeretlen" :
-                                            announcement.maintenance_status === "investigating" ? "Vizsgálat alatt" :
-                                            announcement.maintenance_status === "fixing" ? "Javítás alatt" :
-                                            announcement.maintenance_status === "fixed" ? "Javítva" :
-                                            announcement.maintenance_status === "testing" ? "Tesztelés alatt" :
+                                            announcement.maintenance_status === "bejelentve" ? "Bejelentve" :
+                                            announcement.maintenance_status === "folyamatban" ? "Folyamatban" :
+                                            announcement.maintenance_status === "elvegezve" ? "Elvégezve" :
                                             announcement.maintenance_status
                                           }
                                         </span>
