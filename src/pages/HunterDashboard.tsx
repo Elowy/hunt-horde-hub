@@ -44,8 +44,6 @@ export default function HunterDashboard() {
   const [selectedSociety, setSelectedSociety] = useState<string | null>(null);
   const [permissions, setPermissions] = useState({
     allow_registrations: false,
-    allow_view_cooled_animals: false,
-    allow_reserve_animals: false,
     allow_view_statistics: false,
     allow_view_announcements: false,
   });
@@ -165,8 +163,6 @@ export default function HunterDashboard() {
         // Use the exact permissions set by the hunting society
         setPermissions({
           allow_registrations: permissionsData.allow_registrations,
-          allow_view_cooled_animals: permissionsData.allow_view_cooled_animals,
-          allow_reserve_animals: permissionsData.allow_reserve_animals,
           allow_view_statistics: permissionsData.allow_view_statistics,
           allow_view_announcements: permissionsData.allow_view_announcements,
         });
@@ -175,8 +171,6 @@ export default function HunterDashboard() {
         // No permissions record found - default to all enabled
         setPermissions({
           allow_registrations: true,
-          allow_view_cooled_animals: true,
-          allow_reserve_animals: true,
           allow_view_statistics: true,
           allow_view_announcements: true,
         });
@@ -186,8 +180,6 @@ export default function HunterDashboard() {
       // No hunter category - disable all features
       setPermissions({
         allow_registrations: false,
-        allow_view_cooled_animals: false,
-        allow_reserve_animals: false,
         allow_view_statistics: false,
         allow_view_announcements: false,
       });
