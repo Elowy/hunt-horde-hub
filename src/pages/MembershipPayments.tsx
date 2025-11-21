@@ -261,12 +261,30 @@ const MembershipPayments = () => {
 
       if (error) throw error;
 
+      // Create balance transaction (automatic deduction)
+      const { error: transactionError } = await supabase
+        .from("user_balance_transactions")
+        .insert({
+          user_id: selectedMember,
+          hunter_society_id: user.id,
+          transaction_type: "membership_fee",
+          amount: -parseFloat(amount),
+          status: "approved",
+          approved_by: user.id,
+          approved_at: new Date().toISOString(),
+          notes: `Tagdíj: ${getPeriodLabel(selectedPeriod)} - ${currentSeasonYear}/${currentSeasonYear + 1}`,
+        });
+
+      if (transactionError) {
+        console.error("Balance transaction error:", transactionError);
+      }
+
       // Send notification
       await sendPaymentNotification(selectedMember, user.id);
 
       toast({
         title: "Sikeres létrehozás",
-        description: "A tagdíj bejegyzés sikeresen létrehozva és értesítés elküldve.",
+        description: "A tagdíj bejegyzés sikeresen létrehozva és levonva az egyenlegből.",
       });
 
       setDialogOpen(false);

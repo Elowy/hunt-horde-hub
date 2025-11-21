@@ -27,6 +27,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface AnimalReservationDialogProps {
   animalId: string;
@@ -78,6 +79,7 @@ export const AnimalReservationDialog = ({
   const [selectedUserId, setSelectedUserId] = useState<string>("");
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [reservedUserProfile, setReservedUserProfile] = useState<UserProfile | null>(null);
+  const [userBalance, setUserBalance] = useState<number | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -221,40 +223,170 @@ export const AnimalReservationDialog = ({
     }
   };
 
+  const fetchUserBalance = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("hunter_society_id")
+        .eq("id", user.id)
+        .single();
+
+      if (!profile?.hunter_society_id) return;
+
+      const { data: balance } = await supabase
+        .from("user_balances")
+        .select("current_balance")
+        .eq("user_id", user.id)
+        .eq("hunter_society_id", profile.hunter_society_id)
+        .single();
+
+      setUserBalance(balance?.current_balance || 0);
+    } catch (error) {
+      console.error("Error fetching balance:", error);
+    }
+  };
+
   const handleReservation = async () => {
     try {
       setLoading(true);
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
+      // Check if this is an approval action that requires balance
+      const totalCost = animalPrice + coolingPrice;
+      const isApprovingReservation = 
+        ((isAdmin || isEditor) && status === "approved" && currentStatus !== "approved");
+
+      if (isApprovingReservation && totalCost > 0) {
+        // Get the user who will pay (selected user or reserved user)
+        const payingUserId = selectedUserId && !selectedUserId.startsWith('hired-') 
+          ? selectedUserId 
+          : reservedBy || user.id;
+
+        // Get hunter society ID
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("hunter_society_id")
+          .eq("id", user.id)
+          .single();
+
+        if (!profile?.hunter_society_id) {
+          throw new Error("Vadásztársaság nem található");
+        }
+
+        // Check balance
+        const { data: balance } = await supabase
+          .from("user_balances")
+          .select("current_balance")
+          .eq("user_id", payingUserId)
+          .eq("hunter_society_id", profile.hunter_society_id)
+          .single();
+
+        const currentBalance = balance?.current_balance || 0;
+
+        if (currentBalance < totalCost) {
+          toast({
+            title: "Nincs elegendő egyenleg",
+            description: `Az állat foglalásához ${totalCost.toLocaleString("hu-HU")} Ft szükséges, de csak ${currentBalance.toLocaleString("hu-HU")} Ft áll rendelkezésre.`,
+            variant: "destructive",
+          });
+          setLoading(false);
+          return;
+        }
+
+        // Proceed with reservation update
+        let updateData: any = {
+          reservation_note: note || null,
+          reservation_status: "approved",
+        };
+
+        if (selectedUserId) {
+          if (selectedUserId.startsWith('hired-')) {
+            const hiredHunterId = selectedUserId.replace('hired-', '');
+            const { data: hiredHunter } = await supabase
+              .from("hired_hunters")
+              .select("name")
+              .eq("id", hiredHunterId)
+              .single();
+            
+            if (hiredHunter) {
+              updateData.hunter_name = hiredHunter.name;
+              updateData.hunter_type = "bérvadász";
+              updateData.reserved_by = null;
+            }
+          } else {
+            updateData.reserved_by = selectedUserId;
+            updateData.hunter_type = "saját vadász";
+            if (!reservedBy) {
+              updateData.reserved_at = new Date().toISOString();
+            }
+          }
+        } else if (reservedBy) {
+          updateData.reserved_by = reservedBy;
+          if (!updateData.reserved_at) {
+            updateData.reserved_at = new Date().toISOString();
+          }
+        }
+
+        const { error: updateError } = await supabase
+          .from("animals")
+          .update(updateData)
+          .eq("id", animalId);
+
+        if (updateError) throw updateError;
+
+        // Create balance transaction
+        const { error: transactionError } = await supabase
+          .from("user_balance_transactions")
+          .insert({
+            user_id: payingUserId,
+            hunter_society_id: profile.hunter_society_id,
+            transaction_type: "animal_reservation",
+            amount: -totalCost,
+            status: "approved",
+            approved_by: user.id,
+            approved_at: new Date().toISOString(),
+            related_animal_id: animalId,
+            notes: `Állatfoglalás: ${animalIdentifier} - ${animalWeight} kg`,
+          });
+
+        if (transactionError) throw transactionError;
+
+        toast({
+          title: "Foglalás jóváhagyva!",
+          description: `${totalCost.toLocaleString("hu-HU")} Ft levonva az egyenlegből.`,
+        });
+
+        setOpen(false);
+        onReservationUpdated();
+        return;
+      }
+
+      // Standard reservation flow (no balance involved)
       let updateData: any = {
         reservation_note: note || null,
       };
 
-      // Ha vadász és pending-re állítja
       if (isHunter && status === "pending") {
         updateData.reservation_status = "pending";
         updateData.reserved_by = user.id;
         updateData.reserved_at = new Date().toISOString();
       } 
-      // Ha admin/editor és módosítja a státuszt
       else if ((isAdmin || isEditor) && status) {
         updateData.reservation_status = status;
         
-        // Ha elérhetőre állítja, töröljük a foglalást
         if (status === "available") {
           updateData.reserved_by = null;
           updateData.reserved_at = null;
           updateData.hunter_name = null;
         }
-        // Ha jóváhagyva-ra állítja vagy kiválasztott egy felhasználót
         else if (status === "approved" || status === "pending") {
-          // Ha van kiválasztott felhasználó, azt használjuk
           if (selectedUserId) {
-            // Check if it's a hired hunter
             if (selectedUserId.startsWith('hired-')) {
               const hiredHunterId = selectedUserId.replace('hired-', '');
-              // Fetch hired hunter name
               const { data: hiredHunter } = await supabase
                 .from("hired_hunters")
                 .select("name")
@@ -264,10 +396,9 @@ export const AnimalReservationDialog = ({
               if (hiredHunter) {
                 updateData.hunter_name = hiredHunter.name;
                 updateData.hunter_type = "bérvadász";
-                updateData.reserved_by = null; // Hired hunters don't have user_id
+                updateData.reserved_by = null;
               }
             } else {
-              // Regular hunter user
               updateData.reserved_by = selectedUserId;
               updateData.hunter_type = "saját vadász";
               if (!reservedBy) {
@@ -275,7 +406,6 @@ export const AnimalReservationDialog = ({
               }
             }
           } else if (!reservedBy) {
-            // Ha nincs még foglalva, akkor a jelenlegi usert állítjuk be
             updateData.reserved_by = user.id;
             updateData.reserved_at = new Date().toISOString();
           }
@@ -431,6 +561,32 @@ export const AnimalReservationDialog = ({
                 )}
               </div>
             </div>
+          )}
+
+          {/* Balance info - csak vadászoknak */}
+          {isHunter && userBalance !== null && (animalPrice > 0 || coolingPrice > 0) && (
+            <Alert variant={userBalance >= (animalPrice + coolingPrice) ? "default" : "destructive"}>
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                {userBalance >= (animalPrice + coolingPrice) ? (
+                  <>
+                    Jelenlegi egyenleg: <strong>{userBalance.toLocaleString("hu-HU")} Ft</strong>
+                    <br />
+                    Foglalás után maradék: <strong>{(userBalance - (animalPrice + coolingPrice)).toLocaleString("hu-HU")} Ft</strong>
+                  </>
+                ) : (
+                  <>
+                    <strong>Nincs elegendő egyenleg!</strong>
+                    <br />
+                    Jelenlegi egyenleg: {userBalance.toLocaleString("hu-HU")} Ft
+                    <br />
+                    Szükséges: {(animalPrice + coolingPrice).toLocaleString("hu-HU")} Ft
+                    <br />
+                    Hiányzik: <strong>{((animalPrice + coolingPrice) - userBalance).toLocaleString("hu-HU")} Ft</strong>
+                  </>
+                )}
+              </AlertDescription>
+            </Alert>
           )}
 
           {/* Felhasználó kiválasztása admin/editor esetén */}
