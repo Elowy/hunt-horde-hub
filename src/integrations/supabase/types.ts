@@ -559,9 +559,7 @@ export type Database = {
       hunter_feature_permissions: {
         Row: {
           allow_registrations: boolean
-          allow_reserve_animals: boolean
           allow_view_announcements: boolean
-          allow_view_cooled_animals: boolean
           allow_view_statistics: boolean
           created_at: string
           hunter_category: Database["public"]["Enums"]["hunter_category"]
@@ -571,9 +569,7 @@ export type Database = {
         }
         Insert: {
           allow_registrations?: boolean
-          allow_reserve_animals?: boolean
           allow_view_announcements?: boolean
-          allow_view_cooled_animals?: boolean
           allow_view_statistics?: boolean
           created_at?: string
           hunter_category: Database["public"]["Enums"]["hunter_category"]
@@ -583,9 +579,7 @@ export type Database = {
         }
         Update: {
           allow_registrations?: boolean
-          allow_reserve_animals?: boolean
           allow_view_announcements?: boolean
-          allow_view_cooled_animals?: boolean
           allow_view_statistics?: boolean
           created_at?: string
           hunter_category?: Database["public"]["Enums"]["hunter_category"]
@@ -1070,6 +1064,8 @@ export type Database = {
           notify_on_transport: boolean | null
           updated_at: string | null
           user_id: string
+          web_notify_on_registration_approved: boolean | null
+          web_notify_on_registration_rejected: boolean | null
         }
         Insert: {
           created_at?: string | null
@@ -1088,6 +1084,8 @@ export type Database = {
           notify_on_transport?: boolean | null
           updated_at?: string | null
           user_id: string
+          web_notify_on_registration_approved?: boolean | null
+          web_notify_on_registration_rejected?: boolean | null
         }
         Update: {
           created_at?: string | null
@@ -1106,6 +1104,8 @@ export type Database = {
           notify_on_transport?: boolean | null
           updated_at?: string | null
           user_id?: string
+          web_notify_on_registration_approved?: boolean | null
+          web_notify_on_registration_rejected?: boolean | null
         }
         Relationships: []
       }

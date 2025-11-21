@@ -12,8 +12,6 @@ type HunterCategory = Database["public"]["Enums"]["hunter_category"];
 
 interface FeaturePermissions {
   allow_registrations: boolean;
-  allow_view_cooled_animals: boolean;
-  allow_reserve_animals: boolean;
   allow_view_statistics: boolean;
   allow_view_announcements: boolean;
 }
@@ -55,14 +53,10 @@ export const HunterFeaturePermissions = () => {
         const existing = existingPermissions?.find(p => p.hunter_category === value);
         permissionsMap[value] = existing ? {
           allow_registrations: existing.allow_registrations,
-          allow_view_cooled_animals: existing.allow_view_cooled_animals,
-          allow_reserve_animals: existing.allow_reserve_animals,
           allow_view_statistics: existing.allow_view_statistics,
           allow_view_announcements: existing.allow_view_announcements,
         } : {
           allow_registrations: true,
-          allow_view_cooled_animals: true,
-          allow_reserve_animals: true,
           allow_view_statistics: true,
           allow_view_announcements: true,
         };
@@ -149,22 +143,6 @@ export const HunterFeaturePermissions = () => {
                   id={`${value}-registrations`}
                   checked={permissions[value]?.allow_registrations ?? true}
                   onCheckedChange={(checked) => updatePermission(value, "allow_registrations", checked)}
-                />
-              </div>
-              <div className="flex items-center justify-between">
-                <Label htmlFor={`${value}-cooled`}>Hűtött vadak megtekintése</Label>
-                <Switch
-                  id={`${value}-cooled`}
-                  checked={permissions[value]?.allow_view_cooled_animals ?? true}
-                  onCheckedChange={(checked) => updatePermission(value, "allow_view_cooled_animals", checked)}
-                />
-              </div>
-              <div className="flex items-center justify-between">
-                <Label htmlFor={`${value}-reserve`}>Vadak foglalása</Label>
-                <Switch
-                  id={`${value}-reserve`}
-                  checked={permissions[value]?.allow_reserve_animals ?? true}
-                  onCheckedChange={(checked) => updatePermission(value, "allow_reserve_animals", checked)}
                 />
               </div>
               <div className="flex items-center justify-between">
