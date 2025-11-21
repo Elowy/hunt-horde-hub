@@ -1,13 +1,16 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Edit, Trash2, AlertCircle } from "lucide-react";
+import { Plus, Edit, Trash2, AlertCircle, Mail, DollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { PageHeader } from "@/components/PageHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useSubscription } from "@/hooks/useSubscription";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { HiredHunterRevenuesDialog } from "@/components/HiredHunterRevenuesDialog";
 import {
   Dialog,
   DialogContent,
@@ -36,7 +39,12 @@ interface HiredHunter {
   license_number: string | null;
   phone: string | null;
   email: string | null;
+  address: string | null;
   notes: string | null;
+  expires_at: string | null;
+  invited_at: string | null;
+  registered_at: string | null;
+  is_registered: boolean | null;
   created_at: string;
 }
 
@@ -51,12 +59,16 @@ const HiredHunters = () => {
   const [editingHunter, setEditingHunter] = useState<HiredHunter | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [hunterToDelete, setHunterToDelete] = useState<string | null>(null);
+  const [revenueDialogOpen, setRevenueDialogOpen] = useState(false);
+  const [selectedHunterForRevenue, setSelectedHunterForRevenue] = useState<{ id: string; name: string } | null>(null);
   const { limits, loading: subscriptionLoading } = useSubscription();
   const [formData, setFormData] = useState({
     name: "",
     license_number: "",
     phone: "",
     email: "",
+    address: "",
+    expires_at: "",
     notes: "",
   });
 
@@ -130,16 +142,20 @@ const HiredHunters = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
+      const hunterData = {
+        name: formData.name,
+        license_number: formData.license_number || null,
+        phone: formData.phone || null,
+        email: formData.email || null,
+        address: formData.address || null,
+        expires_at: formData.expires_at || null,
+        notes: formData.notes || null,
+      };
+
       if (editingHunter) {
         const { error } = await supabase
           .from("hired_hunters")
-          .update({
-            name: formData.name,
-            license_number: formData.license_number || null,
-            phone: formData.phone || null,
-            email: formData.email || null,
-            notes: formData.notes || null,
-          })
+          .update(hunterData)
           .eq("id", editingHunter.id);
 
         if (error) throw error;
@@ -148,26 +164,15 @@ const HiredHunters = () => {
         const { error } = await supabase
           .from("hired_hunters")
           .insert({
+            ...hunterData,
             user_id: user.id,
-            name: formData.name,
-            license_number: formData.license_number || null,
-            phone: formData.phone || null,
-            email: formData.email || null,
-            notes: formData.notes || null,
           });
 
         if (error) throw error;
         toast({ title: "Siker!", description: "Bérvadász hozzáadva!" });
       }
 
-      setFormData({
-        name: "",
-        license_number: "",
-        phone: "",
-        email: "",
-        notes: "",
-      });
-      setEditingHunter(null);
+      resetForm();
       setDialogOpen(false);
       fetchHunters();
     } catch (error: any) {
@@ -186,6 +191,8 @@ const HiredHunters = () => {
       license_number: hunter.license_number || "",
       phone: hunter.phone || "",
       email: hunter.email || "",
+      address: hunter.address || "",
+      expires_at: hunter.expires_at ? hunter.expires_at.split("T")[0] : "",
       notes: hunter.notes || "",
     });
     setDialogOpen(true);
@@ -215,18 +222,69 @@ const HiredHunters = () => {
     }
   };
 
+  const handleSendInvitation = async (hunter: HiredHunter) => {
+    if (!hunter.email) {
+      toast({
+        title: "Hiba",
+        description: "Email cím nincs megadva!",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const { error } = await supabase.functions.invoke("send-hired-hunter-invitation", {
+        body: { hiredHunterId: hunter.id },
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Siker!",
+        description: "Meghívó email elküldve!",
+      });
+
+      fetchHunters();
+    } catch (error: any) {
+      toast({
+        title: "Hiba",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const resetForm = () => {
+    setFormData({
+      name: "",
+      license_number: "",
+      phone: "",
+      email: "",
+      address: "",
+      expires_at: "",
+      notes: "",
+    });
+    setEditingHunter(null);
+  };
+
   const handleDialogClose = (open: boolean) => {
     setDialogOpen(open);
     if (!open) {
-      setEditingHunter(null);
-      setFormData({
-        name: "",
-        license_number: "",
-        phone: "",
-        email: "",
-        notes: "",
-      });
+      resetForm();
     }
+  };
+
+  const getStatusBadge = (hunter: HiredHunter) => {
+    if (hunter.is_registered) {
+      return <Badge variant="default" className="bg-green-600">Regisztrált</Badge>;
+    }
+    if (hunter.expires_at && new Date(hunter.expires_at) < new Date()) {
+      return <Badge variant="destructive">Lejárt</Badge>;
+    }
+    if (hunter.invited_at) {
+      return <Badge variant="secondary">Várakozik</Badge>;
+    }
+    return <Badge variant="outline">Nincs meghívva</Badge>;
   };
 
   if (loading || subscriptionLoading) {
@@ -282,19 +340,20 @@ const HiredHunters = () => {
             <DialogTrigger asChild>
               <Button>
                 <Plus className="h-4 w-4 mr-2" />
-                  Új bérvadász
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>
-                    {editingHunter ? "Bérvadász módosítása" : "Új bérvadász"}
-                  </DialogTitle>
-                  <DialogDescription>
-                    Adja meg a bérvadász adatait.
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4">
+                Új bérvadász
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>
+                  {editingHunter ? "Bérvadász módosítása" : "Új bérvadász"}
+                </DialogTitle>
+                <DialogDescription>
+                  Adja meg a bérvadász adatait. Az email és lejárati dátum megadása esetén meghívó küldhető.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Név *</Label>
                     <Input
@@ -311,14 +370,9 @@ const HiredHunters = () => {
                       placeholder="Pl.: VJ123456"
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label>Telefonszám</Label>
-                    <Input
-                      value={formData.phone}
-                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                      placeholder="Pl.: +36301234567"
-                    />
-                  </div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Email</Label>
                     <Input
@@ -329,18 +383,49 @@ const HiredHunters = () => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>Megjegyzések</Label>
-                    <Textarea
-                      value={formData.notes}
-                      onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                      placeholder="További információk..."
-                      rows={3}
+                    <Label>Telefonszám</Label>
+                    <Input
+                      value={formData.phone}
+                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                      placeholder="Pl.: +36301234567"
                     />
                   </div>
-                  <Button onClick={handleSubmit} className="w-full">
-                    {editingHunter ? "Módosítás" : "Hozzáadás"}
-                  </Button>
                 </div>
+
+                <div className="space-y-2">
+                  <Label>Cím</Label>
+                  <Input
+                    value={formData.address}
+                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                    placeholder="Teljes lakcím"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Link lejárati dátuma</Label>
+                  <Input
+                    type="date"
+                    value={formData.expires_at}
+                    onChange={(e) => setFormData({ ...formData, expires_at: e.target.value })}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    A regisztrációs link ezen dátumig lesz érvényes
+                  </p>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label>Megjegyzések</Label>
+                  <Textarea
+                    value={formData.notes}
+                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                    placeholder="További információk..."
+                    rows={3}
+                  />
+                </div>
+                <Button onClick={handleSubmit} className="w-full">
+                  {editingHunter ? "Módosítás" : "Hozzáadás"}
+                </Button>
+              </div>
             </DialogContent>
           </Dialog>
         </div>
@@ -354,74 +439,106 @@ const HiredHunters = () => {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {hunters.map((hunter) => (
-              <Card key={hunter.id}>
-                <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
-                    <span>{hunter.name}</span>
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleEdit(hunter)}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => {
-                          setHunterToDelete(hunter.id);
-                          setDeleteDialogOpen(true);
-                        }}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2 text-sm">
-                  {hunter.license_number && (
-                    <div>
-                      <strong>Vadászjegy:</strong> {hunter.license_number}
-                    </div>
-                  )}
-                  {hunter.phone && (
-                    <div>
-                      <strong>Telefon:</strong> {hunter.phone}
-                    </div>
-                  )}
-                  {hunter.email && (
-                    <div>
-                      <strong>Email:</strong> {hunter.email}
-                    </div>
-                  )}
-                  {hunter.notes && (
-                    <div>
-                      <strong>Megjegyzés:</strong> {hunter.notes}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+          <Card>
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Név</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Telefon</TableHead>
+                    <TableHead>Cím</TableHead>
+                    <TableHead>Lejárat</TableHead>
+                    <TableHead>Státusz</TableHead>
+                    <TableHead className="text-right">Műveletek</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {hunters.map((hunter) => (
+                    <TableRow key={hunter.id}>
+                      <TableCell className="font-medium">{hunter.name}</TableCell>
+                      <TableCell>{hunter.email || "-"}</TableCell>
+                      <TableCell>{hunter.phone || "-"}</TableCell>
+                      <TableCell className="max-w-xs truncate">{hunter.address || "-"}</TableCell>
+                      <TableCell>
+                        {hunter.expires_at 
+                          ? new Date(hunter.expires_at).toLocaleDateString("hu-HU")
+                          : "-"
+                        }
+                      </TableCell>
+                      <TableCell>{getStatusBadge(hunter)}</TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleSendInvitation(hunter)}
+                            disabled={!hunter.email}
+                            title={hunter.email ? "Meghívó küldése" : "Email cím nincs megadva"}
+                          >
+                            <Mail className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              setSelectedHunterForRevenue({ id: hunter.id, name: hunter.name });
+                              setRevenueDialogOpen(true);
+                            }}
+                            title="Bevételek kezelése"
+                          >
+                            <DollarSign className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleEdit(hunter)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              setHunterToDelete(hunter.id);
+                              setDeleteDialogOpen(true);
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
         )}
 
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Biztosan törli?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Ez a művelet nem vonható vissza. A bérvadász véglegesen törlésre kerül.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Mégse</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete}>Törlés</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Biztosan törli?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Ez a művelet nem vonható vissza. A bérvadász véglegesen törlésre kerül.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Mégse</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDelete}>Törlés</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {selectedHunterForRevenue && (
+          <HiredHunterRevenuesDialog
+            open={revenueDialogOpen}
+            onOpenChange={setRevenueDialogOpen}
+            hiredHunterId={selectedHunterForRevenue.id}
+            hunterName={selectedHunterForRevenue.name}
+          />
+        )}
       </div>
     </div>
   );

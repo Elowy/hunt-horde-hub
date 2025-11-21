@@ -461,37 +461,96 @@ export type Database = {
         }
         Relationships: []
       }
+      hired_hunter_revenues: {
+        Row: {
+          amount: number
+          created_at: string | null
+          description: string | null
+          hired_hunter_id: string
+          id: string
+          revenue_date: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string | null
+          description?: string | null
+          hired_hunter_id: string
+          id?: string
+          revenue_date?: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          description?: string | null
+          hired_hunter_id?: string
+          id?: string
+          revenue_date?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hired_hunter_revenues_hired_hunter_id_fkey"
+            columns: ["hired_hunter_id"]
+            isOneToOne: false
+            referencedRelation: "hired_hunters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hired_hunters: {
         Row: {
+          address: string | null
           created_at: string
           email: string | null
+          expires_at: string | null
           id: string
+          invitation_token: string | null
+          invited_at: string | null
+          is_registered: boolean | null
           license_number: string | null
           name: string
           notes: string | null
           phone: string | null
+          registered_at: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          address?: string | null
           created_at?: string
           email?: string | null
+          expires_at?: string | null
           id?: string
+          invitation_token?: string | null
+          invited_at?: string | null
+          is_registered?: boolean | null
           license_number?: string | null
           name: string
           notes?: string | null
           phone?: string | null
+          registered_at?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          address?: string | null
           created_at?: string
           email?: string | null
+          expires_at?: string | null
           id?: string
+          invitation_token?: string | null
+          invited_at?: string | null
+          is_registered?: boolean | null
           license_number?: string | null
           name?: string
           notes?: string | null
           phone?: string | null
+          registered_at?: string | null
           updated_at?: string
           user_id?: string
         }
