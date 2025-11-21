@@ -158,17 +158,16 @@ export default function HunterDashboard() {
         .select("*")
         .eq("hunter_society_id", selectedSociety)
         .eq("hunter_category", hunterCategory)
-        .single();
+        .maybeSingle();
 
-      if (permissionsData) {
-        setPermissions({
-          allow_registrations: permissionsData.allow_registrations,
-          allow_view_cooled_animals: permissionsData.allow_view_cooled_animals,
-          allow_reserve_animals: permissionsData.allow_reserve_animals,
-          allow_view_statistics: permissionsData.allow_view_statistics,
-          allow_view_announcements: permissionsData.allow_view_announcements,
-        });
-      }
+      // Use fetched permissions or default to all true if no record exists
+      setPermissions({
+        allow_registrations: permissionsData?.allow_registrations ?? true,
+        allow_view_cooled_animals: permissionsData?.allow_view_cooled_animals ?? true,
+        allow_reserve_animals: permissionsData?.allow_reserve_animals ?? true,
+        allow_view_statistics: permissionsData?.allow_view_statistics ?? true,
+        allow_view_announcements: permissionsData?.allow_view_announcements ?? true,
+      });
     } else {
       // No active subscription - disable all features
       setPermissions({
