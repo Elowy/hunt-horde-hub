@@ -202,7 +202,7 @@ const Dashboard = () => {
   const [showStatistics, setShowStatistics] = useState(() => {
     const saved = localStorage.getItem('dashboard-show-statistics');
     if (saved !== null) return JSON.parse(saved);
-    return isMobile ? false : true;
+    return false;
   });
   const [showAnimals, setShowAnimals] = useState(() => {
     const saved = localStorage.getItem('dashboard-show-animals');
