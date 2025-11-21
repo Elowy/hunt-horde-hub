@@ -51,22 +51,33 @@ function HunterBalanceSection() {
 
       if (!memberships) return;
 
-      // Fetch balances for each society
-      const balanceData = [];
-      for (const membership of memberships) {
-        const { data: balance } = await supabase
-          .from("user_balances")
-          .select("*")
-          .eq("user_id", user.id)
-          .eq("hunter_society_id", membership.hunter_society_id)
-          .single();
-
-        balanceData.push({
-          society_name: (membership.profiles as any)?.company_name || "Ismeretlen",
-          current_balance: balance?.current_balance || 0,
-          last_transaction_at: balance?.last_transaction_at || null,
-        });
+      if (!memberships || memberships.length === 0) {
+        console.log("No societies found for hunter");
+        setBalances([]);
+        return;
       }
+
+      // Fetch balances for each society
+      const balanceData = await Promise.all(
+        memberships.map(async (membership) => {
+          const { data: balance, error: balanceError } = await supabase
+            .from("user_balances")
+            .select("*")
+            .eq("user_id", user.id)
+            .eq("hunter_society_id", membership.hunter_society_id)
+            .maybeSingle();
+
+          if (balanceError) {
+            console.error("Error fetching balance:", balanceError);
+          }
+
+          return {
+            society_name: (membership.profiles as any)?.company_name || "Ismeretlen",
+            current_balance: balance?.current_balance || 0,
+            last_transaction_at: balance?.last_transaction_at || null,
+          };
+        })
+      );
 
       setBalances(balanceData);
     } catch (error) {
@@ -76,7 +87,21 @@ function HunterBalanceSection() {
     }
   };
 
-  if (loading) return null;
+  if (loading) {
+    return (
+      <div className="flex justify-center py-4">
+        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary" />
+      </div>
+    );
+  }
+
+  if (balances.length === 0) {
+    return (
+      <div className="text-sm text-muted-foreground text-center py-4">
+        Nincs elérhető egyenleg
+      </div>
+    );
+  }
 
   return <UserBalanceCard balances={balances} compact={false} />;
 }
@@ -238,6 +263,24 @@ export const DashboardMenu = ({ isAdmin, isEditor, isHunter, onLogout, onPriceUp
             <>
               <Separator />
               
+              {/* Vadászati beiratkozások - csak ha Pro */}
+              {(isPro || societyIsPro) && (
+                <>
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium text-muted-foreground px-2">Vadászat</p>
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-start"
+                      onClick={() => handleNavigation("/hunting-registrations")}
+                    >
+                      <CalendarCheck className="mr-2 h-4 w-4" />
+                      Vadászati beiratkozások
+                    </Button>
+                  </div>
+                  <Separator />
+                </>
+              )}
+              
               {/* Profil */}
               <div className="space-y-2">
                 <Button
@@ -373,8 +416,8 @@ export const DashboardMenu = ({ isAdmin, isEditor, isHunter, onLogout, onPriceUp
             </>
           )}
 
-          {/* Nyilvántartás */}
-          {!isHunter && (
+          {/* Nyilvántartás - csak admin/editor számára */}
+          {(isAdmin || isEditor) && (
             <>
               <div className="space-y-2">
                 <p className="text-sm font-medium text-muted-foreground px-2">Nyilvántartás</p>
@@ -397,8 +440,8 @@ export const DashboardMenu = ({ isAdmin, isEditor, isHunter, onLogout, onPriceUp
             </>
           )}
 
-          {/* Felvásárlások */}
-          {!isHunter && (
+          {/* Felvásárlások - csak admin/editor/buyer számára */}
+          {(((isAdmin || isEditor) && !isBuyer) || isBuyer) && (
             <>
               <div className="space-y-2">
                 <p className="text-sm font-medium text-muted-foreground px-2">Felvásárlások</p>
@@ -428,15 +471,15 @@ export const DashboardMenu = ({ isAdmin, isEditor, isHunter, onLogout, onPriceUp
             </>
           )}
 
-          {/* Vadászat */}
-          {!(isHunter && !societyIsPro) && (
+          {/* Vadászat - csak admin/editor számára */}
+          {(isAdmin || isEditor) && (
             <>
               <div className="space-y-2">
                 <p className="text-sm font-medium text-muted-foreground px-2">Vadászat</p>
                 <div className="space-y-2">
                   {subscriptionLoading ? (
                     <p className="text-xs text-muted-foreground px-2">Betöltés...</p>
-                  ) : (isPro || (isHunter && societyIsPro)) ? (
+                  ) : isPro ? (
                     <>
                       <Button
                         variant="ghost"
@@ -491,8 +534,8 @@ export const DashboardMenu = ({ isAdmin, isEditor, isHunter, onLogout, onPriceUp
             </>
           )}
 
-          {/* Riportok */}
-          {((isHunter && societyIsPro) || (!isHunter && !isBuyer)) && (
+          {/* Riportok - csak admin/editor számára */}
+          {(isAdmin || isEditor) && !isBuyer && (
             <>
               <div className="space-y-2">
                 <p className="text-sm font-medium text-muted-foreground px-2">Riportok</p>
@@ -543,8 +586,8 @@ export const DashboardMenu = ({ isAdmin, isEditor, isHunter, onLogout, onPriceUp
             </>
           )}
 
-          {/* Dokumentumok - Csak vadásztársaságoknak és Pro verzióval */}
-          {!isHunter && !isBuyer && (
+          {/* Tagdíjak - csak admin/editor számára */}
+          {(isAdmin || isEditor) && !isBuyer && (
             <>
               <div className="space-y-2">
                 <p className="text-sm font-medium text-muted-foreground px-2">Tagdíjak</p>
@@ -577,8 +620,8 @@ export const DashboardMenu = ({ isAdmin, isEditor, isHunter, onLogout, onPriceUp
             </>
           )}
 
-          {/* Dokumentumok - Csak vadásztársaságoknak és Pro verzióval */}
-          {!isHunter && !isBuyer && (
+          {/* Dokumentumok - csak admin/editor számára */}
+          {(isAdmin || isEditor) && !isBuyer && (
             <>
               <div className="space-y-2">
                 <p className="text-sm font-medium text-muted-foreground px-2">Dokumentumok</p>
