@@ -1708,11 +1708,37 @@ const Dashboard = () => {
     return animals.reduce((sum, animal) => {
       if (animal.is_transported || !animal.weight) return sum;
       
-      const location = locations.find(loc => loc.id === animal.storage_location_id);
-      if (!location || !location.cooling_price_per_kg) return sum;
+      // 1. Elsődlegesen az állaton már elmentett hűtési ár
+      if (animal.transport_cooling_price && animal.transport_cooling_price > 0) {
+        const netRevenue = animal.weight * animal.transport_cooling_price;
+        const vatRate = animal.transport_cooling_vat_rate || 27;
+        const grossRevenue = netRevenue * (1 + vatRate / 100);
+        return sum + grossRevenue;
+      }
       
-      const netRevenue = animal.weight * location.cooling_price_per_kg;
-      const vatRate = location.cooling_vat_rate || 27;
+      // 2. Másodsorban járványügyi intézkedés hűtési ára
+      const epidemicMeasure = epidemicMeasures?.find(
+        (m) => m.is_active && m.affected_species.includes(animal.species)
+      );
+      
+      if (epidemicMeasure && epidemicMeasure.cooling_price_per_kg) {
+        const netRevenue = animal.weight * epidemicMeasure.cooling_price_per_kg;
+        const grossRevenue = netRevenue * (1 + epidemicMeasure.vat_rate / 100);
+        return sum + grossRevenue;
+      }
+      
+      // 3. Harmadsorban a coolingPrices állapotból az aktív ár
+      const activeCoolingPrice = coolingPrices.find(
+        cp => cp.storage_location_id === animal.storage_location_id && 
+        (cp.valid_to === null || new Date(cp.valid_to) > new Date())
+      );
+      
+      if (!activeCoolingPrice || !activeCoolingPrice.cooling_price_per_kg) {
+        return sum;
+      }
+      
+      const netRevenue = animal.weight * activeCoolingPrice.cooling_price_per_kg;
+      const vatRate = activeCoolingPrice.cooling_vat_rate || 27;
       const grossRevenue = netRevenue * (1 + vatRate / 100);
       
       return sum + grossRevenue;
@@ -1730,11 +1756,37 @@ const Dashboard = () => {
       const date = new Date(animal.cooling_date);
       if (date.getMonth() + 1 !== month || date.getFullYear() !== year) return sum;
       
-      const location = locations.find(loc => loc.id === animal.storage_location_id);
-      if (!location || !location.cooling_price_per_kg) return sum;
+      // 1. Elsődlegesen az állaton már elmentett hűtési ár
+      if (animal.transport_cooling_price && animal.transport_cooling_price > 0) {
+        const netRevenue = animal.weight * animal.transport_cooling_price;
+        const vatRate = animal.transport_cooling_vat_rate || 27;
+        const grossRevenue = netRevenue * (1 + vatRate / 100);
+        return sum + grossRevenue;
+      }
       
-      const netRevenue = animal.weight * location.cooling_price_per_kg;
-      const vatRate = location.cooling_vat_rate || 27;
+      // 2. Másodsorban járványügyi intézkedés hűtési ára
+      const epidemicMeasure = epidemicMeasures?.find(
+        (m) => m.is_active && m.affected_species.includes(animal.species)
+      );
+      
+      if (epidemicMeasure && epidemicMeasure.cooling_price_per_kg) {
+        const netRevenue = animal.weight * epidemicMeasure.cooling_price_per_kg;
+        const grossRevenue = netRevenue * (1 + epidemicMeasure.vat_rate / 100);
+        return sum + grossRevenue;
+      }
+      
+      // 3. Harmadsorban a coolingPrices állapotból az aktív ár
+      const activeCoolingPrice = coolingPrices.find(
+        cp => cp.storage_location_id === animal.storage_location_id && 
+        (cp.valid_to === null || new Date(cp.valid_to) > new Date())
+      );
+      
+      if (!activeCoolingPrice || !activeCoolingPrice.cooling_price_per_kg) {
+        return sum;
+      }
+      
+      const netRevenue = animal.weight * activeCoolingPrice.cooling_price_per_kg;
+      const vatRate = activeCoolingPrice.cooling_vat_rate || 27;
       const grossRevenue = netRevenue * (1 + vatRate / 100);
       
       return sum + grossRevenue;
