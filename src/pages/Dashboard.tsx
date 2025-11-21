@@ -143,6 +143,16 @@ interface PriceSetting {
   is_archived: boolean;
 }
 
+interface CoolingPrice {
+  id: string;
+  storage_location_id: string;
+  cooling_price_per_kg: number;
+  cooling_vat_rate: number;
+  valid_from: string;
+  valid_to: string | null;
+  is_archived: boolean;
+}
+
 const Dashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -160,6 +170,7 @@ const Dashboard = () => {
   const [animals, setAnimals] = useState<Animal[]>([]);
   const [locations, setLocations] = useState<StorageLocation[]>([]);
   const [priceSettings, setPriceSettings] = useState<PriceSetting[]>([]);
+  const [coolingPrices, setCoolingPrices] = useState<CoolingPrice[]>([]);
   const [vatRate, setVatRate] = useState<number>(27);
   const [loading, setLoading] = useState(true);
   const [selectedAnimals, setSelectedAnimals] = useState<Set<string>>(new Set());
@@ -372,7 +383,7 @@ const Dashboard = () => {
       }
 
       // Fetch data - super admins viewing specific company see that company's data
-      const [locationsResult, animalsResult, pricesResult, transportDocsResult, profileResult] = await Promise.all([
+      const [locationsResult, animalsResult, pricesResult, coolingPricesResult, transportDocsResult, profileResult] = await Promise.all([
         supabase
           .from("storage_locations")
           .select("*")
@@ -387,6 +398,12 @@ const Dashboard = () => {
           .from("price_settings")
           .select("*")
           .in("user_id", userIds),
+        supabase
+          .from("cooling_prices")
+          .select("*")
+          .in("user_id", userIds)
+          .eq("is_archived", false)
+          .order("valid_from", { ascending: false }),
         supabase
           .from("transport_documents")
           .select(`
@@ -407,6 +424,7 @@ const Dashboard = () => {
       if (locationsResult.error) throw locationsResult.error;
       if (animalsResult.error) throw animalsResult.error;
       if (pricesResult.error) throw pricesResult.error;
+      if (coolingPricesResult.error) throw coolingPricesResult.error;
       if (profileResult.data?.vat_rate) {
         setVatRate(profileResult.data.vat_rate);
       }
@@ -414,6 +432,7 @@ const Dashboard = () => {
       setLocations(locationsResult.data || []);
       setAnimals(animalsResult.data || []);
       setPriceSettings(pricesResult.data || []);
+      setCoolingPrices(coolingPricesResult.data || []);
 
       // Build map of animal_id -> transporter_name
       const transportMap: Record<string, string> = {};
@@ -948,10 +967,13 @@ const Dashboard = () => {
           animalVatRate = priceSetting.vat_rate;
         }
 
-        // Get cooling price from storage location
-        const storage = locations.find(loc => loc.id === animal.storage_location_id);
-        const coolingPrice = storage?.cooling_price_per_kg || null;
-        const coolingVatRate = storage?.cooling_vat_rate || null;
+        // Get cooling price from storage location's active cooling prices
+        const activeCoolingPrice = coolingPrices.find(
+          cp => cp.storage_location_id === animal.storage_location_id && 
+          (cp.valid_to === null || new Date(cp.valid_to) > new Date())
+        );
+        const coolingPrice = activeCoolingPrice?.cooling_price_per_kg || null;
+        const coolingVatRate = activeCoolingPrice?.cooling_vat_rate || null;
 
         const { error } = await supabase
           .from("animals")
@@ -1030,10 +1052,13 @@ const Dashboard = () => {
           animalVatRate = priceSetting.vat_rate;
         }
 
-        // Get cooling price from storage location
-        const storage = locations.find(loc => loc.id === animal.storage_location_id);
-        const coolingPrice = storage?.cooling_price_per_kg || null;
-        const coolingVatRate = storage?.cooling_vat_rate || null;
+        // Get cooling price from storage location's active cooling prices
+        const activeCoolingPrice = coolingPrices.find(
+          cp => cp.storage_location_id === animal.storage_location_id && 
+          (cp.valid_to === null || new Date(cp.valid_to) > new Date())
+        );
+        const coolingPrice = activeCoolingPrice?.cooling_price_per_kg || null;
+        const coolingVatRate = activeCoolingPrice?.cooling_vat_rate || null;
 
         const { error } = await supabase
           .from("animals")
