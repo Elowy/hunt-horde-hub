@@ -55,7 +55,19 @@ export default function HunterDashboard() {
   }, []);
 
   useEffect(() => {
+    // Load saved society from localStorage
+    const savedSociety = localStorage.getItem('selected-hunter-society');
+    if (savedSociety && societies.find(s => s.id === savedSociety)) {
+      setSelectedSociety(savedSociety);
+    } else if (societies.length > 0 && !selectedSociety) {
+      setSelectedSociety(societies[0].id);
+    }
+  }, [societies]);
+
+  useEffect(() => {
     if (selectedSociety) {
+      // Save selected society to localStorage
+      localStorage.setItem('selected-hunter-society', selectedSociety);
       fetchDashboardData();
     }
   }, [selectedSociety]);
@@ -102,7 +114,7 @@ export default function HunterDashboard() {
         company_name: m.profiles.company_name
       }));
       setSocieties(societiesData);
-      setSelectedSociety(societiesData[0].id);
+      // Don't set selectedSociety here - let the useEffect handle it with localStorage
     }
 
     setLoading(false);

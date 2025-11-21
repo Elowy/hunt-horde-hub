@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Users as UsersIcon, Mail, UserCheck, Trash2, Shield, CheckCircle, XCircle } from "lucide-react";
+import { Users as UsersIcon, Mail, UserCheck, Trash2, Shield, CheckCircle, XCircle, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -11,6 +11,7 @@ import { BanUserDialog } from "@/components/BanUserDialog";
 import { InviteUserDialog } from "@/components/InviteUserDialog";
 import { AddExistingHunterDialog } from "@/components/AddExistingHunterDialog";
 import { HunterFeaturePermissions } from "@/components/HunterFeaturePermissions";
+import { ManageHunterSocietiesDialog } from "@/components/ManageHunterSocietiesDialog";
 import {
   Table,
   TableBody,
@@ -101,6 +102,9 @@ const Users = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedItemId, setSelectedItemId] = useState<string>("");
   const [deleteType, setDeleteType] = useState<"invitation" | "role">("invitation");
+  const [societiesDialogOpen, setSocietiesDialogOpen] = useState(false);
+  const [selectedHunter, setSelectedHunter] = useState<{ id: string; name: string } | null>(null);
+  const [hunterSocietyCounts, setHunterSocietyCounts] = useState<Record<string, number>>({});
 
   useEffect(() => {
     checkAdminAndFetchData();
@@ -264,6 +268,24 @@ const Users = () => {
       }));
 
       setUsers(usersWithProfiles as any);
+
+      // Fetch hunter society counts
+      const hunterIds = allProfiles
+        .filter(p => p.user_type === "hunter")
+        .map(p => p.id);
+
+      if (hunterIds.length > 0) {
+        const { data: membershipCounts } = await supabase
+          .from("hunter_society_members")
+          .select("hunter_id")
+          .in("hunter_id", hunterIds);
+
+        const counts: Record<string, number> = {};
+        hunterIds.forEach(hunterId => {
+          counts[hunterId] = membershipCounts?.filter(m => m.hunter_id === hunterId).length || 0;
+        });
+        setHunterSocietyCounts(counts);
+      }
 
       // Fetch invitations
       const { data: invitationsData, error: invitationsError } = await supabase
@@ -485,6 +507,11 @@ const Users = () => {
     setSelectedItemId("");
   };
 
+  const openSocietiesDialog = (userId: string, userName: string) => {
+    setSelectedHunter({ id: userId, name: userName });
+    setSocietiesDialogOpen(true);
+  };
+
   const getUserRole = (userId: string) => {
     const role = userRoles.find(r => r.user_id === userId);
     return role?.role || "Nincs szerepkör";
@@ -675,6 +702,7 @@ const Users = () => {
                     <TableHead>Cégnév / Kapcsolattartó</TableHead>
                     <TableHead>Szerepkör</TableHead>
                     <TableHead>Vadász kategória</TableHead>
+                    <TableHead>Társaságok száma</TableHead>
                     <TableHead>Hozzáadva</TableHead>
                     <TableHead>Művelet</TableHead>
                   </TableRow>
@@ -719,6 +747,28 @@ const Users = () => {
                               <SelectItem value="egyeb">Egyéb</SelectItem>
                             </SelectContent>
                           </Select>
+                        </TableCell>
+                        <TableCell>
+                          {user.profiles?.user_type === "hunter" ? (
+                            <div className="flex items-center gap-2">
+                              <Badge variant="outline" className="gap-1">
+                                <Building2 className="h-3 w-3" />
+                                {hunterSocietyCounts[user.id] || 0}
+                              </Badge>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => openSocietiesDialog(
+                                  user.id,
+                                  user.profiles?.contact_name || user.profiles?.company_name || "Vadász"
+                                )}
+                              >
+                                Kezelés
+                              </Button>
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground">-</span>
+                          )}
                         </TableCell>
                         <TableCell>
                           {new Date(user.created_at).toLocaleDateString("hu-HU")}
@@ -850,6 +900,17 @@ const Users = () => {
           </Card>
         </div>
       </div>
+
+      {/* Manage Hunter Societies Dialog */}
+      {selectedHunter && (
+        <ManageHunterSocietiesDialog
+          open={societiesDialogOpen}
+          onOpenChange={setSocietiesDialogOpen}
+          hunterId={selectedHunter.id}
+          hunterName={selectedHunter.name}
+          onUpdate={fetchData}
+        />
+      )}
 
       {/* Delete confirmation dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

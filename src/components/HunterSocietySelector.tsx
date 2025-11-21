@@ -1,5 +1,6 @@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { Card, CardContent } from "@/components/ui/card";
 import { Building2 } from "lucide-react";
 
 interface HunterSociety {
@@ -20,47 +21,46 @@ export const HunterSocietySelector = ({
 }: HunterSocietySelectorProps) => {
   if (societies.length === 0) return null;
 
-  // If only one society, show it as a display field instead of a dropdown
-  if (societies.length === 1) {
-    return (
-      <div className="mb-6 p-4 bg-card border rounded-lg">
-        <div className="flex items-center gap-4">
-          <Building2 className="h-5 w-5 text-muted-foreground" />
-          <div className="flex-1">
-            <Label className="text-sm text-muted-foreground">
-              Vadásztársaság
-            </Label>
-            <div className="mt-1 text-base font-medium">
-              {societies[0].company_name}
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const selectedSocietyName = societies.find(s => s.id === selectedSociety)?.company_name;
 
   return (
-    <div className="mb-6 p-4 bg-card border rounded-lg">
-      <div className="flex items-center gap-4">
-        <Building2 className="h-5 w-5 text-muted-foreground" />
-        <div className="flex-1">
-          <Label htmlFor="society-selector" className="text-sm text-muted-foreground">
-            Vadásztársaság
-          </Label>
-          <Select value={selectedSociety || undefined} onValueChange={onSocietyChange}>
-            <SelectTrigger id="society-selector" className="w-full mt-1">
-              <SelectValue placeholder="Válasszon vadásztársaságot" />
-            </SelectTrigger>
-            <SelectContent>
-              {societies.map((society) => (
-                <SelectItem key={society.id} value={society.id}>
-                  {society.company_name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
+    <div className="mb-6 w-full">
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex items-center gap-3 mb-2">
+            <Building2 className="h-6 w-6 text-primary" />
+            <Label className="text-lg font-semibold">Aktív vadásztársaság</Label>
+          </div>
+          {societies.length === 1 ? (
+            <div className="text-2xl font-bold text-primary">
+              {societies[0].company_name}
+            </div>
+          ) : (
+            <Select value={selectedSociety || undefined} onValueChange={onSocietyChange}>
+              <SelectTrigger className="w-full h-14 text-lg font-semibold">
+                <SelectValue placeholder="Válasszon vadásztársaságot">
+                  {selectedSocietyName && (
+                    <div className="flex items-center gap-3">
+                      <Building2 className="h-5 w-5" />
+                      {selectedSocietyName}
+                    </div>
+                  )}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {societies.map((society) => (
+                  <SelectItem key={society.id} value={society.id} className="text-lg py-3">
+                    <div className="flex items-center gap-3">
+                      <Building2 className="h-5 w-5" />
+                      {society.company_name}
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 };
