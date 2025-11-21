@@ -876,8 +876,23 @@ const Dashboard = () => {
 
 
   const getAnimalPrice = (animal: Animal): { net: number; gross: number } => {
-    if (!animal.weight || !animal.species || !animal.class) return { net: 0, gross: 0 };
+    if (!animal.weight) return { net: 0, gross: 0 };
     
+    // Ha már van mentett szállítási ár (járványügyi vagy normál), azt használjuk elsődlegesen
+    if (animal.transport_price_per_kg && animal.transport_price_per_kg > 0) {
+      const netPrice = animal.weight * animal.transport_price_per_kg;
+      const effectiveVat = animal.transport_vat_rate ?? vatRate;
+      const grossPrice = netPrice * (1 + effectiveVat / 100);
+
+      return {
+        net: Math.round(netPrice),
+        gross: Math.round(grossPrice),
+      };
+    }
+
+    // Ha még nincs mentett szállítási ár, esünk vissza az alap árlistára
+    if (!animal.species || !animal.class) return { net: 0, gross: 0 };
+
     const priceSetting = priceSettings.find(
       (p) => p.species === animal.species && p.class === animal.class
     );
@@ -885,11 +900,12 @@ const Dashboard = () => {
     if (!priceSetting) return { net: 0, gross: 0 };
     
     const netPrice = animal.weight * priceSetting.price_per_kg;
-    const grossPrice = netPrice * (1 + vatRate / 100);
+    const effectiveVat = priceSetting.vat_rate ?? vatRate;
+    const grossPrice = netPrice * (1 + effectiveVat / 100);
     
     return { 
       net: Math.round(netPrice), 
-      gross: Math.round(grossPrice) 
+      gross: Math.round(grossPrice),
     };
   };
 
