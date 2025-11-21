@@ -162,6 +162,7 @@ const SuperAdminDashboard = () => {
   const [transportDocuments, setTransportDocuments] = useState<TransportDocument[]>([]);
   const [subscriptionCodes, setSubscriptionCodes] = useState<SubscriptionCode[]>([]);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const [userRoles, setUserRoles] = useState<Array<{ user_id: string; role: string }>>([]);
   const [loading, setLoading] = useState(true);
   const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; type: string; id: string; name: string }>({
     open: false,
@@ -201,7 +202,7 @@ const SuperAdminDashboard = () => {
   const loadAllData = async () => {
     setLoading(true);
     try {
-      const [profilesData, pendingData, animalsData, locationsData, transportersData, documentsData, codesData, announcementsData] = await Promise.all([
+      const [profilesData, pendingData, animalsData, locationsData, transportersData, documentsData, codesData, announcementsData, rolesData] = await Promise.all([
         supabase.from("profiles").select("*"),
         supabase.from("profiles").select("*").eq("user_type", "hunter").eq("registration_approved", false).order("created_at", { ascending: false }),
         supabase.from("animals").select("*").order("created_at", { ascending: false }).limit(50),
@@ -210,10 +211,12 @@ const SuperAdminDashboard = () => {
         supabase.from("transport_documents").select("*").order("transport_date", { ascending: false }).limit(50),
         supabase.from("subscription_codes").select("*").order("created_at", { ascending: false }),
         supabase.from("announcements").select("*").eq("is_global", true).order("created_at", { ascending: false }),
+        supabase.from("user_roles").select("user_id, role"),
       ]);
 
       if (profilesData.data) setProfiles(profilesData.data);
       if (announcementsData.data) setAnnouncements(announcementsData.data);
+      if (rolesData.data) setUserRoles(rolesData.data);
       
       // Process pending hunters with hunter society names
       if (pendingData.data && pendingData.data.length > 0) {
@@ -436,6 +439,47 @@ const SuperAdminDashboard = () => {
       loadAllData();
     } catch (error: any) {
       console.error("Error rejecting hunter:", error);
+      toast({
+        title: "Hiba",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const getUserRole = (userId: string) => {
+    const role = userRoles.find(r => r.user_id === userId);
+    return role?.role || "none";
+  };
+
+  const handleRoleChange = async (userId: string, newRole: string) => {
+    try {
+      // Töröljük a meglévő szerepköröket (kivéve super_admin)
+      await supabase
+        .from("user_roles")
+        .delete()
+        .eq("user_id", userId)
+        .neq("role", "super_admin");
+
+      // Hozzáadjuk az új szerepkört, ha nem "none"
+      if (newRole !== "none") {
+        const { error } = await supabase
+          .from("user_roles")
+          .insert([{
+            user_id: userId,
+            role: newRole as "admin" | "editor" | "viewer",
+          }]);
+
+        if (error) throw error;
+      }
+
+      toast({
+        title: "Siker!",
+        description: "Szerepkör módosítva!",
+      });
+
+      loadAllData();
+    } catch (error: any) {
       toast({
         title: "Hiba",
         description: error.message,
@@ -691,6 +735,7 @@ const SuperAdminDashboard = () => {
                         <TableHead>Email</TableHead>
                         <TableHead>Típus</TableHead>
                         <TableHead>Vadásztársaság</TableHead>
+                        <TableHead>Szerepkör</TableHead>
                         <TableHead>Jóváhagyva</TableHead>
                         <TableHead className="text-right">Műveletek</TableHead>
                       </TableRow>
@@ -714,6 +759,37 @@ const SuperAdminDashboard = () => {
                                 {profiles.find(p => p.id === profile.hunter_society_id)?.company_name || "-"}
                               </span>
                             ) : "-"}
+                          </TableCell>
+                          <TableCell>
+                            <Select
+                              value={getUserRole(profile.id)}
+                              onValueChange={(value) => handleRoleChange(profile.id, value)}
+                            >
+                              <SelectTrigger className="w-[180px]">
+                                <SelectValue placeholder="Válassz szerepkört" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="none">Nincs szerepkör</SelectItem>
+                                <SelectItem value="admin">
+                                  <div className="flex items-center gap-2">
+                                    <Shield className="h-4 w-4" />
+                                    Adminisztrátor
+                                  </div>
+                                </SelectItem>
+                                <SelectItem value="editor">
+                                  <div className="flex items-center gap-2">
+                                    <Edit className="h-4 w-4" />
+                                    Szerkesztő
+                                  </div>
+                                </SelectItem>
+                                <SelectItem value="viewer">
+                                  <div className="flex items-center gap-2">
+                                    <Eye className="h-4 w-4" />
+                                    Néző
+                                  </div>
+                                </SelectItem>
+                              </SelectContent>
+                            </Select>
                           </TableCell>
                           <TableCell>
                             {profile.user_type === "hunter" ? (
