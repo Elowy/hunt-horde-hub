@@ -146,59 +146,44 @@ export default function HunterDashboard() {
     const hunterCategory = profileData?.hunter_category;
     console.log('📋 Hunter category:', hunterCategory);
 
-    // Fetch subscription status for the selected society
-    const { data: subscriptionData } = await supabase
-      .from("trial_subscriptions")
-      .select("*")
-      .eq("user_id", selectedSociety)
-      .maybeSingle();
-
-    const { data: lifetimeData } = await supabase
-      .from("lifetime_subscriptions")
-      .select("*")
-      .eq("user_id", selectedSociety)
-      .maybeSingle();
-
-    console.log('💳 Subscription data:', subscriptionData);
-    console.log('💎 Lifetime data:', lifetimeData);
-
-    const hasActiveSubscription = subscriptionData && 
-      subscriptionData.expires_at && 
-      new Date(subscriptionData.expires_at).getTime() > Date.now();
-    const hasLifetimeSubscription = !!lifetimeData;
-
-    console.log('✅ Has active subscription:', hasActiveSubscription);
-    console.log('✅ Has lifetime subscription:', hasLifetimeSubscription);
-    console.log('🎯 Condition met:', hunterCategory && (hasActiveSubscription || hasLifetimeSubscription));
-
-    // Fetch permissions for this hunter's category
-    if (hunterCategory && (hasActiveSubscription || hasLifetimeSubscription)) {
-      const { data: permissionsData } = await supabase
+    // Fetch permissions directly from hunter_feature_permissions table
+    if (hunterCategory) {
+      const { data: permissionsData, error } = await supabase
         .from("hunter_feature_permissions")
         .select("*")
         .eq("hunter_society_id", selectedSociety)
         .eq("hunter_category", hunterCategory)
         .maybeSingle();
 
+      if (error) {
+        console.error('❌ Hiba a hunter_feature_permissions lekérdezésénél:', error);
+      }
+
       console.log('🔐 Permissions data:', permissionsData);
 
-      // Use fetched permissions or default to all true if no record exists
-      setPermissions({
-        allow_registrations: permissionsData?.allow_registrations ?? true,
-        allow_view_cooled_animals: permissionsData?.allow_view_cooled_animals ?? true,
-        allow_reserve_animals: permissionsData?.allow_reserve_animals ?? true,
-        allow_view_statistics: permissionsData?.allow_view_statistics ?? true,
-        allow_view_announcements: permissionsData?.allow_view_announcements ?? true,
-      });
-      
-      console.log('✨ Permissions successfully set to TRUE');
+      if (permissionsData) {
+        // Use the exact permissions set by the hunting society
+        setPermissions({
+          allow_registrations: permissionsData.allow_registrations,
+          allow_view_cooled_animals: permissionsData.allow_view_cooled_animals,
+          allow_reserve_animals: permissionsData.allow_reserve_animals,
+          allow_view_statistics: permissionsData.allow_view_statistics,
+          allow_view_announcements: permissionsData.allow_view_announcements,
+        });
+        console.log('✨ Permissions set from hunter_feature_permissions table');
+      } else {
+        // No permissions record found - default to all enabled
+        setPermissions({
+          allow_registrations: true,
+          allow_view_cooled_animals: true,
+          allow_reserve_animals: true,
+          allow_view_statistics: true,
+          allow_view_announcements: true,
+        });
+        console.log('⚠️ No permissions record found - defaulting to all enabled');
+      }
     } else {
-      console.log('❌ Condition NOT met - setting all permissions to FALSE');
-      console.log('   - hunterCategory:', hunterCategory);
-      console.log('   - hasActiveSubscription:', hasActiveSubscription);
-      console.log('   - hasLifetimeSubscription:', hasLifetimeSubscription);
-      
-      // No active subscription - disable all features
+      // No hunter category - disable all features
       setPermissions({
         allow_registrations: false,
         allow_view_cooled_animals: false,
@@ -206,6 +191,7 @@ export default function HunterDashboard() {
         allow_view_statistics: false,
         allow_view_announcements: false,
       });
+      console.log('❌ No hunter category - all permissions disabled');
     }
 
     // Fetch animals in storage from selected society (only if allowed)
