@@ -67,11 +67,9 @@ interface EditAnnouncementDialogProps {
 
 const getStatusLabel = (status: MaintenanceStatus) => {
   const labels: Record<MaintenanceStatus, string> = {
-    unknown: "Ismeretlen",
-    investigating: "Vizsgálat alatt",
-    fixing: "Javítás alatt",
-    fixed: "Javítva",
-    testing: "Tesztelés alatt",
+    bejelentve: "Bejelentve",
+    folyamatban: "Folyamatban",
+    elvegezve: "Elvégezve",
   };
   return labels[status];
 };
@@ -91,7 +89,7 @@ export const EditAnnouncementDialog = ({ announcement, onSuccess }: EditAnnounce
     announcement.maintenance_end ? new Date(announcement.maintenance_end) : undefined
   );
   const [maintenanceStatus, setMaintenanceStatus] = useState<MaintenanceStatus>(
-    announcement.maintenance_status || "unknown"
+    announcement.maintenance_status || "bejelentve"
   );
   const [selectedCategories, setSelectedCategories] = useState<HunterCategory[]>(announcement.hunter_categories || []);
   const [loading, setLoading] = useState(false);
@@ -220,11 +218,9 @@ export const EditAnnouncementDialog = ({ announcement, onSuccess }: EditAnnounce
                         <SelectValue placeholder="Válassz státuszt" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="unknown">{getStatusLabel("unknown")}</SelectItem>
-                        <SelectItem value="investigating">{getStatusLabel("investigating")}</SelectItem>
-                        <SelectItem value="fixing">{getStatusLabel("fixing")}</SelectItem>
-                        <SelectItem value="fixed">{getStatusLabel("fixed")}</SelectItem>
-                        <SelectItem value="testing">{getStatusLabel("testing")}</SelectItem>
+                        <SelectItem value="bejelentve">{getStatusLabel("bejelentve")}</SelectItem>
+                        <SelectItem value="folyamatban">{getStatusLabel("folyamatban")}</SelectItem>
+                        <SelectItem value="elvegezve">{getStatusLabel("elvegezve")}</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>

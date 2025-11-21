@@ -2002,12 +2002,7 @@ export type Database = {
         | "magan_szoro"
         | "kozponti_szoro"
         | "csapda"
-      maintenance_status:
-        | "unknown"
-        | "investigating"
-        | "fixing"
-        | "fixed"
-        | "testing"
+      maintenance_status: "bejelentve" | "folyamatban" | "elvegezve"
       membership_period: "first_half" | "second_half" | "full_year"
       ticket_status: "open" | "in_progress" | "closed"
     }
@@ -2160,13 +2155,7 @@ export const Constants = {
         "kozponti_szoro",
         "csapda",
       ],
-      maintenance_status: [
-        "unknown",
-        "investigating",
-        "fixing",
-        "fixed",
-        "testing",
-      ],
+      maintenance_status: ["bejelentve", "folyamatban", "elvegezve"],
       membership_period: ["first_half", "second_half", "full_year"],
       ticket_status: ["open", "in_progress", "closed"],
     },
