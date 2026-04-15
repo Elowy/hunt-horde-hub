@@ -247,6 +247,39 @@ const HuntingRegistrations = () => {
       setIsAdmin(roleList.includes("admin"));
       setIsEditor(roleList.includes("editor"));
       setIsSuperAdmin(roleList.includes("super_admin"));
+
+      // Check society subscription for hunters
+      if (roleList.includes("hunter") && !roleList.includes("admin") && !roleList.includes("editor")) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("hunter_society_id")
+          .eq("id", user.id)
+          .single();
+
+        if (profile?.hunter_society_id) {
+          // Trial check
+          const { data: trialData } = await supabase
+            .from("trial_subscriptions")
+            .select("expires_at")
+            .eq("user_id", profile.hunter_society_id)
+            .maybeSingle();
+
+          if (trialData && new Date(trialData.expires_at) > new Date()) {
+            setSocietyIsPro(true);
+          } else {
+            // Lifetime check
+            const { data: lifetimeData } = await supabase
+              .from("lifetime_subscriptions")
+              .select("tier")
+              .eq("user_id", profile.hunter_society_id)
+              .maybeSingle();
+
+            if (lifetimeData && (lifetimeData.tier === "pro" || lifetimeData.tier === "normal")) {
+              setSocietyIsPro(true);
+            }
+          }
+        }
+      }
     } catch (error) {
       console.error("Error checking role:", error);
     }
@@ -851,7 +884,9 @@ const HuntingRegistrations = () => {
     );
   }
 
-  if (!isPro) {
+  const hasProAccess = isPro || societyIsPro;
+
+  if (!hasProAccess) {
     return (
       <div className="min-h-screen bg-background">
         <PageHeader 

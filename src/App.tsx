@@ -33,6 +33,7 @@ import PendingAnimals from "./pages/PendingAnimals";
 import HunterDashboard from "./pages/HunterDashboard";
 import DeleteAllUsers from "./pages/DeleteAllUsers";
 import HiredHunterRegister from "./pages/HiredHunterRegister";
+import BalanceTransactions from "./pages/BalanceTransactions";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
