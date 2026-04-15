@@ -75,6 +75,7 @@ const App = () => (
             <Route path="/zone-statistics" element={<ZoneStatistics />} />
             <Route path="/delete-all-users" element={<DeleteAllUsers />} />
             <Route path="/hired-hunter-register/:token" element={<HiredHunterRegister />} />
+            <Route path="/balance-transactions" element={<BalanceTransactions />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
