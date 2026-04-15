@@ -620,6 +620,24 @@ export const DashboardMenu = ({ isAdmin, isEditor, isHunter, onLogout, onPriceUp
             </>
           )}
 
+          {/* Bevételek - csak admin/editor számára */}
+          {(isAdmin || isEditor) && !isBuyer && (
+            <>
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-muted-foreground px-2">Bevételek</p>
+                <Button
+                  variant="ghost"
+                  className="w-full justify-start"
+                  onClick={() => handleNavigation("/balance-transactions")}
+                >
+                  <DollarSign className="mr-2 h-4 w-4" />
+                  Egyenleg kezelés
+                </Button>
+              </div>
+              <Separator />
+            </>
+          )}
+
           {/* Dokumentumok - csak admin/editor számára */}
           {(isAdmin || isEditor) && !isBuyer && (
             <>

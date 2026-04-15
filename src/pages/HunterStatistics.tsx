@@ -50,39 +50,56 @@ const HunterStatistics = () => {
         return;
       }
 
-      // Check admin role
-      const { data: adminRole } = await supabase
+      // Check all roles
+      const { data: roles } = await supabase
         .from("user_roles")
         .select("role")
-        .eq("user_id", user.id)
-        .eq("role", "admin")
-        .maybeSingle();
+        .eq("user_id", user.id);
 
-      // Check editor role
-      const { data: editorRole } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", user.id)
-        .eq("role", "editor")
-        .maybeSingle();
-
-      const hasAdminAccess = !!adminRole;
-      const hasEditorAccess = !!editorRole;
+      const roleList = roles?.map(r => r.role) || [];
+      const hasAdminAccess = roleList.includes("admin");
+      const hasEditorAccess = roleList.includes("editor");
+      const isHunterRole = roleList.includes("hunter");
 
       setIsAdmin(hasAdminAccess);
       setIsEditor(hasEditorAccess);
 
-      if (!hasAdminAccess && !hasEditorAccess) {
-        toast({
-          title: "Hozzáférés megtagadva",
-          description: "Csak adminisztrátorok és szerkesztők érhetik el ezt az oldalt.",
-          variant: "destructive",
-        });
-        navigate("/dashboard");
+      // Admin/editor always has access
+      if (hasAdminAccess || hasEditorAccess) {
+        fetchHunterStatistics();
         return;
       }
 
-      fetchHunterStatistics();
+      // Hunter: check feature permissions
+      if (isHunterRole) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("hunter_category, hunter_society_id")
+          .eq("id", user.id)
+          .single();
+
+        if (profile?.hunter_category && profile?.hunter_society_id) {
+          const { data: permissions } = await supabase
+            .from("hunter_feature_permissions")
+            .select("allow_view_statistics")
+            .eq("hunter_society_id", profile.hunter_society_id)
+            .eq("hunter_category", profile.hunter_category)
+            .maybeSingle();
+
+          if (permissions?.allow_view_statistics) {
+            fetchHunterStatistics();
+            return;
+          }
+        }
+      }
+
+      // No access
+      toast({
+        title: "Hozzáférés megtagadva",
+        description: "Nem rendelkezel jogosultsággal a statisztikák megtekintéséhez.",
+        variant: "destructive",
+      });
+      navigate("/hunter-dashboard");
     } catch (error: any) {
       toast({
         title: "Hiba",

@@ -157,6 +157,7 @@ const HuntingRegistrations = () => {
   const { toast } = useToast();
   const { sendNotification } = useNotifications();
   const { isPro, loading: subscriptionLoading } = useSubscription();
+  const [societyIsPro, setSocietyIsPro] = useState(false);
   const [registrations, setRegistrations] = useState<HuntingRegistration[]>([]);
   const [zones, setZones] = useState<SecurityZone[]>([]);
   const [locations, setLocations] = useState<HuntingLocation[]>([]);
