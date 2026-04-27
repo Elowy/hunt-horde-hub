@@ -58,6 +58,7 @@ export type Database = {
           created_at: string
           expiry_date: string | null
           gender: string | null
+          hunter_license_number: string | null
           hunter_name: string | null
           hunter_type: string | null
           hunting_registration_id: string | null
@@ -99,6 +100,7 @@ export type Database = {
           created_at?: string
           expiry_date?: string | null
           gender?: string | null
+          hunter_license_number?: string | null
           hunter_name?: string | null
           hunter_type?: string | null
           hunting_registration_id?: string | null
@@ -140,6 +142,7 @@ export type Database = {
           created_at?: string
           expiry_date?: string | null
           gender?: string | null
+          hunter_license_number?: string | null
           hunter_name?: string | null
           hunter_type?: string | null
           hunting_registration_id?: string | null

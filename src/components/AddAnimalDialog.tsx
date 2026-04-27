@@ -98,6 +98,7 @@ export const AddAnimalDialog = ({ onAnimalAdded }: AddAnimalDialogProps) => {
     vetResult: "",
     averageTuskLength: "",
     judgementNumber: "",
+    hunterLicenseNumber: "",
   });
 
   useEffect(() => {
@@ -453,6 +454,7 @@ export const AddAnimalDialog = ({ onAnimalAdded }: AddAnimalDialogProps) => {
         vet_result: formData.vetResult || null,
         average_tusk_length: formData.averageTuskLength ? parseFloat(formData.averageTuskLength) : null,
         judgement_number: formData.judgementNumber || null,
+        hunter_license_number: formData.hunterLicenseNumber || null,
         cooling_date: new Date().toISOString(),
         reservation_status: formData.type === "Vaddisznó" ? "atev" : "available",
         transport_cooling_price: coolingPrice,
@@ -489,6 +491,7 @@ export const AddAnimalDialog = ({ onAnimalAdded }: AddAnimalDialogProps) => {
         vetResult: "",
         averageTuskLength: "",
         judgementNumber: "",
+        hunterLicenseNumber: "",
       });
       
       setOpen(false);
@@ -723,12 +726,21 @@ export const AddAnimalDialog = ({ onAnimalAdded }: AddAnimalDialogProps) => {
                       )}
                     </div>
                     {isCustomHunter || manualHunterName ? (
-                      <Input
-                        id="hunterName"
-                        value={formData.hunterName}
-                        onChange={(e) => handleInputChange("hunterName", e.target.value)}
-                        placeholder="Adja meg a vadász nevét"
-                      />
+                      <>
+                        <Input
+                          id="hunterName"
+                          value={formData.hunterName}
+                          onChange={(e) => handleInputChange("hunterName", e.target.value)}
+                          placeholder="Adja meg a vadász nevét"
+                        />
+                        <Label htmlFor="hunterLicenseNumber" className="mt-2">Vadászjegyszám</Label>
+                        <Input
+                          id="hunterLicenseNumber"
+                          value={formData.hunterLicenseNumber}
+                          onChange={(e) => handleInputChange("hunterLicenseNumber", e.target.value)}
+                          placeholder="pl. 12345/2024"
+                        />
+                      </>
                     ) : (
                       <Select 
                         value={formData.hunterName} 
