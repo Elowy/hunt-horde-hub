@@ -726,12 +726,21 @@ export const AddAnimalDialog = ({ onAnimalAdded }: AddAnimalDialogProps) => {
                       )}
                     </div>
                     {isCustomHunter || manualHunterName ? (
-                      <Input
-                        id="hunterName"
-                        value={formData.hunterName}
-                        onChange={(e) => handleInputChange("hunterName", e.target.value)}
-                        placeholder="Adja meg a vadász nevét"
-                      />
+                      <>
+                        <Input
+                          id="hunterName"
+                          value={formData.hunterName}
+                          onChange={(e) => handleInputChange("hunterName", e.target.value)}
+                          placeholder="Adja meg a vadász nevét"
+                        />
+                        <Label htmlFor="hunterLicenseNumber" className="mt-2">Vadászjegyszám</Label>
+                        <Input
+                          id="hunterLicenseNumber"
+                          value={formData.hunterLicenseNumber}
+                          onChange={(e) => handleInputChange("hunterLicenseNumber", e.target.value)}
+                          placeholder="pl. 12345/2024"
+                        />
+                      </>
                     ) : (
                       <Select 
                         value={formData.hunterName} 
