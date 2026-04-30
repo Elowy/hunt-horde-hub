@@ -31,66 +31,20 @@ export const RedeemCodeDialog = ({ onCodeRedeemed }: RedeemCodeDialogProps) => {
 
     setLoading(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Nincs bejelentkezve");
+      const { data, error } = await supabase.rpc("redeem_subscription_code", {
+        _code: code.toUpperCase().trim(),
+      });
 
-      // Check if code exists and is valid
-      const { data: codeData, error: fetchError } = await supabase
-        .from("subscription_codes")
-        .select("*")
-        .eq("code", code.toUpperCase().trim())
-        .is("redeemed_by", null)
-        .single();
-
-      if (fetchError || !codeData) {
+      if (error) {
         throw new Error("Érvénytelen vagy már beváltott kód!");
       }
 
-      const expiresAt = new Date(codeData.expires_at);
-      const now = new Date();
-
-      if (expiresAt < now) {
-        throw new Error("Ez a kód már lejárt!");
-      }
-
-      // Calculate subscription end date based on duration
-      const subscriptionEnd = new Date();
-      if (codeData.duration === "monthly") {
-        subscriptionEnd.setMonth(subscriptionEnd.getMonth() + 1);
-      } else if (codeData.duration === "yearly") {
-        subscriptionEnd.setFullYear(subscriptionEnd.getFullYear() + 1);
-      }
-
-      // Mark code as redeemed
-      const { error: updateError } = await supabase
-        .from("subscription_codes")
-        .update({
-          redeemed_by: user.id,
-          redeemed_at: now.toISOString(),
-        })
-        .eq("code", code.toUpperCase().trim())
-        .is("redeemed_by", null);
-
-      if (updateError) throw updateError;
-
-      // Create trial subscription (or extend existing)
-      const { error: subscriptionError } = await supabase
-        .from("trial_subscriptions")
-        .insert({
-          user_id: user.id,
-          tier: codeData.tier,
-          expires_at: subscriptionEnd.toISOString(),
-          newsletter_subscribed: false,
-        });
-
-      if (subscriptionError) {
-        // If trial already exists, we could update it instead
-        console.error("Error creating subscription:", subscriptionError);
-      }
+      const result = Array.isArray(data) ? data[0] : data;
+      if (!result) throw new Error("Érvénytelen vagy már beváltott kód!");
 
       toast({
         title: "Siker!",
-        description: `${codeData.tier.toUpperCase()} csomag aktiválva ${codeData.duration === 'monthly' ? '1 hónapra' : '1 évre'}!`,
+        description: `${String(result.tier).toUpperCase()} csomag aktiválva ${result.duration === 'monthly' ? '1 hónapra' : '1 évre'}!`,
       });
 
       setOpen(false);
