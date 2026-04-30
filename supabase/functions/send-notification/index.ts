@@ -122,8 +122,8 @@ const handler = async (req: Request): Promise<Response> => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error: any) {
-    console.error("Error sending notification:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    console.error("[INTERNAL] Error sending notification:", error);
+    return new Response(JSON.stringify({ error: "Az értesítés küldése nem sikerült." }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
