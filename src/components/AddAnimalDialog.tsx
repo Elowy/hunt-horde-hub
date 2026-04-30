@@ -419,7 +419,7 @@ export const AddAnimalDialog = ({ onAnimalAdded }: AddAnimalDialogProps) => {
       }
 
       // Ha nincs járványügyi hűtési díj, használjuk a normál hűtési árat
-      if (!coolingPrice) {
+      if (!coolingPrice && !skipCooling) {
         const { data: coolingPriceData } = await supabase
           .from("cooling_prices")
           .select("cooling_price_per_kg, cooling_vat_rate")
@@ -433,6 +433,11 @@ export const AddAnimalDialog = ({ onAnimalAdded }: AddAnimalDialogProps) => {
           coolingPrice = coolingPriceData.cooling_price_per_kg;
           coolingVat = coolingPriceData.cooling_vat_rate;
         }
+      }
+
+      if (skipCooling) {
+        coolingPrice = 0;
+        coolingVat = 0;
       }
 
       const { error } = await supabase.from("animals").insert({
