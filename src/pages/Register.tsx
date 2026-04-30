@@ -37,17 +37,17 @@ const Register = () => {
   const [hunterSocieties, setHunterSocieties] = useState<Array<{ id: string; company_name: string }>>([]);
   const [openSocietyPopover, setOpenSocietyPopover] = useState(false);
 
-  // Fetch hunter societies for dropdown
+  // Fetch hunter societies for dropdown (uses a safe public view that exposes
+  // only id and company_name — no contact PII).
   useEffect(() => {
     const fetchHunterSocieties = async () => {
-      const { data, error } = await supabase
-        .from("profiles")
+      const { data, error } = await (supabase as any)
+        .from("hunter_societies_public")
         .select("id, company_name")
-        .eq("user_type", "hunter_society")
         .order("company_name");
 
       if (!error && data) {
-        setHunterSocieties(data);
+        setHunterSocieties(data as Array<{ id: string; company_name: string }>);
       }
     };
 

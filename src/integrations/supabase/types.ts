@@ -328,6 +328,13 @@ export type Database = {
             foreignKeyName: "buyer_price_proposals_hunter_society_id_fkey"
             columns: ["hunter_society_id"]
             isOneToOne: false
+            referencedRelation: "hunter_societies_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "buyer_price_proposals_hunter_society_id_fkey"
+            columns: ["hunter_society_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -601,6 +608,13 @@ export type Database = {
             foreignKeyName: "hunter_feature_permissions_hunter_society_id_fkey"
             columns: ["hunter_society_id"]
             isOneToOne: false
+            referencedRelation: "hunter_societies_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hunter_feature_permissions_hunter_society_id_fkey"
+            columns: ["hunter_society_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -629,6 +643,13 @@ export type Database = {
           joined_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "hunter_society_members_hunter_society_id_fkey"
+            columns: ["hunter_society_id"]
+            isOneToOne: false
+            referencedRelation: "hunter_societies_public"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "hunter_society_members_hunter_society_id_fkey"
             columns: ["hunter_society_id"]
@@ -953,6 +974,13 @@ export type Database = {
             foreignKeyName: "membership_fee_settings_hunter_society_id_fkey"
             columns: ["hunter_society_id"]
             isOneToOne: false
+            referencedRelation: "hunter_societies_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "membership_fee_settings_hunter_society_id_fkey"
+            columns: ["hunter_society_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -1006,6 +1034,13 @@ export type Database = {
             foreignKeyName: "membership_payments_hunter_society_id_fkey"
             columns: ["hunter_society_id"]
             isOneToOne: false
+            referencedRelation: "hunter_societies_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "membership_payments_hunter_society_id_fkey"
+            columns: ["hunter_society_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -1013,7 +1048,21 @@ export type Database = {
             foreignKeyName: "membership_payments_paid_by_fkey"
             columns: ["paid_by"]
             isOneToOne: false
+            referencedRelation: "hunter_societies_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "membership_payments_paid_by_fkey"
+            columns: ["paid_by"]
+            isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "membership_payments_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "hunter_societies_public"
             referencedColumns: ["id"]
           },
           {
@@ -1232,7 +1281,21 @@ export type Database = {
             foreignKeyName: "pending_animals_hunter_society_id_fkey"
             columns: ["hunter_society_id"]
             isOneToOne: false
+            referencedRelation: "hunter_societies_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pending_animals_hunter_society_id_fkey"
+            columns: ["hunter_society_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pending_animals_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "hunter_societies_public"
             referencedColumns: ["id"]
           },
           {
@@ -1375,6 +1438,13 @@ export type Database = {
           vat_rate?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "profiles_hunter_society_id_fkey"
+            columns: ["hunter_society_id"]
+            isOneToOne: false
+            referencedRelation: "hunter_societies_public"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "profiles_hunter_society_id_fkey"
             columns: ["hunter_society_id"]
@@ -2050,6 +2120,13 @@ export type Database = {
             foreignKeyName: "user_balance_transactions_hunter_society_id_fkey"
             columns: ["hunter_society_id"]
             isOneToOne: false
+            referencedRelation: "hunter_societies_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_balance_transactions_hunter_society_id_fkey"
+            columns: ["hunter_society_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -2098,6 +2175,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "user_balances_hunter_society_id_fkey"
+            columns: ["hunter_society_id"]
+            isOneToOne: false
+            referencedRelation: "hunter_societies_public"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "user_balances_hunter_society_id_fkey"
             columns: ["hunter_society_id"]
@@ -2154,7 +2238,21 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      hunter_societies_public: {
+        Row: {
+          company_name: string | null
+          id: string | null
+        }
+        Insert: {
+          company_name?: string | null
+          id?: string | null
+        }
+        Update: {
+          company_name?: string | null
+          id?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       add_hunter_to_society: {
