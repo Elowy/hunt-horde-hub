@@ -652,6 +652,23 @@ export const AddAnimalDialog = ({ onAnimalAdded }: AddAnimalDialogProps) => {
             </div>
           )}
 
+          <div className="flex items-start gap-3 p-4 border rounded-lg bg-muted/30">
+            <Checkbox
+              id="skipCooling"
+              checked={skipCooling}
+              onCheckedChange={(checked) => setSkipCooling(checked === true)}
+              className="mt-0.5"
+            />
+            <div className="space-y-1">
+              <Label htmlFor="skipCooling" className="cursor-pointer font-medium">
+                Hűtési díj nélkül – azonnal elszállítva
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                Ha be van pipálva, nem számolunk hűtési díjat, és az állat automatikusan az elszállított állatok közé kerül.
+              </p>
+            </div>
+          </div>
+
           <Collapsible open={showMore} onOpenChange={setShowMore}>
             <CollapsibleTrigger asChild>
               <Button type="button" variant="outline" className="w-full">
