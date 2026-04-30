@@ -117,9 +117,9 @@ Deno.serve(async (req) => {
       .eq('id', user.id);
 
     if (profileError) {
-      console.error('Error deleting profile:', profileError);
+      console.error('[INTERNAL] Error deleting profile:', profileError);
       return new Response(
-        JSON.stringify({ error: 'Hiba a profil törlésekor: ' + profileError.message }),
+        JSON.stringify({ error: 'A fiók törlése nem sikerült. Kérjük, próbálja újra később vagy vegye fel a kapcsolatot az ügyfélszolgálattal.' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
