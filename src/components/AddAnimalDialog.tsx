@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { FileText, ChevronDown, ChevronUp } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -77,6 +78,7 @@ export const AddAnimalDialog = ({ onAnimalAdded }: AddAnimalDialogProps) => {
   const [calculatedPrice, setCalculatedPrice] = useState<{ net: number; gross: number }>({ net: 0, gross: 0 });
   const [loading, setLoading] = useState(false);
   const [showMore, setShowMore] = useState(false);
+  const [skipCooling, setSkipCooling] = useState(false);
   
   const [formData, setFormData] = useState({
     animalId: "",
@@ -417,7 +419,7 @@ export const AddAnimalDialog = ({ onAnimalAdded }: AddAnimalDialogProps) => {
       }
 
       // Ha nincs járványügyi hűtési díj, használjuk a normál hűtési árat
-      if (!coolingPrice) {
+      if (!coolingPrice && !skipCooling) {
         const { data: coolingPriceData } = await supabase
           .from("cooling_prices")
           .select("cooling_price_per_kg, cooling_vat_rate")
@@ -431,6 +433,11 @@ export const AddAnimalDialog = ({ onAnimalAdded }: AddAnimalDialogProps) => {
           coolingPrice = coolingPriceData.cooling_price_per_kg;
           coolingVat = coolingPriceData.cooling_vat_rate;
         }
+      }
+
+      if (skipCooling) {
+        coolingPrice = 0;
+        coolingVat = 0;
       }
 
       const { error } = await supabase.from("animals").insert({
@@ -461,6 +468,8 @@ export const AddAnimalDialog = ({ onAnimalAdded }: AddAnimalDialogProps) => {
         transport_cooling_vat_rate: coolingVat,
         transport_price_per_kg: transportPrice,
         transport_vat_rate: transportVat,
+        is_transported: skipCooling ? true : false,
+        transported_at: skipCooling ? new Date().toISOString() : null,
       });
 
       if (error) throw error;
@@ -493,6 +502,7 @@ export const AddAnimalDialog = ({ onAnimalAdded }: AddAnimalDialogProps) => {
         judgementNumber: "",
         hunterLicenseNumber: "",
       });
+      setSkipCooling(false);
       
       setOpen(false);
       if (onAnimalAdded) {
@@ -641,6 +651,23 @@ export const AddAnimalDialog = ({ onAnimalAdded }: AddAnimalDialogProps) => {
               </div>
             </div>
           )}
+
+          <div className="flex items-start gap-3 p-4 border rounded-lg bg-muted/30">
+            <Checkbox
+              id="skipCooling"
+              checked={skipCooling}
+              onCheckedChange={(checked) => setSkipCooling(checked === true)}
+              className="mt-0.5"
+            />
+            <div className="space-y-1">
+              <Label htmlFor="skipCooling" className="cursor-pointer font-medium">
+                Hűtési díj nélkül – azonnal elszállítva
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                Ha be van pipálva, nem számolunk hűtési díjat, és az állat automatikusan az elszállított állatok közé kerül.
+              </p>
+            </div>
+          </div>
 
           <Collapsible open={showMore} onOpenChange={setShowMore}>
             <CollapsibleTrigger asChild>
