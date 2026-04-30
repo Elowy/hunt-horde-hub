@@ -78,6 +78,7 @@ export const AddAnimalDialog = ({ onAnimalAdded }: AddAnimalDialogProps) => {
   const [calculatedPrice, setCalculatedPrice] = useState<{ net: number; gross: number }>({ net: 0, gross: 0 });
   const [loading, setLoading] = useState(false);
   const [showMore, setShowMore] = useState(false);
+  const [skipCooling, setSkipCooling] = useState(false);
   
   const [formData, setFormData] = useState({
     animalId: "",
