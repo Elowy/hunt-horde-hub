@@ -468,6 +468,8 @@ export const AddAnimalDialog = ({ onAnimalAdded }: AddAnimalDialogProps) => {
         transport_cooling_vat_rate: coolingVat,
         transport_price_per_kg: transportPrice,
         transport_vat_rate: transportVat,
+        is_transported: skipCooling ? true : false,
+        transported_at: skipCooling ? new Date().toISOString() : null,
       });
 
       if (error) throw error;
