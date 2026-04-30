@@ -15,6 +15,14 @@ interface NotificationRequest {
   ip_address?: string;
 }
 
+const escapeHtml = (value: unknown): string => {
+  if (value === null || value === undefined) return "";
+  return String(value).replace(/[&<>"']/g, (m) => (
+    { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[m] || m
+  ));
+};
+const e = escapeHtml;
+
 const handler = async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
