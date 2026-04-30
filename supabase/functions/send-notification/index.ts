@@ -236,7 +236,7 @@ function generateEmailBody(type: string, data: any, ip: string = "Ismeretlen"): 
           ${content}
         </div>
         <div class="footer">
-          <p><strong>IP cím:</strong> ${ip}</p>
+          <p><strong>IP cím:</strong> ${safeIp}</p>
           <p><strong>Időpont:</strong> ${new Date().toLocaleString('hu-HU')}</p>
           <hr>
           <p>Ez egy automatikus értesítés a Vadászati Hűtés Kezelő rendszerből.</p>
