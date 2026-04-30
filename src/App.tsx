@@ -35,10 +35,13 @@ import DeleteAllUsers from "./pages/DeleteAllUsers";
 import HiredHunterRegister from "./pages/HiredHunterRegister";
 import BalanceTransactions from "./pages/BalanceTransactions";
 import NotFound from "./pages/NotFound";
+import { useAuthRecovery } from "./hooks/useAuthRecovery";
 
 const queryClient = new QueryClient();
 
-const App = () => (
+const App = () => {
+  useAuthRecovery();
+  return (
   <BrowserRouter>
     <QueryClientProvider client={queryClient}>
       <ThemeProvider defaultTheme="dark" storageKey="hunting-theme">
