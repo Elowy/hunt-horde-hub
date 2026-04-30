@@ -2275,6 +2275,13 @@ export type Database = {
         Args: { lat: number; lng: number; polygon: Json }
         Returns: boolean
       }
+      redeem_subscription_code: {
+        Args: { _code: string }
+        Returns: {
+          duration: string
+          tier: string
+        }[]
+      }
     }
     Enums: {
       announcement_type: "news" | "maintenance" | "outage"

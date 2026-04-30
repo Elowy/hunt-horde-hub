@@ -117,9 +117,9 @@ Deno.serve(async (req) => {
       .eq('id', user.id);
 
     if (profileError) {
-      console.error('Error deleting profile:', profileError);
+      console.error('[INTERNAL] Error deleting profile:', profileError);
       return new Response(
-        JSON.stringify({ error: 'Hiba a profil törlésekor: ' + profileError.message }),
+        JSON.stringify({ error: 'A fiók törlése nem sikerült. Kérjük, próbálja újra később vagy vegye fel a kapcsolatot az ügyfélszolgálattal.' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -129,9 +129,9 @@ Deno.serve(async (req) => {
     const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(user.id);
 
     if (deleteError) {
-      console.error('Error deleting auth user:', deleteError);
+      console.error('[INTERNAL] Error deleting auth user:', deleteError);
       return new Response(
-        JSON.stringify({ error: 'Hiba a fiók törlésekor: ' + deleteError.message }),
+        JSON.stringify({ error: 'A fiók törlése nem sikerült. Kérjük, próbálja újra később.' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -143,9 +143,9 @@ Deno.serve(async (req) => {
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
-    console.error('Unexpected error in delete-user-account:', error);
+    console.error('[INTERNAL] Unexpected error in delete-user-account:', error);
     return new Response(
-      JSON.stringify({ error: 'Váratlan hiba történt: ' + error.message }),
+      JSON.stringify({ error: 'Váratlan hiba történt. Kérjük, próbálja újra később.' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

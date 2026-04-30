@@ -15,6 +15,14 @@ interface NotificationRequest {
   ip_address?: string;
 }
 
+const escapeHtml = (value: unknown): string => {
+  if (value === null || value === undefined) return "";
+  return String(value).replace(/[&<>"']/g, (m) => (
+    { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[m] || m
+  ));
+};
+const e = escapeHtml;
+
 const handler = async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -114,8 +122,8 @@ const handler = async (req: Request): Promise<Response> => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error: any) {
-    console.error("Error sending notification:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    console.error("[INTERNAL] Error sending notification:", error);
+    return new Response(JSON.stringify({ error: "Az értesítés küldése nem sikerült." }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
@@ -129,42 +137,42 @@ function generateEmailBody(type: string, data: any, ip: string = "Ismeretlen"): 
     case "transport":
       content = `
         <h2>Elszállítás történt</h2>
-        <p><strong>Szállító:</strong> ${data.transporter_name || "Ismeretlen"}</p>
-        <p><strong>Dokumentumszám:</strong> ${data.document_number}</p>
-        <p><strong>Dátum:</strong> ${new Date(data.transport_date).toLocaleDateString('hu-HU')}</p>
-        <p><strong>Állatok száma:</strong> ${data.animal_count}</p>
-        <p><strong>Össz súly:</strong> ${data.total_weight} kg</p>
-        <p><strong>Össz ár:</strong> ${data.total_price.toLocaleString('hu-HU')} Ft</p>
+        <p><strong>Szállító:</strong> ${e(data.transporter_name || "Ismeretlen")}</p>
+        <p><strong>Dokumentumszám:</strong> ${e(data.document_number)}</p>
+        <p><strong>Dátum:</strong> ${e(new Date(data.transport_date).toLocaleDateString('hu-HU'))}</p>
+        <p><strong>Állatok száma:</strong> ${e(data.animal_count)}</p>
+        <p><strong>Össz súly:</strong> ${e(data.total_weight)} kg</p>
+        <p><strong>Össz ár:</strong> ${e(Number(data.total_price).toLocaleString('hu-HU'))} Ft</p>
       `;
       break;
     case "storage_full":
       content = `
         <h2>Hűtő telítettség figyelmeztetés</h2>
-        <p><strong>Helyszín:</strong> ${data.location_name}</p>
-        <p><strong>Telítettség:</strong> ${data.usage_percentage}%</p>
-        <p><strong>Kapacitás:</strong> ${data.capacity}</p>
-        <p><strong>Jelenlegi állatok:</strong> ${data.current_count}</p>
+        <p><strong>Helyszín:</strong> ${e(data.location_name)}</p>
+        <p><strong>Telítettség:</strong> ${e(data.usage_percentage)}%</p>
+        <p><strong>Kapacitás:</strong> ${e(data.capacity)}</p>
+        <p><strong>Jelenlegi állatok:</strong> ${e(data.current_count)}</p>
       `;
       break;
     case "animal_add":
       content = `
         <h2>Új vad hozzáadva</h2>
-        <p><strong>Állat ID:</strong> ${data.animal_id}</p>
-        <p><strong>Faj:</strong> ${data.species}</p>
-        <p><strong>Súly:</strong> ${data.weight || "-"} kg</p>
-        <p><strong>Osztály:</strong> ${data.class || "-"}</p>
-        <p><strong>Hűtési helyszín:</strong> ${data.location_name}</p>
+        <p><strong>Állat ID:</strong> ${e(data.animal_id)}</p>
+        <p><strong>Faj:</strong> ${e(data.species)}</p>
+        <p><strong>Súly:</strong> ${e(data.weight || "-")} kg</p>
+        <p><strong>Osztály:</strong> ${e(data.class || "-")}</p>
+        <p><strong>Hűtési helyszín:</strong> ${e(data.location_name)}</p>
       `;
       break;
     case "animal_update":
       content = `
         <h2>Vad módosítva</h2>
-        <p><strong>Állat ID:</strong> ${data.animal_id}</p>
-        <p><strong>Faj:</strong> ${data.species}</p>
+        <p><strong>Állat ID:</strong> ${e(data.animal_id)}</p>
+        <p><strong>Faj:</strong> ${e(data.species)}</p>
         <p><strong>Módosított mezők:</strong></p>
         <ul>
           ${Object.keys(data.changes || {}).map(key => 
-            `<li><strong>${key}:</strong> ${data.changes[key].old} → ${data.changes[key].new}</li>`
+            `<li><strong>${e(key)}:</strong> ${e(data.changes[key].old)} → ${e(data.changes[key].new)}</li>`
           ).join('')}
         </ul>
       `;
@@ -172,10 +180,10 @@ function generateEmailBody(type: string, data: any, ip: string = "Ismeretlen"): 
     case "animal_delete":
       content = `
         <h2>Vad törölve</h2>
-        <p><strong>Állat ID:</strong> ${data.animal_id}</p>
-        <p><strong>Faj:</strong> ${data.species}</p>
-        <p><strong>Súly:</strong> ${data.weight || "-"} kg</p>
-        <p><strong>Hűtési helyszín:</strong> ${data.location_name}</p>
+        <p><strong>Állat ID:</strong> ${e(data.animal_id)}</p>
+        <p><strong>Faj:</strong> ${e(data.species)}</p>
+        <p><strong>Súly:</strong> ${e(data.weight || "-")} kg</p>
+        <p><strong>Hűtési helyszín:</strong> ${e(data.location_name)}</p>
       `;
       break;
     case "registration_approved":
@@ -184,11 +192,11 @@ function generateEmailBody(type: string, data: any, ip: string = "Ismeretlen"): 
         <p>Örömmel értesítjük, hogy a vadászati beiratkozási kérelme <strong>jóváhagyásra került</strong>.</p>
         <div style="background: #d4edda; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #28a745;">
           <h3 style="margin-top: 0;">Beiratkozás részletei:</h3>
-          <p><strong>Vadászterület:</strong> ${data.security_zone_name || 'N/A'}</p>
-          ${data.hunting_location_name ? `<p><strong>Helyszín:</strong> ${data.hunting_location_name}</p>` : ''}
-          <p><strong>Kezdés:</strong> ${data.start_time ? new Date(data.start_time).toLocaleString('hu-HU') : 'N/A'}</p>
-          <p><strong>Befejezés:</strong> ${data.end_time ? new Date(data.end_time).toLocaleString('hu-HU') : 'N/A'}</p>
-          ${data.admin_note ? `<p><strong>Admin megjegyzés:</strong> ${data.admin_note}</p>` : ''}
+          <p><strong>Vadászterület:</strong> ${e(data.security_zone_name || 'N/A')}</p>
+          ${data.hunting_location_name ? `<p><strong>Helyszín:</strong> ${e(data.hunting_location_name)}</p>` : ''}
+          <p><strong>Kezdés:</strong> ${e(data.start_time ? new Date(data.start_time).toLocaleString('hu-HU') : 'N/A')}</p>
+          <p><strong>Befejezés:</strong> ${e(data.end_time ? new Date(data.end_time).toLocaleString('hu-HU') : 'N/A')}</p>
+          ${data.admin_note ? `<p><strong>Admin megjegyzés:</strong> ${e(data.admin_note)}</p>` : ''}
         </div>
         <p>A beiratkozás részleteit az alkalmazásban is megtekintheti.</p>
         <p>Kellemes vadászatot kívánunk!</p>
@@ -200,17 +208,18 @@ function generateEmailBody(type: string, data: any, ip: string = "Ismeretlen"): 
         <p>Sajnálattal értesítjük, hogy a vadászati beiratkozási kérelmét <strong>elutasították</strong>.</p>
         <div style="background: #f8d7da; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #dc3545;">
           <h3 style="margin-top: 0;">Beiratkozás részletei:</h3>
-          <p><strong>Vadászterület:</strong> ${data.security_zone_name || 'N/A'}</p>
-          ${data.hunting_location_name ? `<p><strong>Helyszín:</strong> ${data.hunting_location_name}</p>` : ''}
-          <p><strong>Kért kezdés:</strong> ${data.start_time ? new Date(data.start_time).toLocaleString('hu-HU') : 'N/A'}</p>
-          <p><strong>Kért befejezés:</strong> ${data.end_time ? new Date(data.end_time).toLocaleString('hu-HU') : 'N/A'}</p>
-          ${data.admin_note ? `<p><strong>Elutasítás oka:</strong> ${data.admin_note}</p>` : ''}
+          <p><strong>Vadászterület:</strong> ${e(data.security_zone_name || 'N/A')}</p>
+          ${data.hunting_location_name ? `<p><strong>Helyszín:</strong> ${e(data.hunting_location_name)}</p>` : ''}
+          <p><strong>Kért kezdés:</strong> ${e(data.start_time ? new Date(data.start_time).toLocaleString('hu-HU') : 'N/A')}</p>
+          <p><strong>Kért befejezés:</strong> ${e(data.end_time ? new Date(data.end_time).toLocaleString('hu-HU') : 'N/A')}</p>
+          ${data.admin_note ? `<p><strong>Elutasítás oka:</strong> ${e(data.admin_note)}</p>` : ''}
         </div>
         <p>További információkért kérjük, vegye fel a kapcsolatot az adminisztrátorral.</p>
       `;
       break;
   }
 
+  const safeIp = e(ip);
   return `
     <!DOCTYPE html>
     <html>
@@ -227,7 +236,7 @@ function generateEmailBody(type: string, data: any, ip: string = "Ismeretlen"): 
           ${content}
         </div>
         <div class="footer">
-          <p><strong>IP cím:</strong> ${ip}</p>
+          <p><strong>IP cím:</strong> ${safeIp}</p>
           <p><strong>Időpont:</strong> ${new Date().toLocaleString('hu-HU')}</p>
           <hr>
           <p>Ez egy automatikus értesítés a Vadászati Hűtés Kezelő rendszerből.</p>
