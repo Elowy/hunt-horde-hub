@@ -502,6 +502,7 @@ export const AddAnimalDialog = ({ onAnimalAdded }: AddAnimalDialogProps) => {
         judgementNumber: "",
         hunterLicenseNumber: "",
       });
+      setSkipCooling(false);
       
       setOpen(false);
       if (onAnimalAdded) {
