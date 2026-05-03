@@ -2059,9 +2059,8 @@ const Dashboard = () => {
       }
       
       // 3. Harmadsorban a coolingPrices állapotból az aktív ár
-      const activeCoolingPrice = coolingPrices.find(
-        cp => cp.storage_location_id === animal.storage_location_id && 
-        (cp.valid_to === null || new Date(cp.valid_to) > new Date())
+      const activeCoolingPrice = findCoolingPriceForAnimal(
+        coolingPrices, animal.storage_location_id, animal.species, animal.class,
       );
       
       if (!activeCoolingPrice || !activeCoolingPrice.cooling_price_per_kg) {
