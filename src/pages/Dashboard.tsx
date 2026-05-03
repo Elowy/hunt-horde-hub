@@ -1483,36 +1483,36 @@ const Dashboard = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Fetch current cooling prices for each storage location
+      // Fetch all active cooling prices for involved storage locations,
+      // then resolve the most-specific price per animal (species/class).
       const storageLocationIds = [...new Set(selectedAnimalsList.map(a => a.storage_location_id))];
       const { data: currentPrices } = await supabase
         .from("cooling_prices")
         .select("*")
         .in("storage_location_id", storageLocationIds)
-        .is("valid_to", null)
         .eq("is_archived", false);
 
-      const priceMap = new Map(
-        currentPrices?.map(price => [price.storage_location_id, price]) || []
-      );
+      const allActivePrices = ((currentPrices as any[]) || []).filter(
+        (cp) => cp.valid_to === null || new Date(cp.valid_to) > new Date(),
+      ) as CoolingPrice[];
 
       // Calculate totals and update animals with transport prices
       let totalWeight = 0;
       let totalPrice = 0;
-      
+
       for (const animal of selectedAnimalsList) {
         const weight = animal.weight || 0;
         totalWeight += weight;
-        
-        // Get current cooling price for this animal's storage location
-        const currentPrice = priceMap.get(animal.storage_location_id);
+
+        const currentPrice = findCoolingPriceForAnimal(
+          allActivePrices, animal.storage_location_id, animal.species, animal.class,
+        );
         if (currentPrice && weight > 0) {
           const netRevenue = weight * currentPrice.cooling_price_per_kg;
           const vatRate = currentPrice.cooling_vat_rate || 27;
           const grossRevenue = netRevenue * (1 + vatRate / 100);
           totalPrice += grossRevenue;
-          
-          // Update animal with transport cooling price
+
           await supabase
             .from("animals")
             .update({
