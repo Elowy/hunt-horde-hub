@@ -10,6 +10,13 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { DollarSign, Plus, Archive, Calendar } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -23,6 +30,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { SPECIES_OPTIONS } from "@/lib/speciesConstants";
 
 interface CoolingPrice {
   id: string;
@@ -31,12 +39,22 @@ interface CoolingPrice {
   valid_from: string;
   valid_to: string | null;
   is_archived: boolean;
+  species: string | null;
+  class: string | null;
 }
 
 interface CoolingPricesDialogProps {
   storageLocationId: string;
   storageLocationName: string;
 }
+
+const ALL = "__all__";
+const CLASS_OPTIONS = [
+  { value: "I", label: "I. osztály" },
+  { value: "II", label: "II. osztály" },
+  { value: "III", label: "III. osztály" },
+  { value: "IV", label: "IV. osztály" },
+];
 
 export const CoolingPricesDialog = ({ storageLocationId, storageLocationName }: CoolingPricesDialogProps) => {
   const { toast } = useToast();
@@ -48,6 +66,8 @@ export const CoolingPricesDialog = ({ storageLocationId, storageLocationName }: 
     coolingVat: "27",
     validFrom: format(new Date(), "yyyy-MM-dd"),
     validTo: "",
+    species: ALL,
+    class: ALL,
   });
 
   useEffect(() => {
@@ -65,7 +85,7 @@ export const CoolingPricesDialog = ({ storageLocationId, storageLocationName }: 
         .order("valid_from", { ascending: false });
 
       if (error) throw error;
-      setPrices(data || []);
+      setPrices((data as any) || []);
     } catch (error: any) {
       toast({
         title: "Hiba",
@@ -77,7 +97,7 @@ export const CoolingPricesDialog = ({ storageLocationId, storageLocationName }: 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!formData.coolingPrice) {
       toast({
         title: "Hiba",
@@ -93,19 +113,29 @@ export const CoolingPricesDialog = ({ storageLocationId, storageLocationName }: 
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Nincs bejelentkezve!");
 
-      // Archive previous active prices
-      const { error: archiveError } = await supabase
+      const speciesValue = formData.species === ALL ? null : formData.species;
+      const classValue = formData.class === ALL ? null : formData.class;
+
+      // Archive previous active prices for the same species/class scope
+      let archiveQuery = supabase
         .from("cooling_prices")
-        .update({ 
+        .update({
           is_archived: true,
-          valid_to: new Date().toISOString()
+          valid_to: new Date().toISOString(),
         })
         .eq("storage_location_id", storageLocationId)
         .is("valid_to", null);
 
+      archiveQuery = speciesValue === null
+        ? archiveQuery.is("species", null)
+        : archiveQuery.eq("species", speciesValue);
+      archiveQuery = classValue === null
+        ? archiveQuery.is("class", null)
+        : archiveQuery.eq("class", classValue);
+
+      const { error: archiveError } = await archiveQuery;
       if (archiveError) throw archiveError;
 
-      // Insert new price
       const { error } = await supabase
         .from("cooling_prices")
         .insert({
@@ -116,7 +146,9 @@ export const CoolingPricesDialog = ({ storageLocationId, storageLocationName }: 
           valid_from: new Date(formData.validFrom).toISOString(),
           valid_to: formData.validTo ? new Date(formData.validTo).toISOString() : null,
           is_archived: false,
-        });
+          species: speciesValue,
+          class: classValue,
+        } as any);
 
       if (error) throw error;
 
@@ -125,11 +157,13 @@ export const CoolingPricesDialog = ({ storageLocationId, storageLocationName }: 
         description: "Új árlista hozzáadva!",
       });
 
-      setFormData({ 
-        coolingPrice: "", 
+      setFormData({
+        coolingPrice: "",
         coolingVat: "27",
         validFrom: format(new Date(), "yyyy-MM-dd"),
-        validTo: ""
+        validTo: "",
+        species: ALL,
+        class: ALL,
       });
       fetchPrices();
     } catch (error: any) {
@@ -147,9 +181,9 @@ export const CoolingPricesDialog = ({ storageLocationId, storageLocationName }: 
     try {
       const { error } = await supabase
         .from("cooling_prices")
-        .update({ 
+        .update({
           is_archived: true,
-          valid_to: new Date().toISOString()
+          valid_to: new Date().toISOString(),
         })
         .eq("id", priceId);
 
@@ -170,6 +204,11 @@ export const CoolingPricesDialog = ({ storageLocationId, storageLocationName }: 
     }
   };
 
+  const classLabel = (value: string | null) => {
+    if (!value) return "Összes";
+    return CLASS_OPTIONS.find((o) => o.value === value)?.label || value;
+  };
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -178,16 +217,56 @@ export const CoolingPricesDialog = ({ storageLocationId, storageLocationName }: 
           Hűtési árak
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[700px] max-h-[80vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[800px] max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Hűtési árak - {storageLocationName}</DialogTitle>
           <DialogDescription>
-            Adja meg az új árakat. A korábbi aktív árak automatikusan archiválódnak.
+            Adhat meg általános árat, vagy faj/osztály szerinti egyedi árat. Ha nincs egyedi ár, az általános („Összes”) ár érvényesül.
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4 border-b pb-4">
           <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="species">Vad faj</Label>
+              <Select
+                value={formData.species}
+                onValueChange={(v) => setFormData({ ...formData, species: v })}
+              >
+                <SelectTrigger id="species">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={ALL}>Összes faj</SelectItem>
+                  {SPECIES_OPTIONS.map((s) => (
+                    <SelectItem key={s.value} value={s.value}>
+                      {s.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="class">Osztály</Label>
+              <Select
+                value={formData.class}
+                onValueChange={(v) => setFormData({ ...formData, class: v })}
+              >
+                <SelectTrigger id="class">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={ALL}>Összes osztály</SelectItem>
+                  {CLASS_OPTIONS.map((c) => (
+                    <SelectItem key={c.value} value={c.value}>
+                      {c.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="coolingPrice">Hűtési díj (Ft/kg) *</Label>
               <Input
@@ -245,10 +324,12 @@ export const CoolingPricesDialog = ({ storageLocationId, storageLocationName }: 
 
         <div className="space-y-2">
           <h3 className="font-semibold text-sm">Ártörténet</h3>
-          <div className="border rounded-md">
+          <div className="border rounded-md overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead>Faj</TableHead>
+                  <TableHead>Osztály</TableHead>
                   <TableHead>Ár (Ft/kg)</TableHead>
                   <TableHead>ÁFA (%)</TableHead>
                   <TableHead>Érvényes tól</TableHead>
@@ -260,13 +341,15 @@ export const CoolingPricesDialog = ({ storageLocationId, storageLocationName }: 
               <TableBody>
                 {prices.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center text-muted-foreground">
+                    <TableCell colSpan={8} className="text-center text-muted-foreground">
                       Még nincs árlista
                     </TableCell>
                   </TableRow>
                 ) : (
                   prices.map((price) => (
                     <TableRow key={price.id}>
+                      <TableCell>{price.species || <span className="text-muted-foreground">Összes</span>}</TableCell>
+                      <TableCell>{classLabel(price.class)}</TableCell>
                       <TableCell className="font-medium">{price.cooling_price_per_kg} Ft</TableCell>
                       <TableCell>{price.cooling_vat_rate}%</TableCell>
                       <TableCell>
