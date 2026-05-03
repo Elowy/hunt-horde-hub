@@ -151,7 +151,42 @@ interface CoolingPrice {
   valid_from: string;
   valid_to: string | null;
   is_archived: boolean;
+  species: string | null;
+  class: string | null;
 }
+
+// Pick the most specific active cooling price for a given storage location,
+// species and class. Specificity order: species+class > species > class > general.
+const findCoolingPriceForAnimal = (
+  prices: CoolingPrice[],
+  storageLocationId: string | null | undefined,
+  species: string | null | undefined,
+  className: string | null | undefined,
+): CoolingPrice | null => {
+  if (!storageLocationId) return null;
+  const now = new Date();
+  const candidates = prices.filter(
+    (cp) =>
+      cp.storage_location_id === storageLocationId &&
+      !cp.is_archived &&
+      (cp.valid_to === null || new Date(cp.valid_to) > now),
+  );
+  const score = (cp: CoolingPrice) => {
+    const sMatch = cp.species && cp.species === species;
+    const cMatch = cp.class && cp.class === className;
+    if (sMatch && cMatch) return 4;
+    if (sMatch && !cp.class) return 3;
+    if (!cp.species && cMatch) return 2;
+    if (!cp.species && !cp.class) return 1;
+    return 0;
+  };
+  return (
+    candidates
+      .map((cp) => ({ cp, s: score(cp) }))
+      .filter((x) => x.s > 0)
+      .sort((a, b) => b.s - a.s)[0]?.cp || null
+  );
+};
 
 interface EpidemicMeasure {
   id: string;
