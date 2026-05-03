@@ -151,7 +151,42 @@ interface CoolingPrice {
   valid_from: string;
   valid_to: string | null;
   is_archived: boolean;
+  species: string | null;
+  class: string | null;
 }
+
+// Pick the most specific active cooling price for a given storage location,
+// species and class. Specificity order: species+class > species > class > general.
+const findCoolingPriceForAnimal = (
+  prices: CoolingPrice[],
+  storageLocationId: string | null | undefined,
+  species: string | null | undefined,
+  className: string | null | undefined,
+): CoolingPrice | null => {
+  if (!storageLocationId) return null;
+  const now = new Date();
+  const candidates = prices.filter(
+    (cp) =>
+      cp.storage_location_id === storageLocationId &&
+      !cp.is_archived &&
+      (cp.valid_to === null || new Date(cp.valid_to) > now),
+  );
+  const score = (cp: CoolingPrice) => {
+    const sMatch = cp.species && cp.species === species;
+    const cMatch = cp.class && cp.class === className;
+    if (sMatch && cMatch) return 4;
+    if (sMatch && !cp.class) return 3;
+    if (!cp.species && cMatch) return 2;
+    if (!cp.species && !cp.class) return 1;
+    return 0;
+  };
+  return (
+    candidates
+      .map((cp) => ({ cp, s: score(cp) }))
+      .filter((x) => x.s > 0)
+      .sort((a, b) => b.s - a.s)[0]?.cp || null
+  );
+};
 
 interface EpidemicMeasure {
   id: string;
@@ -1303,9 +1338,8 @@ const Dashboard = () => {
 
         // Ha nincs járványügyi hűtési díj, használjuk a normál hűtési díjat
         if (!coolingPrice) {
-          const activeCoolingPrice = coolingPrices.find(
-            cp => cp.storage_location_id === animal.storage_location_id && 
-            (cp.valid_to === null || new Date(cp.valid_to) > new Date())
+          const activeCoolingPrice = findCoolingPriceForAnimal(
+            coolingPrices, animal.storage_location_id, animal.species, animal.class,
           );
           if (activeCoolingPrice) {
             coolingPrice = activeCoolingPrice.cooling_price_per_kg;
@@ -1391,9 +1425,8 @@ const Dashboard = () => {
 
         // Ha nincs járványügyi hűtési díj, használjuk a normál hűtési díjat
         if (!coolingPrice) {
-          const activeCoolingPrice = coolingPrices.find(
-            cp => cp.storage_location_id === animal.storage_location_id && 
-            (cp.valid_to === null || new Date(cp.valid_to) > new Date())
+          const activeCoolingPrice = findCoolingPriceForAnimal(
+            coolingPrices, animal.storage_location_id, animal.species, animal.class,
           );
           if (activeCoolingPrice) {
             coolingPrice = activeCoolingPrice.cooling_price_per_kg;
@@ -1450,36 +1483,36 @@ const Dashboard = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Fetch current cooling prices for each storage location
+      // Fetch all active cooling prices for involved storage locations,
+      // then resolve the most-specific price per animal (species/class).
       const storageLocationIds = [...new Set(selectedAnimalsList.map(a => a.storage_location_id))];
       const { data: currentPrices } = await supabase
         .from("cooling_prices")
         .select("*")
         .in("storage_location_id", storageLocationIds)
-        .is("valid_to", null)
         .eq("is_archived", false);
 
-      const priceMap = new Map(
-        currentPrices?.map(price => [price.storage_location_id, price]) || []
-      );
+      const allActivePrices = ((currentPrices as any[]) || []).filter(
+        (cp) => cp.valid_to === null || new Date(cp.valid_to) > new Date(),
+      ) as CoolingPrice[];
 
       // Calculate totals and update animals with transport prices
       let totalWeight = 0;
       let totalPrice = 0;
-      
+
       for (const animal of selectedAnimalsList) {
         const weight = animal.weight || 0;
         totalWeight += weight;
-        
-        // Get current cooling price for this animal's storage location
-        const currentPrice = priceMap.get(animal.storage_location_id);
+
+        const currentPrice = findCoolingPriceForAnimal(
+          allActivePrices, animal.storage_location_id, animal.species, animal.class,
+        );
         if (currentPrice && weight > 0) {
           const netRevenue = weight * currentPrice.cooling_price_per_kg;
           const vatRate = currentPrice.cooling_vat_rate || 27;
           const grossRevenue = netRevenue * (1 + vatRate / 100);
           totalPrice += grossRevenue;
-          
-          // Update animal with transport cooling price
+
           await supabase
             .from("animals")
             .update({
@@ -1965,9 +1998,8 @@ const Dashboard = () => {
     }
     
     // Normál hűtési ár a tárolóhelyről
-    const activeCoolingPrice = coolingPrices.find(
-      cp => cp.storage_location_id === animal.storage_location_id && 
-      (cp.valid_to === null || new Date(cp.valid_to) > new Date())
+    const activeCoolingPrice = findCoolingPriceForAnimal(
+      coolingPrices, animal.storage_location_id, animal.species, animal.class,
     );
     
     if (!activeCoolingPrice || !activeCoolingPrice.cooling_price_per_kg) {
@@ -2027,9 +2059,8 @@ const Dashboard = () => {
       }
       
       // 3. Harmadsorban a coolingPrices állapotból az aktív ár
-      const activeCoolingPrice = coolingPrices.find(
-        cp => cp.storage_location_id === animal.storage_location_id && 
-        (cp.valid_to === null || new Date(cp.valid_to) > new Date())
+      const activeCoolingPrice = findCoolingPriceForAnimal(
+        coolingPrices, animal.storage_location_id, animal.species, animal.class,
       );
       
       if (!activeCoolingPrice || !activeCoolingPrice.cooling_price_per_kg) {
@@ -2075,9 +2106,8 @@ const Dashboard = () => {
       }
       
       // 3. Harmadsorban a coolingPrices állapotból az aktív ár
-      const activeCoolingPrice = coolingPrices.find(
-        cp => cp.storage_location_id === animal.storage_location_id && 
-        (cp.valid_to === null || new Date(cp.valid_to) > new Date())
+      const activeCoolingPrice = findCoolingPriceForAnimal(
+        coolingPrices, animal.storage_location_id, animal.species, animal.class,
       );
       
       if (!activeCoolingPrice || !activeCoolingPrice.cooling_price_per_kg) {

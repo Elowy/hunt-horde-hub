@@ -378,11 +378,13 @@ export type Database = {
       }
       cooling_prices: {
         Row: {
+          class: string | null
           cooling_price_per_kg: number
           cooling_vat_rate: number
           created_at: string
           id: string
           is_archived: boolean
+          species: string | null
           storage_location_id: string
           updated_at: string
           user_id: string
@@ -390,11 +392,13 @@ export type Database = {
           valid_to: string | null
         }
         Insert: {
+          class?: string | null
           cooling_price_per_kg?: number
           cooling_vat_rate?: number
           created_at?: string
           id?: string
           is_archived?: boolean
+          species?: string | null
           storage_location_id: string
           updated_at?: string
           user_id: string
@@ -402,11 +406,13 @@ export type Database = {
           valid_to?: string | null
         }
         Update: {
+          class?: string | null
           cooling_price_per_kg?: number
           cooling_vat_rate?: number
           created_at?: string
           id?: string
           is_archived?: boolean
+          species?: string | null
           storage_location_id?: string
           updated_at?: string
           user_id?: string
