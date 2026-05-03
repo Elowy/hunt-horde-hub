@@ -419,19 +419,35 @@ export const AddAnimalDialog = ({ onAnimalAdded }: AddAnimalDialogProps) => {
       }
 
       // Ha nincs járványügyi hűtési díj, használjuk a normál hűtési árat
+      // (faj+osztály > faj > osztály > általános)
       if (!coolingPrice && !skipCooling) {
-        const { data: coolingPriceData } = await supabase
+        const nowIso = new Date().toISOString();
+        const { data: allPrices } = await supabase
           .from("cooling_prices")
-          .select("cooling_price_per_kg, cooling_vat_rate")
+          .select("cooling_price_per_kg, cooling_vat_rate, species, class, valid_from, valid_to")
           .eq("storage_location_id", formData.storageLocationId)
-          .or(`valid_to.is.null,valid_to.gt.${new Date().toISOString()}`)
-          .order("valid_from", { ascending: false })
-          .limit(1)
-          .single();
+          .eq("is_archived", false)
+          .or(`valid_to.is.null,valid_to.gt.${nowIso}`)
+          .order("valid_from", { ascending: false });
 
-        if (coolingPriceData) {
-          coolingPrice = coolingPriceData.cooling_price_per_kg;
-          coolingVat = coolingPriceData.cooling_vat_rate;
+        const candidates = (allPrices as any[] | null) || [];
+        const matchScore = (p: any) => {
+          const sMatch = p.species === formData.type;
+          const cMatch = p.class === formData.class;
+          if (sMatch && cMatch) return 4;
+          if (sMatch && p.class === null) return 3;
+          if (p.species === null && cMatch) return 2;
+          if (p.species === null && p.class === null) return 1;
+          return 0;
+        };
+        const best = candidates
+          .map((p) => ({ p, score: matchScore(p) }))
+          .filter((x) => x.score > 0)
+          .sort((a, b) => b.score - a.score)[0]?.p;
+
+        if (best) {
+          coolingPrice = best.cooling_price_per_kg;
+          coolingVat = best.cooling_vat_rate;
         }
       }
 
