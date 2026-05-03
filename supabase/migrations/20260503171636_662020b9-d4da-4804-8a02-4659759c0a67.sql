@@ -1,0 +1,1 @@
+GRANT EXECUTE ON FUNCTION public.get_user_hunter_society_id(uuid) TO anon, authenticated, public;
