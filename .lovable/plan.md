@@ -1,42 +1,22 @@
 ## Cél
 
-Az „Állat módosítása" (EditAnimalDialog) dialógus tartalmazza az „Új állat hozzáadása" (AddAnimalDialog) összes szerkeszthető mezőjét, ugyanazokkal a viselkedési szabályokkal.
+Az „Új állat hozzáadása" dialógusban a Vadász típusa kiválasztása után **minden típusnál** (Tag, Bérvadász, IB Vendég, Vendég, Egyéb) ugyanaz a viselkedés: megjelenik az adott típushoz tartozó vadászok listája, és emellett mindig elérhető a „➕ Egyedi vadász megadása…" opció, ami szabad név + vadászjegyszám beírást nyit.
 
-## Hiányzó mezők az EditAnimalDialog-ban
+## Változtatás
 
-| Mező | Forrás (AddAnimalDialog) |
-|---|---|
-| Vad típus (`game_type`) | Vadfajtól függő legördülő, apróvad esetén readonly |
-| Vadászjegyszám (`hunter_license_number`) | Egyéni vadász esetén szöveges input |
-| Bírálati eredményközlő szám (`judgement_number`) | Szöveges input |
-| Átlag agyarhossz (`average_tusk_length`) | Csak vaddisznó + hím esetén |
-| Számla sorszáma (`invoice_number`) | Szöveges input az árazás szekcióban |
-| Nettó / Bruttó / ÁFA (árazás) | Auto-számolt, felülírható |
-| Hűtési díj (Ft/kg) + Hűtési ÁFA | Auto-számolt árlistából, felülírható |
-| Össz érték | Csak olvasható, számolt |
-| „Hűtési díj nélkül – azonnal elszállítva" checkbox | Új állatnál van — szerkesztésnél csak akkor mutassuk, ha még nincs elszállítva |
-| Elejtés időpontja datetime picker | Jelenleg csak date input — cseréljük le ugyanarra a Calendar + idő picker párosra mint Add-nál |
+`src/components/AddAnimalDialog.tsx`:
 
-A meglévő mezők (animal_id, species, gender, class, weight, storage, security zone, hunter_name, hunter_type, age, sample_id, vet_*, notes) maradnak.
+1. A „Vadász típusa" Select `onValueChange` handlere már **ne** állítsa automatikusan `isCustomHunter = true`-ra az „Egyéb" típust. Minden típusnál ugyanúgy a lista jelenjen meg alapértelmezetten.
+2. A vadász neve blokk (Select listával + „➕ Egyedi név beírása…" opcióval) az „Egyéb" típusnál is jelenjen meg ugyanúgy, mint a többinél.
+3. Ha a felhasználó kiválasztja az „➕ Egyedi név beírása…" opciót (vagy a már létező „Lista" gombbal vissza), akkor a meglévő `manualHunterName` ág fut le: szabad név + vadászjegyszám input. Ez a logika változatlan marad.
+4. Az `isCustomHunter` állapot eltávolítható, vagy egyszerűen mindig `false`-ra állítva használjuk — a manuális mód tisztán a `manualHunterName`-en keresztül vezérelt minden típusnál.
+5. A SelectItem felirata legyen egységes: „➕ Egyedi vadász megadása…" (a jelenlegi „Egyéb név beírása…" helyett), hogy a Tag / Vendég / Egyéb stb. típusoknál is értelmes legyen.
 
-## Viselkedés
+A lista szűrése `hunters.filter(h => h.hunter_category === formData.hunterType)` alapon működik tovább, így az „Egyéb" típushoz tartozó vadászok is megjelennek, ha vannak ilyen kategóriájúak.
 
-- **Vad típus**: ugyanaz a logika mint Add-ban (`getGameTypesForSpecies`, `isBigGameSpecies`, `SMALL_GAME_TYPE`). Vadfaj-váltáskor reset.
-- **Árazás auto-kalkuláció**: ugyanaz a `useEffect` + `pricingTouched` minta mint Add-ban. Inicializáláskor a meglévő `transport_price_per_kg`, `transport_vat_rate`, `transport_cooling_price`, `transport_cooling_vat_rate`, `invoice_number` értékek töltik fel az állapotot, és **ezek `pricingTouched=true`-ként számítanak** (nehogy felülírja az árlista a már mentett, esetleg módosított értékeket). Ha a felhasználó kitörli/üríti, akkor az árlista visszatöltheti.
-- **Számla sorszáma**: szabad szöveg, mentésnél `invoice_number` mezőbe.
-- **Mentés**: a `transport_*` mezők a pricing state-ből számolódnak (Ft/kg-ra visszaosztva a súllyal), `game_type`, `hunter_license_number`, `judgement_number`, `average_tusk_length`, `invoice_number` mezők is mentésre kerülnek.
+## Nem változik
 
-## Érintett fájl
-
-`src/components/EditAnimalDialog.tsx`:
-
-1. `formData` kibővítése: `game_type`, `hunter_license_number`, `judgement_number`, `average_tusk_length`.
-2. Új `pricing` és `pricingTouched` állapot, `fetchBestCoolingPrice` helper, auto-kalkuláló `useEffect`, `handlePricingChange` (azonos az AddAnimalDialog mintájával).
-3. `species` Select-hez új „Vad típus" Select.
-4. UI: pricing szekció (6 mező + össz érték), számla sorszáma, vadászjegyszám, bírálati szám, agyarhossz feltételes mező, datetime picker (`Calendar` + `Popover` + idő input).
-5. `handleSubmit` update payload: új mezők hozzáadása + `transport_*` és `invoice_number` mentése a pricing state-ből.
-6. `useEffect` init blokk: pricing state feltöltése a meglévő animal értékeiből, `pricingTouched` mezőnként `true`-ra ahol van mentett érték.
-
-## Megjegyzés (nem technikai)
-
-A módosító ablak ezután ugyanazt a kitöltöttséget és funkcionalitást nyújtja, mint az új állat felvétele — minden adat szerkeszthető marad, beleértve az árazási és számlázási mezőket, a vad típusát és minden járulékos információt.
+- A Vadász típusa lista opciói (Tag, Bérvadász, IB Vendég, Vendég, Egyéb) változatlanok.
+- A vadászjegyszám mező továbbra is csak a manuális (egyedi vadász) módban jelenik meg.
+- Semmi más mező, logika vagy mentési viselkedés nem módosul.
+- Az `EditAnimalDialog` ebben a körben nem érintett (a felhasználó kifejezetten csak ezt az egy dolgot kérte).
