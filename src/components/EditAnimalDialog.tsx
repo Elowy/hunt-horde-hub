@@ -57,6 +57,13 @@ interface Animal {
   transported_at?: string | null;
   transport_price_per_kg?: number | null;
   transport_vat_rate?: number | null;
+  transport_cooling_price?: number | null;
+  transport_cooling_vat_rate?: number | null;
+  game_type?: string | null;
+  hunter_license_number?: string | null;
+  judgement_number?: string | null;
+  average_tusk_length?: number | null;
+  invoice_number?: string | null;
 }
 
 interface StorageLocation {
