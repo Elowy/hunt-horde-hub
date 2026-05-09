@@ -350,6 +350,128 @@ export const AddAnimalDialog = ({ onAnimalAdded }: AddAnimalDialogProps) => {
     calculatePrice();
   }, [formData.weight, formData.type, formData.class, priceSettings, vatRate, epidemicMeasures]);
 
+  // Best-match cooling price lookup (mirrors handleSubmit logic)
+  const fetchBestCoolingPrice = async (storageLocationId: string, species: string, klass: string) => {
+    if (!storageLocationId) return null;
+    const nowIso = new Date().toISOString();
+    const { data: allPrices } = await supabase
+      .from("cooling_prices")
+      .select("cooling_price_per_kg, cooling_vat_rate, species, class, valid_from, valid_to")
+      .eq("storage_location_id", storageLocationId)
+      .eq("is_archived", false)
+      .or(`valid_to.is.null,valid_to.gt.${nowIso}`)
+      .order("valid_from", { ascending: false });
+
+    const candidates = (allPrices as any[] | null) || [];
+    const matchScore = (p: any) => {
+      const sMatch = p.species === species;
+      const cMatch = p.class === klass;
+      if (sMatch && cMatch) return 4;
+      if (sMatch && p.class === null) return 3;
+      if (p.species === null && cMatch) return 2;
+      if (p.species === null && p.class === null) return 1;
+      return 0;
+    };
+    return candidates
+      .map((p) => ({ p, score: matchScore(p) }))
+      .filter((x) => x.score > 0)
+      .sort((a, b) => b.score - a.score)[0]?.p ?? null;
+  };
+
+  // Auto-fill pricing fields from current price list (skip fields user has touched)
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const activeMeasure = epidemicMeasures.find(
+        (m) => m.is_active && m.affected_species.includes(formData.type)
+      );
+
+      let netPerKg = 0;
+      let vat = vatRate;
+      let netTotal = 0;
+
+      if (activeMeasure) {
+        const total = activeMeasure.shooting_fee + activeMeasure.sampling_fee + activeMeasure.price_per_unit;
+        netTotal = total;
+        vat = activeMeasure.vat_rate || 27;
+        if (formData.weight) netPerKg = total / parseFloat(formData.weight);
+      } else if (formData.type && formData.class) {
+        const ps = priceSettings.find((p) => p.species === formData.type && p.class === formData.class);
+        if (ps) {
+          netPerKg = ps.price_per_kg;
+          if (formData.weight) netTotal = parseFloat(formData.weight) * ps.price_per_kg;
+        }
+      }
+
+      // Cooling lookup
+      let coolingPerKg = 0;
+      let coolingVatVal = 0;
+      if (skipCooling) {
+        coolingPerKg = 0;
+        coolingVatVal = 0;
+      } else if (activeMeasure?.cooling_price_per_kg) {
+        coolingPerKg = activeMeasure.cooling_price_per_kg;
+        coolingVatVal = activeMeasure.vat_rate || 27;
+      } else if (formData.storageLocationId) {
+        const best = await fetchBestCoolingPrice(formData.storageLocationId, formData.type, formData.class);
+        if (best) {
+          coolingPerKg = Number(best.cooling_price_per_kg) || 0;
+          coolingVatVal = Number(best.cooling_vat_rate) || 0;
+        }
+      }
+
+      if (cancelled) return;
+
+      setPricing((prev) => {
+        const next = { ...prev };
+        if (!pricingTouched.netPrice) next.netPrice = netTotal ? String(Math.round(netTotal)) : "";
+        if (!pricingTouched.priceVat) next.priceVat = String(vat);
+        if (!pricingTouched.grossPrice) {
+          const gross = netTotal * (1 + vat / 100);
+          next.grossPrice = netTotal ? String(Math.round(gross)) : "";
+        }
+        if (!pricingTouched.coolingPricePerKg) next.coolingPricePerKg = coolingPerKg ? String(coolingPerKg) : "";
+        if (!pricingTouched.coolingVat) next.coolingVat = coolingVatVal ? String(coolingVatVal) : "";
+        return next;
+      });
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    formData.weight,
+    formData.type,
+    formData.class,
+    formData.storageLocationId,
+    priceSettings,
+    vatRate,
+    epidemicMeasures,
+    skipCooling,
+  ]);
+
+  const handlePricingChange = (field: keyof typeof pricing, value: string) => {
+    setPricing((prev) => {
+      const next = { ...prev, [field]: value };
+      // Cross-link net <-> gross via VAT
+      const vat = parseFloat(next.priceVat) || 0;
+      if (field === "netPrice") {
+        const n = parseFloat(value);
+        if (!isNaN(n)) next.grossPrice = String(Math.round(n * (1 + vat / 100)));
+      } else if (field === "grossPrice") {
+        const g = parseFloat(value);
+        if (!isNaN(g)) next.netPrice = String(Math.round(g / (1 + vat / 100)));
+      } else if (field === "priceVat") {
+        const n = parseFloat(next.netPrice);
+        if (!isNaN(n)) next.grossPrice = String(Math.round(n * (1 + vat / 100)));
+      }
+      return next;
+    });
+    setPricingTouched((prev) => ({ ...prev, [field]: true }));
+    if (field === "netPrice" || field === "priceVat") setPricingTouched((p) => ({ ...p, grossPrice: true }));
+    if (field === "grossPrice") setPricingTouched((p) => ({ ...p, netPrice: true }));
+  };
+
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => {
       const next = { ...prev, [field]: value };
