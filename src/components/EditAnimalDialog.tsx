@@ -514,20 +514,26 @@ export const EditAnimalDialog = ({ animal, locations, onAnimalUpdated }: EditAni
     setLoading(true);
 
     try {
+      const weightNum = formData.weight ? parseFloat(formData.weight) : 0;
+      const netTotal = parseFloat(pricing.netPrice);
+      const vatVal = parseFloat(pricing.priceVat);
+      const coolingPerKg = parseFloat(pricing.coolingPricePerKg);
+      const coolingVatNum = parseFloat(pricing.coolingVat);
+
       const { error } = await supabase
         .from("animals")
         .update({
           animal_id: formData.animal_id,
           species: formData.species,
           gender: formData.gender || null,
-      weight: formData.weight ? parseFloat(formData.weight) : null,
-      class: formData.class || null,
-      cooling_date: formData.cooling_date || null,
-      shooting_date: formData.shooting_date || null,
-      storage_location_id: formData.storage_location_id,
-      hunter_name: formData.hunter_name || null,
-      hunter_type: formData.hunter_type || null,
-      age: formData.age || null,
+          weight: formData.weight ? parseFloat(formData.weight) : null,
+          class: formData.class || null,
+          cooling_date: formData.cooling_date || null,
+          shooting_date: formData.shooting_date || null,
+          storage_location_id: formData.storage_location_id,
+          hunter_name: formData.hunter_name || null,
+          hunter_type: formData.hunter_type || null,
+          age: formData.age || null,
           sample_id: formData.sample_id || null,
           sample_date: formData.sample_date || null,
           expiry_date: formData.expiry_date || null,
@@ -538,7 +544,16 @@ export const EditAnimalDialog = ({ animal, locations, onAnimalUpdated }: EditAni
           vet_sample_id: formData.vet_sample_id || null,
           vet_doctor_name: formData.vet_doctor_name || null,
           vet_result: formData.vet_result || null,
-        })
+          game_type: formData.game_type || null,
+          hunter_license_number: formData.hunter_license_number || null,
+          judgement_number: formData.judgement_number || null,
+          average_tusk_length: formData.average_tusk_length ? parseFloat(formData.average_tusk_length) : null,
+          invoice_number: pricing.invoiceNumber || null,
+          transport_price_per_kg: !isNaN(netTotal) && weightNum > 0 ? netTotal / weightNum : null,
+          transport_vat_rate: !isNaN(vatVal) ? vatVal : null,
+          transport_cooling_price: !isNaN(coolingPerKg) ? coolingPerKg : null,
+          transport_cooling_vat_rate: !isNaN(coolingVatNum) ? coolingVatNum : null,
+        } as any)
         .eq("id", animal.id);
 
       if (error) throw error;
