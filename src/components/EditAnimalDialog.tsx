@@ -702,18 +702,58 @@ export const EditAnimalDialog = ({ animal, locations, onAnimalUpdated }: EditAni
               />
             </div>
 
-            {calculatedPrice.net > 0 && (
-              <div className="col-span-2 bg-muted/50 p-4 rounded-lg space-y-2">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground">Nettó ár:</span>
-                  <span className="text-lg font-bold">{calculatedPrice.net.toLocaleString("hu-HU")} Ft</span>
+            <div className="col-span-2 rounded-lg border p-4 space-y-4 bg-muted/20">
+              <div className="flex items-center justify-between">
+                <h4 className="font-semibold text-sm">Árazás és számlázás</h4>
+                <span className="text-xs text-muted-foreground">Aktuális árlista alapján – felülírható</span>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="netPrice">Nettó ár (Ft)</Label>
+                  <Input id="netPrice" type="number" step="0.01" value={pricing.netPrice}
+                    onChange={(e) => handlePricingChange("netPrice", e.target.value)} placeholder="0" />
                 </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground">Bruttó ár (ÁFA {vatRate}%):</span>
-                  <span className="text-lg">{calculatedPrice.gross.toLocaleString("hu-HU")} Ft</span>
+                <div className="space-y-2">
+                  <Label htmlFor="priceVat">ÁFA (%)</Label>
+                  <Input id="priceVat" type="number" step="0.01" value={pricing.priceVat}
+                    onChange={(e) => handlePricingChange("priceVat", e.target.value)} placeholder="27" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="grossPrice">Bruttó ár (Ft)</Label>
+                  <Input id="grossPrice" type="number" step="0.01" value={pricing.grossPrice}
+                    onChange={(e) => handlePricingChange("grossPrice", e.target.value)} placeholder="0" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="coolingPricePerKg">Hűtési díj (Ft/kg)</Label>
+                  <Input id="coolingPricePerKg" type="number" step="0.01" value={pricing.coolingPricePerKg}
+                    onChange={(e) => handlePricingChange("coolingPricePerKg", e.target.value)} placeholder="0" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="coolingVat">Hűtési ÁFA (%)</Label>
+                  <Input id="coolingVat" type="number" step="0.01" value={pricing.coolingVat}
+                    onChange={(e) => handlePricingChange("coolingVat", e.target.value)} placeholder="27" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="invoiceNumber">Számla sorszáma</Label>
+                  <Input id="invoiceNumber" value={pricing.invoiceNumber}
+                    onChange={(e) => handlePricingChange("invoiceNumber", e.target.value)} placeholder="pl. 2026/0123" />
                 </div>
               </div>
-            )}
+              {(() => {
+                const w = parseFloat(formData.weight) || 0;
+                const gross = parseFloat(pricing.grossPrice) || 0;
+                const cKg = parseFloat(pricing.coolingPricePerKg) || 0;
+                const cVat = parseFloat(pricing.coolingVat) || 0;
+                const total = gross + w * cKg * (1 + cVat / 100);
+                if (!total) return null;
+                return (
+                  <div className="flex justify-between items-center pt-2 border-t">
+                    <span className="text-sm font-medium">Össz érték (bruttó):</span>
+                    <span className="text-lg font-bold text-primary">{Math.round(total).toLocaleString("hu-HU")} Ft</span>
+                  </div>
+                );
+              })()}
+            </div>
 
             <div className="space-y-2">
               <Label htmlFor="storage_location_id">Hűtési helyszín</Label>
