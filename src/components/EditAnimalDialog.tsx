@@ -613,7 +613,11 @@ export const EditAnimalDialog = ({ animal, locations, onAnimalUpdated }: EditAni
               <Label htmlFor="species">Vadfaj *</Label>
               <Select
                 value={formData.species}
-                onValueChange={(value) => setFormData({ ...formData, species: value })}
+                onValueChange={(value) => setFormData({
+                  ...formData,
+                  species: value,
+                  game_type: isBigGameSpecies(value) ? "" : (value ? SMALL_GAME_TYPE : ""),
+                })}
                 disabled={loading}
               >
                 <SelectTrigger>
@@ -626,6 +630,26 @@ export const EditAnimalDialog = ({ animal, locations, onAnimalUpdated }: EditAni
                   <SelectItem value="🦌 Gím Szarvas">🦌 Gím Szarvas</SelectItem>
                   <SelectItem value="🐗 Vaddisznó">🐗 Vaddisznó</SelectItem>
                   <SelectItem value="🐏 Muflon">🐏 Muflon</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="game_type">Vad típus</Label>
+              <Select
+                value={formData.game_type}
+                onValueChange={(value) => setFormData({ ...formData, game_type: value })}
+                disabled={loading || !isBigGameSpecies(formData.species)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={isBigGameSpecies(formData.species) ? "Válasszon típust" : (formData.game_type || "Apróvad")} />
+                </SelectTrigger>
+                <SelectContent>
+                  {isBigGameSpecies(formData.species)
+                    ? getGameTypesForSpecies(formData.species).map((t) => (
+                        <SelectItem key={t} value={t}>{t}</SelectItem>
+                      ))
+                    : <SelectItem value={SMALL_GAME_TYPE}>{SMALL_GAME_TYPE}</SelectItem>}
                 </SelectContent>
               </Select>
             </div>
