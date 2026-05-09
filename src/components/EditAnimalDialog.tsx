@@ -120,14 +120,14 @@ export const EditAnimalDialog = ({ animal, locations, onAnimalUpdated }: EditAni
   const [isCustomHunter, setIsCustomHunter] = useState(false);
   const [vatRate, setVatRate] = useState<number>(27);
   const [calculatedPrice, setCalculatedPrice] = useState<{ net: number; gross: number }>({ net: 0, gross: 0 });
-  const [formData, setFormData] = useState({
+  const buildInitialForm = () => ({
     animal_id: animal.animal_id,
     species: animal.species,
     gender: animal.gender || "",
     weight: animal.weight?.toString() || "",
     class: animal.class || "",
     cooling_date: animal.cooling_date?.split('T')[0] || "",
-    shooting_date: animal.shooting_date?.split('T')[0] || "",
+    shooting_date: animal.shooting_date || "",
     storage_location_id: animal.storage_location_id,
     hunter_name: animal.hunter_name || "",
     hunter_type: animal.hunter_type || "",
@@ -142,37 +142,48 @@ export const EditAnimalDialog = ({ animal, locations, onAnimalUpdated }: EditAni
     vet_sample_id: animal.vet_sample_id || "",
     vet_doctor_name: animal.vet_doctor_name || "",
     vet_result: animal.vet_result || "",
+    game_type: animal.game_type || "",
+    hunter_license_number: animal.hunter_license_number || "",
+    judgement_number: animal.judgement_number || "",
+    average_tusk_length: animal.average_tusk_length?.toString() || "",
+  });
+
+  const buildInitialPricing = () => {
+    const w = animal.weight || 0;
+    const netTotal = (animal.transport_price_per_kg && w) ? animal.transport_price_per_kg * w : 0;
+    const vat = animal.transport_vat_rate ?? 0;
+    return {
+      netPrice: netTotal ? String(Math.round(netTotal)) : "",
+      grossPrice: netTotal ? String(Math.round(netTotal * (1 + vat / 100))) : "",
+      priceVat: animal.transport_vat_rate != null ? String(animal.transport_vat_rate) : "",
+      coolingPricePerKg: animal.transport_cooling_price != null ? String(animal.transport_cooling_price) : "",
+      coolingVat: animal.transport_cooling_vat_rate != null ? String(animal.transport_cooling_vat_rate) : "",
+      invoiceNumber: animal.invoice_number || "",
+    };
+  };
+
+  const [formData, setFormData] = useState(buildInitialForm);
+  const [pricing, setPricing] = useState(buildInitialPricing);
+  const [pricingTouched, setPricingTouched] = useState<Record<string, boolean>>(() => {
+    const init = buildInitialPricing();
+    const touched: Record<string, boolean> = {};
+    Object.entries(init).forEach(([k, v]) => { if (v) touched[k] = true; });
+    return touched;
   });
 
   useEffect(() => {
     if (open) {
-      setFormData({
-        animal_id: animal.animal_id,
-        species: animal.species,
-        gender: animal.gender || "",
-        weight: animal.weight?.toString() || "",
-    class: animal.class || "",
-    cooling_date: animal.cooling_date?.split('T')[0] || "",
-    shooting_date: animal.shooting_date?.split('T')[0] || "",
-    storage_location_id: animal.storage_location_id,
-    hunter_name: animal.hunter_name || "",
-    hunter_type: animal.hunter_type || "",
-    age: animal.age || "",
-    sample_id: animal.sample_id || "",
-        sample_date: animal.sample_date?.split('T')[0] || "",
-        expiry_date: animal.expiry_date?.split('T')[0] || "",
-        vet_check: animal.vet_check || false,
-        vet_notes: animal.vet_notes || "",
-        notes: animal.notes || "",
-        security_zone_id: animal.security_zone_id || "",
-        vet_sample_id: animal.vet_sample_id || "",
-        vet_doctor_name: animal.vet_doctor_name || "",
-        vet_result: animal.vet_result || "",
-      });
-      
+      setFormData(buildInitialForm());
+      setPricing(buildInitialPricing());
+      const init = buildInitialPricing();
+      const touched: Record<string, boolean> = {};
+      Object.entries(init).forEach(([k, v]) => { if (v) touched[k] = true; });
+      setPricingTouched(touched);
+
       fetchSecurityZones();
       fetchHunters();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, animal]);
 
   // Check if hunter is custom after hunters are loaded
