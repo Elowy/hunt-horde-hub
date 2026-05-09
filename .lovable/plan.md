@@ -1,33 +1,49 @@
 ## Cél
 
-Új "Vad típus" legördülő mező az állat hozzáadásánál, amely a kiválasztott vadfajtól függően mutat különböző opciókat.
+A „További adatok" szekcióban jelenjenek meg az állat árazásával kapcsolatos mezők — automatikusan kiszámolva az aktuális árlistából, de a felhasználó által felülírhatóan — valamint egy számla sorszáma mező.
 
-## Viselkedés
+## Új mezők a „További adatok" alatt
 
-A "Vadfaj" mező mellé kerül egy új "Vad típus" mező az alábbi feltételes opciókkal:
+Egy új „Árazás és számlázás" alszekció a Collapsible tetején:
 
-| Vadfaj | Választható típusok |
+| Mező | Forrás / viselkedés |
 |---|---|
-| 🐗 Vaddisznó | Kan, Koca, Süldő, Malac |
-| 🦌 Gím Szarvas | Borjú, Ünő, Bika, Tehén |
-| 🦌 Szika Szarvas | Borjú, Ünő, Bika, Tehén |
-| 🦌 Dám Szarvas | Borjú, Ünő, Bika, Tehén |
-| 🐏 Muflon | Bárány, Jerke, Juh, Kos |
-| 🐏 Őz | Gida, Suta, Bak |
-| Bármi más (Róka, Borz, Nyúl, Fácán, Fogoly...) | **Apróvad** (rögzített, nem módosítható) |
+| Nettó ár (Ft) | Auto: `súly × árlista Ft/kg` (járványügyi esetén `lőtt + minta + ár`). Szerkeszthető. |
+| ÁFA mérték (%) | Auto: faj/osztály árlista vagy profil VAT. Szerkeszthető. |
+| Bruttó ár (Ft) | Auto: `nettó × (1 + áfa/100)`. Szerkeszthető (visszaszámolja a nettót). |
+| Hűtési díj (Ft/kg) | Auto: hűtőhely + faj/osztály legjobb találat (a meglévő `matchScore` logikával). Szerkeszthető. Nullázódik ha „Hűtési díj nélkül" be van pipálva. |
+| Hűtési ÁFA (%) | Auto: a kiválasztott hűtési árlistából. Szerkeszthető. |
+| Össz érték (Ft) | Számolt, csak olvasható: `bruttó ár + (hűtési díj × súly × (1 + hűtési áfa/100))`. |
+| Számla sorszáma | Szabad szöveg (pl. „2026/0123"). |
 
-A mező alapértelmezetten **readonly/disabled** — csak akkor oldódik fel a szerkesztés, ha a felhasználó a fenti nagyvad fajok valamelyikét választja. Apróvad esetében automatikusan kitöltődik és zárolva marad.
+## Számítási logika
 
-Ha a felhasználó vadfajt vált, a "Vad típus" érték törlődik (kivéve apróvadnál).
+- Egy `useEffect` figyeli `formData.weight`, `type`, `class`, `storageLocationId`, `priceSettings`, `epidemicMeasures`, `vatRate` változását, és újraszámolja a mezőket — **kivéve azokat, amiket a felhasználó már kézzel módosított** (egy `pricingTouched` rekord segítségével mezőnként).
+- A hűtési ár lekérése: a meglévő `matchScore` algoritmus átkerül a `handleSubmit`-ből egy közös helper függvénybe, hogy itt is használható legyen async.
+- A „Hűtési díj nélkül" checkbox bepipálása a hűtési mezőket nullára állítja és letiltja.
+
+## Mentés (handleSubmit)
+
+A jelenlegi `transport_price_per_kg`, `transport_vat_rate`, `transport_cooling_price`, `transport_cooling_vat_rate` mezőkbe a felhasználó által (esetleg módosított) végleges értékek kerülnek — `Ft/kg`-ra visszaszámolva, ha a felhasználó nettó/bruttó összegben írta felül (osztva a súllyal).
+
+A számla sorszáma új DB oszlopba kerül.
+
+## Adatbázis változás
+
+Új oszlop az `animals` táblán:
+
+- `invoice_number TEXT` (nullable)
 
 ## Érintett fájlok
 
-1. **`src/lib/speciesConstants.ts`** — Új `GAME_TYPE_OPTIONS` konstans (vadfaj → opciók map) export, plusz egy `getGameTypesForSpecies(species)` segédfüggvény.
-2. **`src/components/AddAnimalDialog.tsx`** — Új Select mező a Vadfaj és Nem között, kapcsolódó state (`game_type`), reset logika fajváltáskor, mentés a DB-be.
-3. **`src/components/EditAnimalDialog.tsx`** — Ugyanez a mező a szerkesztő dialógusban (konzisztencia).
-4. **Adatbázis migráció** — `animals` táblához új `game_type TEXT` oszlop (nullable a meglévő rekordok miatt).
-5. **`src/integrations/supabase/types.ts`** — Automatikusan frissül a migráció után.
+1. **Adatbázis migráció** — `animals.invoice_number` oszlop hozzáadása.
+2. **`src/components/AddAnimalDialog.tsx`**:
+   - Új state mezők: `netPrice`, `grossPrice`, `priceVat`, `coolingPricePerKg`, `coolingVat`, `invoiceNumber`, plus `pricingTouched` set.
+   - Új helper: `fetchBestCoolingPrice(storageLocationId, species, class)`.
+   - Új `useEffect` az árak újraszámolására.
+   - Új UI blokk a Collapsible tetején (4–5 input mező + olvasható „Össz érték").
+   - `handleSubmit` frissítése: a state-ből veszi a végleges árakat; `invoice_number` mentése.
 
-## Megjegyzés
+## Megjegyzés (nem technikai)
 
-A meglévő "Osztály" (I/II/III/IV) mező változatlan marad — a "Vad típus" ettől független új mező.
+A felhasználó a vad felvételekor látni fogja az aktuális árlista alapján kiszámolt nettó/bruttó árat, ÁFA mértéket, hűtési díjat és összértéket. Bármelyik mezőt felülírhatja, és megadhat egy számla sorszámot is. Mentéskor a végleges (esetleg módosított) értékek és a számla sorszáma is rögzítésre kerülnek.

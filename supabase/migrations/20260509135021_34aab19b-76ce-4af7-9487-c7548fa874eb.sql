@@ -1,0 +1,1 @@
+ALTER TABLE public.animals ADD COLUMN IF NOT EXISTS invoice_number TEXT;
