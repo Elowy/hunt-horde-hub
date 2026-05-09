@@ -64,6 +64,7 @@ export type Database = {
           hunter_type: string | null
           hunting_registration_id: string | null
           id: string
+          invoice_number: string | null
           is_transported: boolean | null
           judgement_number: string | null
           notes: string | null
@@ -107,6 +108,7 @@ export type Database = {
           hunter_type?: string | null
           hunting_registration_id?: string | null
           id?: string
+          invoice_number?: string | null
           is_transported?: boolean | null
           judgement_number?: string | null
           notes?: string | null
@@ -150,6 +152,7 @@ export type Database = {
           hunter_type?: string | null
           hunting_registration_id?: string | null
           id?: string
+          invoice_number?: string | null
           is_transported?: boolean | null
           judgement_number?: string | null
           notes?: string | null
