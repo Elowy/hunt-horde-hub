@@ -1,0 +1,1 @@
+ALTER TABLE public.animals ADD COLUMN IF NOT EXISTS game_type TEXT;

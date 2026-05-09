@@ -18,6 +18,7 @@ import { useToast } from "@/hooks/use-toast";
 import { FileText, ChevronDown, ChevronUp } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useSubscription } from "@/hooks/useSubscription";
+import { getGameTypesForSpecies, isBigGameSpecies, SMALL_GAME_TYPE } from "@/lib/speciesConstants";
 
 interface StorageLocation {
   id: string;
@@ -86,6 +87,7 @@ export const AddAnimalDialog = ({ onAnimalAdded }: AddAnimalDialogProps) => {
     type: "",
     gender: "",
     class: "",
+    gameType: "",
     weight: "",
     hunterType: "",
     hunterName: "",
@@ -333,7 +335,14 @@ export const AddAnimalDialog = ({ onAnimalAdded }: AddAnimalDialogProps) => {
   }, [formData.weight, formData.type, formData.class, priceSettings, vatRate, epidemicMeasures]);
 
   const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData(prev => {
+      const next = { ...prev, [field]: value };
+      if (field === "type") {
+        // Auto-fill / reset Vad típus based on species
+        next.gameType = isBigGameSpecies(value) ? "" : (value ? SMALL_GAME_TYPE : "");
+      }
+      return next;
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -464,6 +473,7 @@ export const AddAnimalDialog = ({ onAnimalAdded }: AddAnimalDialogProps) => {
         gender: formData.gender,
         weight: formData.weight ? parseFloat(formData.weight) : null,
         class: formData.class,
+        game_type: formData.gameType || null,
         hunter_type: formData.hunterType || null,
         hunter_name: formData.hunterName || null,
         age: formData.age || null,
@@ -502,6 +512,7 @@ export const AddAnimalDialog = ({ onAnimalAdded }: AddAnimalDialogProps) => {
         type: "",
         gender: "",
         class: "",
+        gameType: "",
         weight: "",
         hunterType: "",
         hunterName: "",
@@ -601,6 +612,33 @@ export const AddAnimalDialog = ({ onAnimalAdded }: AddAnimalDialogProps) => {
                   <SelectItem value="🦌 Gím Szarvas">🦌 Gím Szarvas</SelectItem>
                   <SelectItem value="🐗 Vaddisznó">🐗 Vaddisznó</SelectItem>
                   <SelectItem value="🐏 Muflon">🐏 Muflon</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="gameType">Vad típus *</Label>
+              <Select
+                value={formData.gameType}
+                onValueChange={(value) => handleInputChange("gameType", value)}
+                disabled={!formData.type || !isBigGameSpecies(formData.type)}
+                required
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={
+                    !formData.type
+                      ? "Először válasszon vadfajt"
+                      : !isBigGameSpecies(formData.type)
+                        ? SMALL_GAME_TYPE
+                        : "Válasszon vad típust"
+                  } />
+                </SelectTrigger>
+                <SelectContent>
+                  {isBigGameSpecies(formData.type)
+                    ? getGameTypesForSpecies(formData.type).map((gt) => (
+                        <SelectItem key={gt} value={gt}>{gt}</SelectItem>
+                      ))
+                    : <SelectItem value={SMALL_GAME_TYPE}>{SMALL_GAME_TYPE}</SelectItem>}
                 </SelectContent>
               </Select>
             </div>

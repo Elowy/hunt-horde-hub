@@ -57,6 +57,7 @@ export type Database = {
           cooling_date: string | null
           created_at: string
           expiry_date: string | null
+          game_type: string | null
           gender: string | null
           hunter_license_number: string | null
           hunter_name: string | null
@@ -99,6 +100,7 @@ export type Database = {
           cooling_date?: string | null
           created_at?: string
           expiry_date?: string | null
+          game_type?: string | null
           gender?: string | null
           hunter_license_number?: string | null
           hunter_name?: string | null
@@ -141,6 +143,7 @@ export type Database = {
           cooling_date?: string | null
           created_at?: string
           expiry_date?: string | null
+          game_type?: string | null
           gender?: string | null
           hunter_license_number?: string | null
           hunter_name?: string | null
