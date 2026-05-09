@@ -14,8 +14,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useToast } from "@/hooks/use-toast";
-import { FileText, ChevronDown, ChevronUp } from "lucide-react";
+import { FileText, ChevronDown, ChevronUp, CalendarIcon } from "lucide-react";
+import { format } from "date-fns";
+import { hu } from "date-fns/locale";
+import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useSubscription } from "@/hooks/useSubscription";
 import { getGameTypesForSpecies, isBigGameSpecies, SMALL_GAME_TYPE } from "@/lib/speciesConstants";
