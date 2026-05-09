@@ -1091,22 +1091,24 @@ export const AddAnimalDialog = ({ onAnimalAdded }: AddAnimalDialogProps) => {
                   </div>
                 )}
 
-                <div className="space-y-2">
-                  <Label htmlFor="age">Korcsop</Label>
-                  <Select 
-                    value={formData.age} 
-                    onValueChange={(value) => handleInputChange("age", value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Válasszon korcsoportot" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Fiatal">Fiatal</SelectItem>
-                      <SelectItem value="Középkorú">Középkorú</SelectItem>
-                      <SelectItem value="Öreg">Öreg</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+                {formData.type === "🐗 Vaddisznó" && (
+                  <div className="space-y-2">
+                    <Label htmlFor="age">Korcsop</Label>
+                    <Select 
+                      value={formData.age} 
+                      onValueChange={(value) => handleInputChange("age", value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Válasszon korcsoportot" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Fiatal">Fiatal</SelectItem>
+                        <SelectItem value="Középkorú">Középkorú</SelectItem>
+                        <SelectItem value="Öreg">Öreg</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
 
                 <div className="space-y-2">
                   <Label htmlFor="sampleId">Mintaközlő szám</Label>
