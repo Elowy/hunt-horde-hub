@@ -955,6 +955,43 @@ export const EditAnimalDialog = ({ animal, locations, onAnimalUpdated }: EditAni
                 disabled={loading}
               />
             </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="hunter_license_number">Vadászjegyszám</Label>
+              <Input
+                id="hunter_license_number"
+                value={formData.hunter_license_number}
+                onChange={(e) => setFormData({ ...formData, hunter_license_number: e.target.value })}
+                placeholder="pl. 12345/2024"
+                disabled={loading}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="judgement_number">Bírálati eredményközlő szám</Label>
+              <Input
+                id="judgement_number"
+                value={formData.judgement_number}
+                onChange={(e) => setFormData({ ...formData, judgement_number: e.target.value })}
+                placeholder="pl. B-2024-001"
+                disabled={loading}
+              />
+            </div>
+
+            {formData.species === "🐗 Vaddisznó" && formData.gender === "♂️ Hím" && (
+              <div className="space-y-2">
+                <Label htmlFor="average_tusk_length">Átlag agyarhossz (cm)</Label>
+                <Input
+                  id="average_tusk_length"
+                  type="number"
+                  step="0.1"
+                  value={formData.average_tusk_length}
+                  onChange={(e) => setFormData({ ...formData, average_tusk_length: e.target.value })}
+                  placeholder="pl. 15.5"
+                  disabled={loading}
+                />
+              </div>
+            )}
           </div>
 
           <div className="space-y-4">
