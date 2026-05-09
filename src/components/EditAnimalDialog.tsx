@@ -273,6 +273,98 @@ export const EditAnimalDialog = ({ animal, locations, onAnimalUpdated }: EditAni
     calculatePrice();
   }, [formData.weight, formData.species, formData.class, priceSettings, vatRate, epidemicMeasures]);
 
+  // Best-match cooling price lookup
+  const fetchBestCoolingPrice = async (storageLocationId: string, species: string, klass: string) => {
+    if (!storageLocationId) return null;
+    const nowIso = new Date().toISOString();
+    const { data: allPrices } = await supabase
+      .from("cooling_prices")
+      .select("cooling_price_per_kg, cooling_vat_rate, species, class, valid_from, valid_to")
+      .eq("storage_location_id", storageLocationId)
+      .eq("is_archived", false)
+      .or(`valid_to.is.null,valid_to.gt.${nowIso}`)
+      .order("valid_from", { ascending: false });
+    const candidates = (allPrices as any[] | null) || [];
+    const matchScore = (p: any) => {
+      const sMatch = p.species === species;
+      const cMatch = p.class === klass;
+      if (sMatch && cMatch) return 4;
+      if (sMatch && p.class === null) return 3;
+      if (p.species === null && cMatch) return 2;
+      if (p.species === null && p.class === null) return 1;
+      return 0;
+    };
+    return candidates
+      .map((p) => ({ p, score: matchScore(p) }))
+      .filter((x) => x.score > 0)
+      .sort((a, b) => b.score - a.score)[0]?.p ?? null;
+  };
+
+  // Auto-fill pricing fields from current price list (skip fields user has touched / already set)
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const activeMeasure = epidemicMeasures.find(
+        (m) => m.is_active && m.affected_species.includes(formData.species)
+      );
+      let netTotal = 0;
+      let vat = vatRate;
+      if (activeMeasure) {
+        netTotal = activeMeasure.shooting_fee + activeMeasure.sampling_fee + activeMeasure.price_per_unit;
+        vat = (activeMeasure as any).vat_rate || vatRate;
+      } else if (formData.species && formData.class) {
+        const ps = priceSettings.find((p) => p.species === formData.species && p.class === formData.class);
+        if (ps && formData.weight) netTotal = parseFloat(formData.weight) * ps.price_per_kg;
+      }
+
+      let coolingPerKg = 0;
+      let coolingVatVal = 0;
+      if ((activeMeasure as any)?.cooling_price_per_kg) {
+        coolingPerKg = (activeMeasure as any).cooling_price_per_kg;
+        coolingVatVal = (activeMeasure as any).vat_rate || vatRate;
+      } else if (formData.storage_location_id) {
+        const best = await fetchBestCoolingPrice(formData.storage_location_id, formData.species, formData.class);
+        if (best) {
+          coolingPerKg = Number(best.cooling_price_per_kg) || 0;
+          coolingVatVal = Number(best.cooling_vat_rate) || 0;
+        }
+      }
+      if (cancelled) return;
+      setPricing((prev) => {
+        const next = { ...prev };
+        if (!pricingTouched.netPrice) next.netPrice = netTotal ? String(Math.round(netTotal)) : "";
+        if (!pricingTouched.priceVat) next.priceVat = String(vat);
+        if (!pricingTouched.grossPrice) next.grossPrice = netTotal ? String(Math.round(netTotal * (1 + vat / 100))) : "";
+        if (!pricingTouched.coolingPricePerKg) next.coolingPricePerKg = coolingPerKg ? String(coolingPerKg) : "";
+        if (!pricingTouched.coolingVat) next.coolingVat = coolingVatVal ? String(coolingVatVal) : "";
+        return next;
+      });
+    })();
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formData.weight, formData.species, formData.class, formData.storage_location_id, priceSettings, vatRate, epidemicMeasures]);
+
+  const handlePricingChange = (field: keyof typeof pricing, value: string) => {
+    setPricing((prev) => {
+      const next = { ...prev, [field]: value };
+      const vat = parseFloat(next.priceVat) || 0;
+      if (field === "netPrice") {
+        const n = parseFloat(value);
+        if (!isNaN(n)) next.grossPrice = String(Math.round(n * (1 + vat / 100)));
+      } else if (field === "grossPrice") {
+        const g = parseFloat(value);
+        if (!isNaN(g)) next.netPrice = String(Math.round(g / (1 + vat / 100)));
+      } else if (field === "priceVat") {
+        const n = parseFloat(next.netPrice);
+        if (!isNaN(n)) next.grossPrice = String(Math.round(n * (1 + vat / 100)));
+      }
+      return next;
+    });
+    setPricingTouched((prev) => ({ ...prev, [field]: true }));
+    if (field === "netPrice" || field === "priceVat") setPricingTouched((p) => ({ ...p, grossPrice: true }));
+    if (field === "grossPrice") setPricingTouched((p) => ({ ...p, netPrice: true }));
+  };
+
   const fetchSecurityZones = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
