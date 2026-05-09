@@ -473,6 +473,7 @@ export const AddAnimalDialog = ({ onAnimalAdded }: AddAnimalDialogProps) => {
         gender: formData.gender,
         weight: formData.weight ? parseFloat(formData.weight) : null,
         class: formData.class,
+        game_type: formData.gameType || null,
         hunter_type: formData.hunterType || null,
         hunter_name: formData.hunterName || null,
         age: formData.age || null,
