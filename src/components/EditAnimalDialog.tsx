@@ -860,15 +860,57 @@ export const EditAnimalDialog = ({ animal, locations, onAnimalUpdated }: EditAni
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="shooting_date">Elejtés dátuma</Label>
-              <Input
-                id="shooting_date"
-                type="date"
-                value={formData.shooting_date}
-                onChange={(e) => setFormData({ ...formData, shooting_date: e.target.value })}
-                disabled={loading}
-              />
+            <div className="space-y-2 col-span-2">
+              <Label>Elejtés időpontja</Label>
+              <div className="flex gap-2 items-center">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className={cn("flex-1 justify-start text-left font-normal", !formData.shooting_date && "text-muted-foreground")}
+                      disabled={loading}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {formData.shooting_date
+                        ? format(new Date(formData.shooting_date), "yyyy. MMMM d.", { locale: hu })
+                        : <span>Válasszon dátumot</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={formData.shooting_date ? new Date(formData.shooting_date) : undefined}
+                      onSelect={(d) => {
+                        if (!d) return;
+                        const base = formData.shooting_date ? new Date(formData.shooting_date) : new Date();
+                        d.setHours(base.getHours() || 0, base.getMinutes() || 0, 0, 0);
+                        const pad = (n: number) => String(n).padStart(2, "0");
+                        const iso = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+                        setFormData({ ...formData, shooting_date: iso });
+                      }}
+                      initialFocus
+                      className={cn("p-3 pointer-events-auto")}
+                    />
+                  </PopoverContent>
+                </Popover>
+                <Input
+                  type="time"
+                  className="w-32"
+                  value={formData.shooting_date ? format(new Date(formData.shooting_date), "HH:mm") : ""}
+                  onChange={(e) => {
+                    const time = e.target.value;
+                    if (!time) return;
+                    const [h, m] = time.split(":").map(Number);
+                    const base = formData.shooting_date ? new Date(formData.shooting_date) : new Date();
+                    base.setHours(h, m, 0, 0);
+                    const pad = (n: number) => String(n).padStart(2, "0");
+                    const iso = `${base.getFullYear()}-${pad(base.getMonth() + 1)}-${pad(base.getDate())}T${pad(base.getHours())}:${pad(base.getMinutes())}`;
+                    setFormData({ ...formData, shooting_date: iso });
+                  }}
+                  disabled={loading}
+                />
+              </div>
             </div>
 
             <div className="space-y-2">
