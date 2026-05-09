@@ -1003,10 +1003,10 @@ export const AddAnimalDialog = ({ onAnimalAdded }: AddAnimalDialogProps) => {
                     value={formData.hunterType} 
                     onValueChange={(value) => {
                       handleInputChange("hunterType", value);
-                      const isEgyeb = value === "egyeb";
-                      setIsCustomHunter(isEgyeb);
+                      setIsCustomHunter(false);
                       setManualHunterName(false);
                       handleInputChange("hunterName", "");
+                      handleInputChange("hunterLicenseNumber", "");
                     }}
                   >
                     <SelectTrigger>
