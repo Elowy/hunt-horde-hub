@@ -335,7 +335,14 @@ export const AddAnimalDialog = ({ onAnimalAdded }: AddAnimalDialogProps) => {
   }, [formData.weight, formData.type, formData.class, priceSettings, vatRate, epidemicMeasures]);
 
   const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData(prev => {
+      const next = { ...prev, [field]: value };
+      if (field === "type") {
+        // Auto-fill / reset Vad típus based on species
+        next.gameType = isBigGameSpecies(value) ? "" : (value ? SMALL_GAME_TYPE : "");
+      }
+      return next;
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
