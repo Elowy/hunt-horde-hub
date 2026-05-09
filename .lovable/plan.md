@@ -1,49 +1,42 @@
 ## Cél
 
-A „További adatok" szekcióban jelenjenek meg az állat árazásával kapcsolatos mezők — automatikusan kiszámolva az aktuális árlistából, de a felhasználó által felülírhatóan — valamint egy számla sorszáma mező.
+Az „Állat módosítása" (EditAnimalDialog) dialógus tartalmazza az „Új állat hozzáadása" (AddAnimalDialog) összes szerkeszthető mezőjét, ugyanazokkal a viselkedési szabályokkal.
 
-## Új mezők a „További adatok" alatt
+## Hiányzó mezők az EditAnimalDialog-ban
 
-Egy új „Árazás és számlázás" alszekció a Collapsible tetején:
-
-| Mező | Forrás / viselkedés |
+| Mező | Forrás (AddAnimalDialog) |
 |---|---|
-| Nettó ár (Ft) | Auto: `súly × árlista Ft/kg` (járványügyi esetén `lőtt + minta + ár`). Szerkeszthető. |
-| ÁFA mérték (%) | Auto: faj/osztály árlista vagy profil VAT. Szerkeszthető. |
-| Bruttó ár (Ft) | Auto: `nettó × (1 + áfa/100)`. Szerkeszthető (visszaszámolja a nettót). |
-| Hűtési díj (Ft/kg) | Auto: hűtőhely + faj/osztály legjobb találat (a meglévő `matchScore` logikával). Szerkeszthető. Nullázódik ha „Hűtési díj nélkül" be van pipálva. |
-| Hűtési ÁFA (%) | Auto: a kiválasztott hűtési árlistából. Szerkeszthető. |
-| Össz érték (Ft) | Számolt, csak olvasható: `bruttó ár + (hűtési díj × súly × (1 + hűtési áfa/100))`. |
-| Számla sorszáma | Szabad szöveg (pl. „2026/0123"). |
+| Vad típus (`game_type`) | Vadfajtól függő legördülő, apróvad esetén readonly |
+| Vadászjegyszám (`hunter_license_number`) | Egyéni vadász esetén szöveges input |
+| Bírálati eredményközlő szám (`judgement_number`) | Szöveges input |
+| Átlag agyarhossz (`average_tusk_length`) | Csak vaddisznó + hím esetén |
+| Számla sorszáma (`invoice_number`) | Szöveges input az árazás szekcióban |
+| Nettó / Bruttó / ÁFA (árazás) | Auto-számolt, felülírható |
+| Hűtési díj (Ft/kg) + Hűtési ÁFA | Auto-számolt árlistából, felülírható |
+| Össz érték | Csak olvasható, számolt |
+| „Hűtési díj nélkül – azonnal elszállítva" checkbox | Új állatnál van — szerkesztésnél csak akkor mutassuk, ha még nincs elszállítva |
+| Elejtés időpontja datetime picker | Jelenleg csak date input — cseréljük le ugyanarra a Calendar + idő picker párosra mint Add-nál |
 
-## Számítási logika
+A meglévő mezők (animal_id, species, gender, class, weight, storage, security zone, hunter_name, hunter_type, age, sample_id, vet_*, notes) maradnak.
 
-- Egy `useEffect` figyeli `formData.weight`, `type`, `class`, `storageLocationId`, `priceSettings`, `epidemicMeasures`, `vatRate` változását, és újraszámolja a mezőket — **kivéve azokat, amiket a felhasználó már kézzel módosított** (egy `pricingTouched` rekord segítségével mezőnként).
-- A hűtési ár lekérése: a meglévő `matchScore` algoritmus átkerül a `handleSubmit`-ből egy közös helper függvénybe, hogy itt is használható legyen async.
-- A „Hűtési díj nélkül" checkbox bepipálása a hűtési mezőket nullára állítja és letiltja.
+## Viselkedés
 
-## Mentés (handleSubmit)
+- **Vad típus**: ugyanaz a logika mint Add-ban (`getGameTypesForSpecies`, `isBigGameSpecies`, `SMALL_GAME_TYPE`). Vadfaj-váltáskor reset.
+- **Árazás auto-kalkuláció**: ugyanaz a `useEffect` + `pricingTouched` minta mint Add-ban. Inicializáláskor a meglévő `transport_price_per_kg`, `transport_vat_rate`, `transport_cooling_price`, `transport_cooling_vat_rate`, `invoice_number` értékek töltik fel az állapotot, és **ezek `pricingTouched=true`-ként számítanak** (nehogy felülírja az árlista a már mentett, esetleg módosított értékeket). Ha a felhasználó kitörli/üríti, akkor az árlista visszatöltheti.
+- **Számla sorszáma**: szabad szöveg, mentésnél `invoice_number` mezőbe.
+- **Mentés**: a `transport_*` mezők a pricing state-ből számolódnak (Ft/kg-ra visszaosztva a súllyal), `game_type`, `hunter_license_number`, `judgement_number`, `average_tusk_length`, `invoice_number` mezők is mentésre kerülnek.
 
-A jelenlegi `transport_price_per_kg`, `transport_vat_rate`, `transport_cooling_price`, `transport_cooling_vat_rate` mezőkbe a felhasználó által (esetleg módosított) végleges értékek kerülnek — `Ft/kg`-ra visszaszámolva, ha a felhasználó nettó/bruttó összegben írta felül (osztva a súllyal).
+## Érintett fájl
 
-A számla sorszáma új DB oszlopba kerül.
+`src/components/EditAnimalDialog.tsx`:
 
-## Adatbázis változás
-
-Új oszlop az `animals` táblán:
-
-- `invoice_number TEXT` (nullable)
-
-## Érintett fájlok
-
-1. **Adatbázis migráció** — `animals.invoice_number` oszlop hozzáadása.
-2. **`src/components/AddAnimalDialog.tsx`**:
-   - Új state mezők: `netPrice`, `grossPrice`, `priceVat`, `coolingPricePerKg`, `coolingVat`, `invoiceNumber`, plus `pricingTouched` set.
-   - Új helper: `fetchBestCoolingPrice(storageLocationId, species, class)`.
-   - Új `useEffect` az árak újraszámolására.
-   - Új UI blokk a Collapsible tetején (4–5 input mező + olvasható „Össz érték").
-   - `handleSubmit` frissítése: a state-ből veszi a végleges árakat; `invoice_number` mentése.
+1. `formData` kibővítése: `game_type`, `hunter_license_number`, `judgement_number`, `average_tusk_length`.
+2. Új `pricing` és `pricingTouched` állapot, `fetchBestCoolingPrice` helper, auto-kalkuláló `useEffect`, `handlePricingChange` (azonos az AddAnimalDialog mintájával).
+3. `species` Select-hez új „Vad típus" Select.
+4. UI: pricing szekció (6 mező + össz érték), számla sorszáma, vadászjegyszám, bírálati szám, agyarhossz feltételes mező, datetime picker (`Calendar` + `Popover` + idő input).
+5. `handleSubmit` update payload: új mezők hozzáadása + `transport_*` és `invoice_number` mentése a pricing state-ből.
+6. `useEffect` init blokk: pricing state feltöltése a meglévő animal értékeiből, `pricingTouched` mezőnként `true`-ra ahol van mentett érték.
 
 ## Megjegyzés (nem technikai)
 
-A felhasználó a vad felvételekor látni fogja az aktuális árlista alapján kiszámolt nettó/bruttó árat, ÁFA mértéket, hűtési díjat és összértéket. Bármelyik mezőt felülírhatja, és megadhat egy számla sorszámot is. Mentéskor a végleges (esetleg módosított) értékek és a számla sorszáma is rögzítésre kerülnek.
+A módosító ablak ezután ugyanazt a kitöltöttséget és funkcionalitást nyújtja, mint az új állat felvétele — minden adat szerkeszthető marad, beleértve az árazási és számlázási mezőket, a vad típusát és minden járulékos információt.

@@ -12,7 +12,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Edit } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Edit, CalendarIcon } from "lucide-react";
+import { format } from "date-fns";
+import { hu } from "date-fns/locale";
+import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -23,6 +28,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { AnimalHistoryDialog } from "./AnimalHistoryDialog";
+import { getGameTypesForSpecies, isBigGameSpecies, SMALL_GAME_TYPE } from "@/lib/speciesConstants";
 
 interface Animal {
   id: string;
@@ -51,6 +57,13 @@ interface Animal {
   transported_at?: string | null;
   transport_price_per_kg?: number | null;
   transport_vat_rate?: number | null;
+  transport_cooling_price?: number | null;
+  transport_cooling_vat_rate?: number | null;
+  game_type?: string | null;
+  hunter_license_number?: string | null;
+  judgement_number?: string | null;
+  average_tusk_length?: number | null;
+  invoice_number?: string | null;
 }
 
 interface StorageLocation {
@@ -107,14 +120,14 @@ export const EditAnimalDialog = ({ animal, locations, onAnimalUpdated }: EditAni
   const [isCustomHunter, setIsCustomHunter] = useState(false);
   const [vatRate, setVatRate] = useState<number>(27);
   const [calculatedPrice, setCalculatedPrice] = useState<{ net: number; gross: number }>({ net: 0, gross: 0 });
-  const [formData, setFormData] = useState({
+  const buildInitialForm = () => ({
     animal_id: animal.animal_id,
     species: animal.species,
     gender: animal.gender || "",
     weight: animal.weight?.toString() || "",
     class: animal.class || "",
     cooling_date: animal.cooling_date?.split('T')[0] || "",
-    shooting_date: animal.shooting_date?.split('T')[0] || "",
+    shooting_date: animal.shooting_date || "",
     storage_location_id: animal.storage_location_id,
     hunter_name: animal.hunter_name || "",
     hunter_type: animal.hunter_type || "",
@@ -129,37 +142,48 @@ export const EditAnimalDialog = ({ animal, locations, onAnimalUpdated }: EditAni
     vet_sample_id: animal.vet_sample_id || "",
     vet_doctor_name: animal.vet_doctor_name || "",
     vet_result: animal.vet_result || "",
+    game_type: animal.game_type || "",
+    hunter_license_number: animal.hunter_license_number || "",
+    judgement_number: animal.judgement_number || "",
+    average_tusk_length: animal.average_tusk_length?.toString() || "",
+  });
+
+  const buildInitialPricing = () => {
+    const w = animal.weight || 0;
+    const netTotal = (animal.transport_price_per_kg && w) ? animal.transport_price_per_kg * w : 0;
+    const vat = animal.transport_vat_rate ?? 0;
+    return {
+      netPrice: netTotal ? String(Math.round(netTotal)) : "",
+      grossPrice: netTotal ? String(Math.round(netTotal * (1 + vat / 100))) : "",
+      priceVat: animal.transport_vat_rate != null ? String(animal.transport_vat_rate) : "",
+      coolingPricePerKg: animal.transport_cooling_price != null ? String(animal.transport_cooling_price) : "",
+      coolingVat: animal.transport_cooling_vat_rate != null ? String(animal.transport_cooling_vat_rate) : "",
+      invoiceNumber: animal.invoice_number || "",
+    };
+  };
+
+  const [formData, setFormData] = useState(buildInitialForm);
+  const [pricing, setPricing] = useState(buildInitialPricing);
+  const [pricingTouched, setPricingTouched] = useState<Record<string, boolean>>(() => {
+    const init = buildInitialPricing();
+    const touched: Record<string, boolean> = {};
+    Object.entries(init).forEach(([k, v]) => { if (v) touched[k] = true; });
+    return touched;
   });
 
   useEffect(() => {
     if (open) {
-      setFormData({
-        animal_id: animal.animal_id,
-        species: animal.species,
-        gender: animal.gender || "",
-        weight: animal.weight?.toString() || "",
-    class: animal.class || "",
-    cooling_date: animal.cooling_date?.split('T')[0] || "",
-    shooting_date: animal.shooting_date?.split('T')[0] || "",
-    storage_location_id: animal.storage_location_id,
-    hunter_name: animal.hunter_name || "",
-    hunter_type: animal.hunter_type || "",
-    age: animal.age || "",
-    sample_id: animal.sample_id || "",
-        sample_date: animal.sample_date?.split('T')[0] || "",
-        expiry_date: animal.expiry_date?.split('T')[0] || "",
-        vet_check: animal.vet_check || false,
-        vet_notes: animal.vet_notes || "",
-        notes: animal.notes || "",
-        security_zone_id: animal.security_zone_id || "",
-        vet_sample_id: animal.vet_sample_id || "",
-        vet_doctor_name: animal.vet_doctor_name || "",
-        vet_result: animal.vet_result || "",
-      });
-      
+      setFormData(buildInitialForm());
+      setPricing(buildInitialPricing());
+      const init = buildInitialPricing();
+      const touched: Record<string, boolean> = {};
+      Object.entries(init).forEach(([k, v]) => { if (v) touched[k] = true; });
+      setPricingTouched(touched);
+
       fetchSecurityZones();
       fetchHunters();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, animal]);
 
   // Check if hunter is custom after hunters are loaded
@@ -248,6 +272,98 @@ export const EditAnimalDialog = ({ animal, locations, onAnimalUpdated }: EditAni
   useEffect(() => {
     calculatePrice();
   }, [formData.weight, formData.species, formData.class, priceSettings, vatRate, epidemicMeasures]);
+
+  // Best-match cooling price lookup
+  const fetchBestCoolingPrice = async (storageLocationId: string, species: string, klass: string) => {
+    if (!storageLocationId) return null;
+    const nowIso = new Date().toISOString();
+    const { data: allPrices } = await supabase
+      .from("cooling_prices")
+      .select("cooling_price_per_kg, cooling_vat_rate, species, class, valid_from, valid_to")
+      .eq("storage_location_id", storageLocationId)
+      .eq("is_archived", false)
+      .or(`valid_to.is.null,valid_to.gt.${nowIso}`)
+      .order("valid_from", { ascending: false });
+    const candidates = (allPrices as any[] | null) || [];
+    const matchScore = (p: any) => {
+      const sMatch = p.species === species;
+      const cMatch = p.class === klass;
+      if (sMatch && cMatch) return 4;
+      if (sMatch && p.class === null) return 3;
+      if (p.species === null && cMatch) return 2;
+      if (p.species === null && p.class === null) return 1;
+      return 0;
+    };
+    return candidates
+      .map((p) => ({ p, score: matchScore(p) }))
+      .filter((x) => x.score > 0)
+      .sort((a, b) => b.score - a.score)[0]?.p ?? null;
+  };
+
+  // Auto-fill pricing fields from current price list (skip fields user has touched / already set)
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const activeMeasure = epidemicMeasures.find(
+        (m) => m.is_active && m.affected_species.includes(formData.species)
+      );
+      let netTotal = 0;
+      let vat = vatRate;
+      if (activeMeasure) {
+        netTotal = activeMeasure.shooting_fee + activeMeasure.sampling_fee + activeMeasure.price_per_unit;
+        vat = (activeMeasure as any).vat_rate || vatRate;
+      } else if (formData.species && formData.class) {
+        const ps = priceSettings.find((p) => p.species === formData.species && p.class === formData.class);
+        if (ps && formData.weight) netTotal = parseFloat(formData.weight) * ps.price_per_kg;
+      }
+
+      let coolingPerKg = 0;
+      let coolingVatVal = 0;
+      if ((activeMeasure as any)?.cooling_price_per_kg) {
+        coolingPerKg = (activeMeasure as any).cooling_price_per_kg;
+        coolingVatVal = (activeMeasure as any).vat_rate || vatRate;
+      } else if (formData.storage_location_id) {
+        const best = await fetchBestCoolingPrice(formData.storage_location_id, formData.species, formData.class);
+        if (best) {
+          coolingPerKg = Number(best.cooling_price_per_kg) || 0;
+          coolingVatVal = Number(best.cooling_vat_rate) || 0;
+        }
+      }
+      if (cancelled) return;
+      setPricing((prev) => {
+        const next = { ...prev };
+        if (!pricingTouched.netPrice) next.netPrice = netTotal ? String(Math.round(netTotal)) : "";
+        if (!pricingTouched.priceVat) next.priceVat = String(vat);
+        if (!pricingTouched.grossPrice) next.grossPrice = netTotal ? String(Math.round(netTotal * (1 + vat / 100))) : "";
+        if (!pricingTouched.coolingPricePerKg) next.coolingPricePerKg = coolingPerKg ? String(coolingPerKg) : "";
+        if (!pricingTouched.coolingVat) next.coolingVat = coolingVatVal ? String(coolingVatVal) : "";
+        return next;
+      });
+    })();
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formData.weight, formData.species, formData.class, formData.storage_location_id, priceSettings, vatRate, epidemicMeasures]);
+
+  const handlePricingChange = (field: keyof typeof pricing, value: string) => {
+    setPricing((prev) => {
+      const next = { ...prev, [field]: value };
+      const vat = parseFloat(next.priceVat) || 0;
+      if (field === "netPrice") {
+        const n = parseFloat(value);
+        if (!isNaN(n)) next.grossPrice = String(Math.round(n * (1 + vat / 100)));
+      } else if (field === "grossPrice") {
+        const g = parseFloat(value);
+        if (!isNaN(g)) next.netPrice = String(Math.round(g / (1 + vat / 100)));
+      } else if (field === "priceVat") {
+        const n = parseFloat(next.netPrice);
+        if (!isNaN(n)) next.grossPrice = String(Math.round(n * (1 + vat / 100)));
+      }
+      return next;
+    });
+    setPricingTouched((prev) => ({ ...prev, [field]: true }));
+    if (field === "netPrice" || field === "priceVat") setPricingTouched((p) => ({ ...p, grossPrice: true }));
+    if (field === "grossPrice") setPricingTouched((p) => ({ ...p, netPrice: true }));
+  };
 
   const fetchSecurityZones = async () => {
     try {
@@ -398,20 +514,26 @@ export const EditAnimalDialog = ({ animal, locations, onAnimalUpdated }: EditAni
     setLoading(true);
 
     try {
+      const weightNum = formData.weight ? parseFloat(formData.weight) : 0;
+      const netTotal = parseFloat(pricing.netPrice);
+      const vatVal = parseFloat(pricing.priceVat);
+      const coolingPerKg = parseFloat(pricing.coolingPricePerKg);
+      const coolingVatNum = parseFloat(pricing.coolingVat);
+
       const { error } = await supabase
         .from("animals")
         .update({
           animal_id: formData.animal_id,
           species: formData.species,
           gender: formData.gender || null,
-      weight: formData.weight ? parseFloat(formData.weight) : null,
-      class: formData.class || null,
-      cooling_date: formData.cooling_date || null,
-      shooting_date: formData.shooting_date || null,
-      storage_location_id: formData.storage_location_id,
-      hunter_name: formData.hunter_name || null,
-      hunter_type: formData.hunter_type || null,
-      age: formData.age || null,
+          weight: formData.weight ? parseFloat(formData.weight) : null,
+          class: formData.class || null,
+          cooling_date: formData.cooling_date || null,
+          shooting_date: formData.shooting_date || null,
+          storage_location_id: formData.storage_location_id,
+          hunter_name: formData.hunter_name || null,
+          hunter_type: formData.hunter_type || null,
+          age: formData.age || null,
           sample_id: formData.sample_id || null,
           sample_date: formData.sample_date || null,
           expiry_date: formData.expiry_date || null,
@@ -422,7 +544,16 @@ export const EditAnimalDialog = ({ animal, locations, onAnimalUpdated }: EditAni
           vet_sample_id: formData.vet_sample_id || null,
           vet_doctor_name: formData.vet_doctor_name || null,
           vet_result: formData.vet_result || null,
-        })
+          game_type: formData.game_type || null,
+          hunter_license_number: formData.hunter_license_number || null,
+          judgement_number: formData.judgement_number || null,
+          average_tusk_length: formData.average_tusk_length ? parseFloat(formData.average_tusk_length) : null,
+          invoice_number: pricing.invoiceNumber || null,
+          transport_price_per_kg: !isNaN(netTotal) && weightNum > 0 ? netTotal / weightNum : null,
+          transport_vat_rate: !isNaN(vatVal) ? vatVal : null,
+          transport_cooling_price: !isNaN(coolingPerKg) ? coolingPerKg : null,
+          transport_cooling_vat_rate: !isNaN(coolingVatNum) ? coolingVatNum : null,
+        } as any)
         .eq("id", animal.id);
 
       if (error) throw error;
@@ -482,7 +613,11 @@ export const EditAnimalDialog = ({ animal, locations, onAnimalUpdated }: EditAni
               <Label htmlFor="species">Vadfaj *</Label>
               <Select
                 value={formData.species}
-                onValueChange={(value) => setFormData({ ...formData, species: value })}
+                onValueChange={(value) => setFormData({
+                  ...formData,
+                  species: value,
+                  game_type: isBigGameSpecies(value) ? "" : (value ? SMALL_GAME_TYPE : ""),
+                })}
                 disabled={loading}
               >
                 <SelectTrigger>
@@ -495,6 +630,26 @@ export const EditAnimalDialog = ({ animal, locations, onAnimalUpdated }: EditAni
                   <SelectItem value="🦌 Gím Szarvas">🦌 Gím Szarvas</SelectItem>
                   <SelectItem value="🐗 Vaddisznó">🐗 Vaddisznó</SelectItem>
                   <SelectItem value="🐏 Muflon">🐏 Muflon</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="game_type">Vad típus</Label>
+              <Select
+                value={formData.game_type}
+                onValueChange={(value) => setFormData({ ...formData, game_type: value })}
+                disabled={loading || !isBigGameSpecies(formData.species)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={isBigGameSpecies(formData.species) ? "Válasszon típust" : (formData.game_type || "Apróvad")} />
+                </SelectTrigger>
+                <SelectContent>
+                  {isBigGameSpecies(formData.species)
+                    ? getGameTypesForSpecies(formData.species).map((t) => (
+                        <SelectItem key={t} value={t}>{t}</SelectItem>
+                      ))
+                    : <SelectItem value={SMALL_GAME_TYPE}>{SMALL_GAME_TYPE}</SelectItem>}
                 </SelectContent>
               </Select>
             </div>
@@ -547,18 +702,58 @@ export const EditAnimalDialog = ({ animal, locations, onAnimalUpdated }: EditAni
               />
             </div>
 
-            {calculatedPrice.net > 0 && (
-              <div className="col-span-2 bg-muted/50 p-4 rounded-lg space-y-2">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground">Nettó ár:</span>
-                  <span className="text-lg font-bold">{calculatedPrice.net.toLocaleString("hu-HU")} Ft</span>
+            <div className="col-span-2 rounded-lg border p-4 space-y-4 bg-muted/20">
+              <div className="flex items-center justify-between">
+                <h4 className="font-semibold text-sm">Árazás és számlázás</h4>
+                <span className="text-xs text-muted-foreground">Aktuális árlista alapján – felülírható</span>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="netPrice">Nettó ár (Ft)</Label>
+                  <Input id="netPrice" type="number" step="0.01" value={pricing.netPrice}
+                    onChange={(e) => handlePricingChange("netPrice", e.target.value)} placeholder="0" />
                 </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground">Bruttó ár (ÁFA {vatRate}%):</span>
-                  <span className="text-lg">{calculatedPrice.gross.toLocaleString("hu-HU")} Ft</span>
+                <div className="space-y-2">
+                  <Label htmlFor="priceVat">ÁFA (%)</Label>
+                  <Input id="priceVat" type="number" step="0.01" value={pricing.priceVat}
+                    onChange={(e) => handlePricingChange("priceVat", e.target.value)} placeholder="27" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="grossPrice">Bruttó ár (Ft)</Label>
+                  <Input id="grossPrice" type="number" step="0.01" value={pricing.grossPrice}
+                    onChange={(e) => handlePricingChange("grossPrice", e.target.value)} placeholder="0" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="coolingPricePerKg">Hűtési díj (Ft/kg)</Label>
+                  <Input id="coolingPricePerKg" type="number" step="0.01" value={pricing.coolingPricePerKg}
+                    onChange={(e) => handlePricingChange("coolingPricePerKg", e.target.value)} placeholder="0" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="coolingVat">Hűtési ÁFA (%)</Label>
+                  <Input id="coolingVat" type="number" step="0.01" value={pricing.coolingVat}
+                    onChange={(e) => handlePricingChange("coolingVat", e.target.value)} placeholder="27" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="invoiceNumber">Számla sorszáma</Label>
+                  <Input id="invoiceNumber" value={pricing.invoiceNumber}
+                    onChange={(e) => handlePricingChange("invoiceNumber", e.target.value)} placeholder="pl. 2026/0123" />
                 </div>
               </div>
-            )}
+              {(() => {
+                const w = parseFloat(formData.weight) || 0;
+                const gross = parseFloat(pricing.grossPrice) || 0;
+                const cKg = parseFloat(pricing.coolingPricePerKg) || 0;
+                const cVat = parseFloat(pricing.coolingVat) || 0;
+                const total = gross + w * cKg * (1 + cVat / 100);
+                if (!total) return null;
+                return (
+                  <div className="flex justify-between items-center pt-2 border-t">
+                    <span className="text-sm font-medium">Össz érték (bruttó):</span>
+                    <span className="text-lg font-bold text-primary">{Math.round(total).toLocaleString("hu-HU")} Ft</span>
+                  </div>
+                );
+              })()}
+            </div>
 
             <div className="space-y-2">
               <Label htmlFor="storage_location_id">Hűtési helyszín</Label>
@@ -665,15 +860,57 @@ export const EditAnimalDialog = ({ animal, locations, onAnimalUpdated }: EditAni
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="shooting_date">Elejtés dátuma</Label>
-              <Input
-                id="shooting_date"
-                type="date"
-                value={formData.shooting_date}
-                onChange={(e) => setFormData({ ...formData, shooting_date: e.target.value })}
-                disabled={loading}
-              />
+            <div className="space-y-2 col-span-2">
+              <Label>Elejtés időpontja</Label>
+              <div className="flex gap-2 items-center">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className={cn("flex-1 justify-start text-left font-normal", !formData.shooting_date && "text-muted-foreground")}
+                      disabled={loading}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {formData.shooting_date
+                        ? format(new Date(formData.shooting_date), "yyyy. MMMM d.", { locale: hu })
+                        : <span>Válasszon dátumot</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={formData.shooting_date ? new Date(formData.shooting_date) : undefined}
+                      onSelect={(d) => {
+                        if (!d) return;
+                        const base = formData.shooting_date ? new Date(formData.shooting_date) : new Date();
+                        d.setHours(base.getHours() || 0, base.getMinutes() || 0, 0, 0);
+                        const pad = (n: number) => String(n).padStart(2, "0");
+                        const iso = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+                        setFormData({ ...formData, shooting_date: iso });
+                      }}
+                      initialFocus
+                      className={cn("p-3 pointer-events-auto")}
+                    />
+                  </PopoverContent>
+                </Popover>
+                <Input
+                  type="time"
+                  className="w-32"
+                  value={formData.shooting_date ? format(new Date(formData.shooting_date), "HH:mm") : ""}
+                  onChange={(e) => {
+                    const time = e.target.value;
+                    if (!time) return;
+                    const [h, m] = time.split(":").map(Number);
+                    const base = formData.shooting_date ? new Date(formData.shooting_date) : new Date();
+                    base.setHours(h, m, 0, 0);
+                    const pad = (n: number) => String(n).padStart(2, "0");
+                    const iso = `${base.getFullYear()}-${pad(base.getMonth() + 1)}-${pad(base.getDate())}T${pad(base.getHours())}:${pad(base.getMinutes())}`;
+                    setFormData({ ...formData, shooting_date: iso });
+                  }}
+                  disabled={loading}
+                />
+              </div>
             </div>
 
             <div className="space-y-2">
@@ -718,6 +955,43 @@ export const EditAnimalDialog = ({ animal, locations, onAnimalUpdated }: EditAni
                 disabled={loading}
               />
             </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="hunter_license_number">Vadászjegyszám</Label>
+              <Input
+                id="hunter_license_number"
+                value={formData.hunter_license_number}
+                onChange={(e) => setFormData({ ...formData, hunter_license_number: e.target.value })}
+                placeholder="pl. 12345/2024"
+                disabled={loading}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="judgement_number">Bírálati eredményközlő szám</Label>
+              <Input
+                id="judgement_number"
+                value={formData.judgement_number}
+                onChange={(e) => setFormData({ ...formData, judgement_number: e.target.value })}
+                placeholder="pl. B-2024-001"
+                disabled={loading}
+              />
+            </div>
+
+            {formData.species === "🐗 Vaddisznó" && formData.gender === "♂️ Hím" && (
+              <div className="space-y-2">
+                <Label htmlFor="average_tusk_length">Átlag agyarhossz (cm)</Label>
+                <Input
+                  id="average_tusk_length"
+                  type="number"
+                  step="0.1"
+                  value={formData.average_tusk_length}
+                  onChange={(e) => setFormData({ ...formData, average_tusk_length: e.target.value })}
+                  placeholder="pl. 15.5"
+                  disabled={loading}
+                />
+              </div>
+            )}
           </div>
 
           <div className="space-y-4">
