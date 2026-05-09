@@ -18,6 +18,7 @@ import { useToast } from "@/hooks/use-toast";
 import { FileText, ChevronDown, ChevronUp } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useSubscription } from "@/hooks/useSubscription";
+import { getGameTypesForSpecies, isBigGameSpecies, SMALL_GAME_TYPE } from "@/lib/speciesConstants";
 
 interface StorageLocation {
   id: string;
