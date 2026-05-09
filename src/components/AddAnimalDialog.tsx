@@ -614,6 +614,8 @@ export const AddAnimalDialog = ({ onAnimalAdded }: AddAnimalDialogProps) => {
         hunterLicenseNumber: "",
       });
       setSkipCooling(false);
+      setPricing({ netPrice: "", grossPrice: "", priceVat: "", coolingPricePerKg: "", coolingVat: "", invoiceNumber: "" });
+      setPricingTouched({});
       
       setOpen(false);
       if (onAnimalAdded) {
