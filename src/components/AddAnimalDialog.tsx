@@ -617,6 +617,33 @@ export const AddAnimalDialog = ({ onAnimalAdded }: AddAnimalDialogProps) => {
             </div>
 
             <div className="space-y-2">
+              <Label htmlFor="gameType">Vad típus *</Label>
+              <Select
+                value={formData.gameType}
+                onValueChange={(value) => handleInputChange("gameType", value)}
+                disabled={!formData.type || !isBigGameSpecies(formData.type)}
+                required
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={
+                    !formData.type
+                      ? "Először válasszon vadfajt"
+                      : !isBigGameSpecies(formData.type)
+                        ? SMALL_GAME_TYPE
+                        : "Válasszon vad típust"
+                  } />
+                </SelectTrigger>
+                <SelectContent>
+                  {isBigGameSpecies(formData.type)
+                    ? getGameTypesForSpecies(formData.type).map((gt) => (
+                        <SelectItem key={gt} value={gt}>{gt}</SelectItem>
+                      ))
+                    : <SelectItem value={SMALL_GAME_TYPE}>{SMALL_GAME_TYPE}</SelectItem>}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
               <Label htmlFor="gender">Nem *</Label>
               <Select 
                 value={formData.gender} 
