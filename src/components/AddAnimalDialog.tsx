@@ -85,6 +85,17 @@ export const AddAnimalDialog = ({ onAnimalAdded }: AddAnimalDialogProps) => {
   const [loading, setLoading] = useState(false);
   const [showMore, setShowMore] = useState(false);
   const [skipCooling, setSkipCooling] = useState(false);
+
+  // Pricing fields (auto-calculated, user-overridable)
+  const [pricing, setPricing] = useState({
+    netPrice: "",
+    grossPrice: "",
+    priceVat: "",
+    coolingPricePerKg: "",
+    coolingVat: "",
+    invoiceNumber: "",
+  });
+  const [pricingTouched, setPricingTouched] = useState<Record<string, boolean>>({});
   
   const [formData, setFormData] = useState({
     animalId: "",
