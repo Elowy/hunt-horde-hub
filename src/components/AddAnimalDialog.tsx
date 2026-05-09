@@ -87,6 +87,7 @@ export const AddAnimalDialog = ({ onAnimalAdded }: AddAnimalDialogProps) => {
     type: "",
     gender: "",
     class: "",
+    gameType: "",
     weight: "",
     hunterType: "",
     hunterName: "",
