@@ -531,72 +531,17 @@ export const AddAnimalDialog = ({ onAnimalAdded }: AddAnimalDialogProps) => {
         }
       }
 
-      // Lekérjük az aktív járványügyi intézkedést
-      const activeMeasure = epidemicMeasures.find(
-        (m) => m.is_active && m.affected_species.includes(formData.type)
-      );
+      // Use user-edited / auto-calculated pricing values from state
+      const weightNum = formData.weight ? parseFloat(formData.weight) : 0;
+      const netTotal = parseFloat(pricing.netPrice);
+      const vatVal = parseFloat(pricing.priceVat);
+      const coolingPerKg = parseFloat(pricing.coolingPricePerKg);
+      const coolingVatNum = parseFloat(pricing.coolingVat);
 
-      let transportPrice = null;
-      let transportVat = null;
-      let coolingPrice = null;
-      let coolingVat = null;
-
-      if (activeMeasure) {
-        // Járványügyi árak
-        if (formData.weight) {
-          const totalEpidemicPrice = activeMeasure.shooting_fee + activeMeasure.sampling_fee + activeMeasure.price_per_unit;
-          transportPrice = totalEpidemicPrice / parseFloat(formData.weight);
-          transportVat = activeMeasure.vat_rate || 27;
-        }
-
-        // Járványügyi hűtési díj
-        if (activeMeasure.cooling_price_per_kg) {
-          coolingPrice = activeMeasure.cooling_price_per_kg;
-          coolingVat = activeMeasure.vat_rate || 27;
-        }
-      } else if (formData.weight && formData.type && formData.class) {
-        // Normál ár használata
-        const priceSetting = priceSettings.find(
-          (p) => p.species === formData.type && p.class === formData.class
-        );
-        if (priceSetting) {
-          transportPrice = priceSetting.price_per_kg;
-          transportVat = vatRate;
-        }
-      }
-
-      // Ha nincs járványügyi hűtési díj, használjuk a normál hűtési árat
-      // (faj+osztály > faj > osztály > általános)
-      if (!coolingPrice && !skipCooling) {
-        const nowIso = new Date().toISOString();
-        const { data: allPrices } = await supabase
-          .from("cooling_prices")
-          .select("cooling_price_per_kg, cooling_vat_rate, species, class, valid_from, valid_to")
-          .eq("storage_location_id", formData.storageLocationId)
-          .eq("is_archived", false)
-          .or(`valid_to.is.null,valid_to.gt.${nowIso}`)
-          .order("valid_from", { ascending: false });
-
-        const candidates = (allPrices as any[] | null) || [];
-        const matchScore = (p: any) => {
-          const sMatch = p.species === formData.type;
-          const cMatch = p.class === formData.class;
-          if (sMatch && cMatch) return 4;
-          if (sMatch && p.class === null) return 3;
-          if (p.species === null && cMatch) return 2;
-          if (p.species === null && p.class === null) return 1;
-          return 0;
-        };
-        const best = candidates
-          .map((p) => ({ p, score: matchScore(p) }))
-          .filter((x) => x.score > 0)
-          .sort((a, b) => b.score - a.score)[0]?.p;
-
-        if (best) {
-          coolingPrice = best.cooling_price_per_kg;
-          coolingVat = best.cooling_vat_rate;
-        }
-      }
+      const transportPrice = !isNaN(netTotal) && weightNum > 0 ? netTotal / weightNum : null;
+      const transportVat = !isNaN(vatVal) ? vatVal : null;
+      let coolingPrice: number | null = !isNaN(coolingPerKg) ? coolingPerKg : null;
+      let coolingVat: number | null = !isNaN(coolingVatNum) ? coolingVatNum : null;
 
       if (skipCooling) {
         coolingPrice = 0;
