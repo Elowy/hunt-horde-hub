@@ -1110,25 +1110,29 @@ export const AddAnimalDialog = ({ onAnimalAdded }: AddAnimalDialogProps) => {
                   </div>
                 )}
 
-                <div className="space-y-2">
-                  <Label htmlFor="sampleId">Mintaközlő szám</Label>
-                  <Input
-                    id="sampleId"
-                    value={formData.sampleId}
-                    onChange={(e) => handleInputChange("sampleId", e.target.value)}
-                    placeholder="pl. M-2024-001"
-                  />
-                </div>
+                {formData.type === "🐗 Vaddisznó" && (
+                  <div className="space-y-2">
+                    <Label htmlFor="sampleId">Mintaközlő szám</Label>
+                    <Input
+                      id="sampleId"
+                      value={formData.sampleId}
+                      onChange={(e) => handleInputChange("sampleId", e.target.value)}
+                      placeholder="pl. M-2024-001"
+                    />
+                  </div>
+                )}
 
-                <div className="space-y-2">
-                  <Label htmlFor="judgementNumber">Bírálati eredményközlő szám</Label>
-                  <Input
-                    id="judgementNumber"
-                    value={formData.judgementNumber}
-                    onChange={(e) => handleInputChange("judgementNumber", e.target.value)}
-                    placeholder="pl. B-2024-001"
-                  />
-                </div>
+                {["🐗 Vaddisznó", "🐏 Muflon", "🦌 Gím Szarvas", "🦌 Dám Szarvas", "🦌 Szika Szarvas", "🐏 Őz"].includes(formData.type) && formData.gender === "Hím" && (
+                  <div className="space-y-2">
+                    <Label htmlFor="judgementNumber">Bírálati eredményközlő szám</Label>
+                    <Input
+                      id="judgementNumber"
+                      value={formData.judgementNumber}
+                      onChange={(e) => handleInputChange("judgementNumber", e.target.value)}
+                      placeholder="pl. B-2024-001"
+                    />
+                  </div>
+                )}
 
                 {formData.type === "🐗 Vaddisznó" && (
                   <>
