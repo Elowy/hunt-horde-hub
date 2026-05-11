@@ -64,6 +64,13 @@ interface Animal {
   judgement_number?: string | null;
   average_tusk_length?: number | null;
   invoice_number?: string | null;
+  usage_type?: string | null;
+  buyer_type?: string | null;
+  buyer_name?: string | null;
+  buyer_zip?: string | null;
+  buyer_city?: string | null;
+  buyer_address?: string | null;
+  buyer_tax_number?: string | null;
 }
 
 interface StorageLocation {
