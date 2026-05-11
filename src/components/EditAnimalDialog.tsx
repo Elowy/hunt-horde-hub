@@ -153,6 +153,13 @@ export const EditAnimalDialog = ({ animal, locations, onAnimalUpdated }: EditAni
     hunter_license_number: animal.hunter_license_number || "",
     judgement_number: animal.judgement_number || "",
     average_tusk_length: animal.average_tusk_length?.toString() || "",
+    usage_type: animal.usage_type || "",
+    buyer_type: animal.buyer_type || "",
+    buyer_name: animal.buyer_name || "",
+    buyer_zip: animal.buyer_zip || "",
+    buyer_city: animal.buyer_city || "",
+    buyer_address: animal.buyer_address || "",
+    buyer_tax_number: animal.buyer_tax_number || "",
   });
 
   const buildInitialPricing = () => {
