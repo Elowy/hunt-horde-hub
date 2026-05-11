@@ -996,121 +996,219 @@ export const AddAnimalDialog = ({ onAnimalAdded }: AddAnimalDialogProps) => {
                 })()}
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {isPro && (
+              {/* Vadász és terület */}
+              <div className="rounded-lg border p-4 space-y-4 bg-muted/20">
+                <h4 className="font-semibold text-sm">Vadász és terület</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {isPro && (
+                    <div className="space-y-2">
+                      <Label htmlFor="securityZone">Vadgazdálkodási egység</Label>
+                      <Select 
+                        value={formData.securityZoneId} 
+                        onValueChange={(value) => handleInputChange("securityZoneId", value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Válasszon területet" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {securityZones.map((zone) => (
+                            <SelectItem key={zone.id} value={zone.id}>
+                              {zone.settlements?.name ? `${zone.settlements.name} - ${zone.name}` : zone.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+
                   <div className="space-y-2">
-                    <Label htmlFor="securityZone">Vadgazdálkodási egység</Label>
+                    <Label htmlFor="hunterType">Vadász típusa</Label>
                     <Select 
-                      value={formData.securityZoneId} 
-                      onValueChange={(value) => handleInputChange("securityZoneId", value)}
+                      value={formData.hunterType} 
+                      onValueChange={(value) => {
+                        handleInputChange("hunterType", value);
+                        setIsCustomHunter(false);
+                        setManualHunterName(false);
+                        handleInputChange("hunterName", "");
+                        handleInputChange("hunterLicenseNumber", "");
+                      }}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Válasszon területet" />
+                        <SelectValue placeholder="Válasszon típust" />
                       </SelectTrigger>
                       <SelectContent>
-                        {securityZones.map((zone) => (
-                          <SelectItem key={zone.id} value={zone.id}>
-                            {zone.settlements?.name ? `${zone.settlements.name} - ${zone.name}` : zone.name}
-                          </SelectItem>
-                        ))}
+                        <SelectItem value="tag">Tag</SelectItem>
+                        <SelectItem value="bervadasz">Bérvadász</SelectItem>
+                        <SelectItem value="ib_vendeg">IB Vendég</SelectItem>
+                        <SelectItem value="vendeg">Vendég</SelectItem>
+                        <SelectItem value="egyeb">Egyéb</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
-                )}
 
-                <div className="space-y-2">
-                  <Label htmlFor="hunterType">Vadász típusa</Label>
-                  <Select 
-                    value={formData.hunterType} 
-                    onValueChange={(value) => {
-                      handleInputChange("hunterType", value);
-                      setIsCustomHunter(false);
-                      setManualHunterName(false);
-                      handleInputChange("hunterName", "");
-                      handleInputChange("hunterLicenseNumber", "");
-                    }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Válasszon típust" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="tag">Tag</SelectItem>
-                      <SelectItem value="bervadasz">Bérvadász</SelectItem>
-                      <SelectItem value="ib_vendeg">IB Vendég</SelectItem>
-                      <SelectItem value="vendeg">Vendég</SelectItem>
-                      <SelectItem value="egyeb">Egyéb</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {formData.hunterType && (
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="hunterName">Vadász neve</Label>
-                      {!isCustomHunter && manualHunterName && (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="h-6 px-2 text-xs"
-                          onClick={() => {
-                            setManualHunterName(false);
-                            handleInputChange("hunterName", "");
+                  {formData.hunterType && (
+                    <div className="space-y-2 md:col-span-2">
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="hunterName">Vadász neve</Label>
+                        {!isCustomHunter && manualHunterName && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 px-2 text-xs"
+                            onClick={() => {
+                              setManualHunterName(false);
+                              handleInputChange("hunterName", "");
+                            }}
+                          >
+                            Lista
+                          </Button>
+                        )}
+                      </div>
+                      {isCustomHunter || manualHunterName ? (
+                        <>
+                          <Input
+                            id="hunterName"
+                            value={formData.hunterName}
+                            onChange={(e) => handleInputChange("hunterName", e.target.value)}
+                            placeholder="Adja meg a vadász nevét"
+                          />
+                          <Label htmlFor="hunterLicenseNumber" className="mt-2">Vadászjegyszám</Label>
+                          <Input
+                            id="hunterLicenseNumber"
+                            value={formData.hunterLicenseNumber}
+                            onChange={(e) => handleInputChange("hunterLicenseNumber", e.target.value)}
+                            placeholder="pl. 12345/2024"
+                          />
+                        </>
+                      ) : (
+                        <Select 
+                          value={formData.hunterName} 
+                          onValueChange={(value) => {
+                            if (value === "__manual__") {
+                              setManualHunterName(true);
+                              handleInputChange("hunterName", "");
+                              return;
+                            }
+                            handleInputChange("hunterName", value);
+                            const selectedHunter = hunters.find(h => h.contact_name === value);
+                            if (selectedHunter?.hunter_category) {
+                              handleInputChange("hunterType", selectedHunter.hunter_category);
+                            }
                           }}
                         >
-                          Lista
-                        </Button>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Válasszon vadászt" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {hunters
+                              .filter(h => h.hunter_category === formData.hunterType && h.contact_name)
+                              .map((hunter) => (
+                                <SelectItem key={hunter.id} value={hunter.contact_name || ""}>
+                                  {hunter.contact_name} - {getHunterCategoryDisplay(hunter.hunter_category)}
+                                </SelectItem>
+                              ))}
+                            <SelectItem value="__manual__">➕ Egyedi vadász megadása…</SelectItem>
+                          </SelectContent>
+                        </Select>
                       )}
                     </div>
-                    {isCustomHunter || manualHunterName ? (
-                      <>
-                        <Input
-                          id="hunterName"
-                          value={formData.hunterName}
-                          onChange={(e) => handleInputChange("hunterName", e.target.value)}
-                          placeholder="Adja meg a vadász nevét"
-                        />
-                        <Label htmlFor="hunterLicenseNumber" className="mt-2">Vadászjegyszám</Label>
-                        <Input
-                          id="hunterLicenseNumber"
-                          value={formData.hunterLicenseNumber}
-                          onChange={(e) => handleInputChange("hunterLicenseNumber", e.target.value)}
-                          placeholder="pl. 12345/2024"
-                        />
-                      </>
-                    ) : (
-                      <Select 
-                        value={formData.hunterName} 
-                        onValueChange={(value) => {
-                          if (value === "__manual__") {
-                            setManualHunterName(true);
-                            handleInputChange("hunterName", "");
-                            return;
-                          }
-                          handleInputChange("hunterName", value);
-                          const selectedHunter = hunters.find(h => h.contact_name === value);
-                          if (selectedHunter?.hunter_category) {
-                            handleInputChange("hunterType", selectedHunter.hunter_category);
-                          }
-                        }}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Válasszon vadászt" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {hunters
-                            .filter(h => h.hunter_category === formData.hunterType && h.contact_name)
-                            .map((hunter) => (
-                              <SelectItem key={hunter.id} value={hunter.contact_name || ""}>
-                                {hunter.contact_name} - {getHunterCategoryDisplay(hunter.hunter_category)}
-                              </SelectItem>
-                            ))}
-                          <SelectItem value="__manual__">➕ Egyedi vadász megadása…</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    )}
+                  )}
+                </div>
+              </div>
+
+              {/* Felhasználás és vásárló */}
+              <div className="rounded-lg border p-4 space-y-4 bg-muted/20">
+                <h4 className="font-semibold text-sm">Felhasználás és vásárló</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="usageType">Felhasználás típusa</Label>
+                    <Select
+                      value={formData.usageType}
+                      onValueChange={(value) => handleInputChange("usageType", value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Válasszon..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="sajat">Saját felhasználás</SelectItem>
+                        <SelectItem value="ajandekozas">Ajándékozás</SelectItem>
+                        <SelectItem value="barter">Barter</SelectItem>
+                        <SelectItem value="eladas">Eladás</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
+                  {formData.usageType && formData.usageType !== "sajat" && (
+                    <div className="space-y-2">
+                      <Label>Vásárló típusa</Label>
+                      <div className="flex items-center gap-6 pt-2">
+                        <label className="flex items-center gap-2 text-sm cursor-pointer">
+                          <Checkbox
+                            checked={formData.buyerType === "private"}
+                            onCheckedChange={(c) => handleInputChange("buyerType", c ? "private" : "")}
+                          />
+                          Magánszemély
+                        </label>
+                        <label className="flex items-center gap-2 text-sm cursor-pointer">
+                          <Checkbox
+                            checked={formData.buyerType === "company"}
+                            onCheckedChange={(c) => handleInputChange("buyerType", c ? "company" : "")}
+                          />
+                          Vállalkozás
+                        </label>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                {formData.usageType && formData.usageType !== "sajat" && (
+                  <>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="buyerName">Vásárló neve</Label>
+                        <Input
+                          id="buyerName"
+                          value={formData.buyerName}
+                          onChange={(e) => handleInputChange("buyerName", e.target.value)}
+                          placeholder="Vásárló neve"
+                        />
+                      </div>
+                      {formData.buyerType === "company" && (
+                        <div className="space-y-2">
+                          <Label htmlFor="buyerTaxNumber">Vásárló adószáma</Label>
+                          <Input
+                            id="buyerTaxNumber"
+                            value={formData.buyerTaxNumber}
+                            onChange={(e) => handleInputChange("buyerTaxNumber", e.target.value)}
+                            placeholder="pl. 12345678-1-23"
+                          />
+                        </div>
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Vásárló lakcíme</Label>
+                      <div className="grid grid-cols-1 md:grid-cols-[120px_1fr_1fr] gap-2">
+                        <Input
+                          value={formData.buyerZip}
+                          onChange={(e) => handleInputChange("buyerZip", e.target.value)}
+                          placeholder="Irányítószám"
+                        />
+                        <Input
+                          value={formData.buyerCity}
+                          onChange={(e) => handleInputChange("buyerCity", e.target.value)}
+                          placeholder="Település"
+                        />
+                        <Input
+                          value={formData.buyerAddress}
+                          onChange={(e) => handleInputChange("buyerAddress", e.target.value)}
+                          placeholder="Utca, házszám"
+                        />
+                      </div>
+                    </div>
+                  </>
                 )}
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
                 {formData.type === "🐗 Vaddisznó" && (
                   <div className="space-y-2">
