@@ -567,6 +567,13 @@ export const EditAnimalDialog = ({ animal, locations, onAnimalUpdated }: EditAni
           transport_vat_rate: !isNaN(vatVal) ? vatVal : null,
           transport_cooling_price: !isNaN(coolingPerKg) ? coolingPerKg : null,
           transport_cooling_vat_rate: !isNaN(coolingVatNum) ? coolingVatNum : null,
+          usage_type: formData.usage_type || null,
+          buyer_type: formData.buyer_type || null,
+          buyer_name: formData.buyer_name || null,
+          buyer_zip: formData.buyer_zip || null,
+          buyer_city: formData.buyer_city || null,
+          buyer_address: formData.buyer_address || null,
+          buyer_tax_number: formData.buyer_tax_number || null,
         } as any)
         .eq("id", animal.id);
 
