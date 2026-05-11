@@ -587,6 +587,13 @@ export const AddAnimalDialog = ({ onAnimalAdded }: AddAnimalDialogProps) => {
         is_transported: skipCooling ? true : false,
         transported_at: skipCooling ? new Date().toISOString() : null,
         invoice_number: pricing.invoiceNumber || null,
+        usage_type: formData.usageType || null,
+        buyer_type: formData.buyerType || null,
+        buyer_name: formData.buyerName || null,
+        buyer_zip: formData.buyerZip || null,
+        buyer_city: formData.buyerCity || null,
+        buyer_address: formData.buyerAddress || null,
+        buyer_tax_number: formData.buyerTaxNumber || null,
       } as any);
 
       if (error) throw error;
