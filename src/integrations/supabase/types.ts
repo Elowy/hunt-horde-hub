@@ -53,6 +53,12 @@ export type Database = {
           animal_id: string
           archived: boolean | null
           average_tusk_length: number | null
+          buyer_address: string | null
+          buyer_city: string | null
+          buyer_name: string | null
+          buyer_tax_number: string | null
+          buyer_type: string | null
+          buyer_zip: string | null
           class: string | null
           cooling_date: string | null
           created_at: string
@@ -84,6 +90,7 @@ export type Database = {
           transport_vat_rate: number | null
           transported_at: string | null
           updated_at: string
+          usage_type: string | null
           user_id: string
           vet_check: boolean | null
           vet_doctor_name: string | null
@@ -97,6 +104,12 @@ export type Database = {
           animal_id: string
           archived?: boolean | null
           average_tusk_length?: number | null
+          buyer_address?: string | null
+          buyer_city?: string | null
+          buyer_name?: string | null
+          buyer_tax_number?: string | null
+          buyer_type?: string | null
+          buyer_zip?: string | null
           class?: string | null
           cooling_date?: string | null
           created_at?: string
@@ -128,6 +141,7 @@ export type Database = {
           transport_vat_rate?: number | null
           transported_at?: string | null
           updated_at?: string
+          usage_type?: string | null
           user_id: string
           vet_check?: boolean | null
           vet_doctor_name?: string | null
@@ -141,6 +155,12 @@ export type Database = {
           animal_id?: string
           archived?: boolean | null
           average_tusk_length?: number | null
+          buyer_address?: string | null
+          buyer_city?: string | null
+          buyer_name?: string | null
+          buyer_tax_number?: string | null
+          buyer_type?: string | null
+          buyer_zip?: string | null
           class?: string | null
           cooling_date?: string | null
           created_at?: string
@@ -172,6 +192,7 @@ export type Database = {
           transport_vat_rate?: number | null
           transported_at?: string | null
           updated_at?: string
+          usage_type?: string | null
           user_id?: string
           vet_check?: boolean | null
           vet_doctor_name?: string | null
