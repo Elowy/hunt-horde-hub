@@ -119,6 +119,13 @@ export const AddAnimalDialog = ({ onAnimalAdded }: AddAnimalDialogProps) => {
     averageTuskLength: "",
     judgementNumber: "",
     hunterLicenseNumber: "",
+    usageType: "",
+    buyerType: "",
+    buyerName: "",
+    buyerZip: "",
+    buyerCity: "",
+    buyerAddress: "",
+    buyerTaxNumber: "",
   });
 
   useEffect(() => {
