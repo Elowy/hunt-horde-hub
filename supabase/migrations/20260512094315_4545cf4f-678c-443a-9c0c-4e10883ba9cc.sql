@@ -1,0 +1,1 @@
+ALTER TABLE public.security_zones ADD COLUMN IF NOT EXISTS polygon_geojson jsonb;

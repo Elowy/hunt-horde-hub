@@ -1665,6 +1665,7 @@ export type Database = {
           display_order: number
           id: string
           name: string
+          polygon_geojson: Json | null
           settlement_id: string | null
           updated_at: string
           user_id: string
@@ -1675,6 +1676,7 @@ export type Database = {
           display_order?: number
           id?: string
           name: string
+          polygon_geojson?: Json | null
           settlement_id?: string | null
           updated_at?: string
           user_id: string
@@ -1685,6 +1687,7 @@ export type Database = {
           display_order?: number
           id?: string
           name?: string
+          polygon_geojson?: Json | null
           settlement_id?: string | null
           updated_at?: string
           user_id?: string
