@@ -500,22 +500,46 @@ export function SettlementsAndZonesDialog() {
           {addingZoneForSettlement && (
             <div className="space-y-2 border-t pt-4">
               <Label>Új beírókörzet</Label>
-              <Input
-                placeholder="Beírókörzet neve"
-                value={newZoneName}
-                onChange={(e) => setNewZoneName(e.target.value)}
-              />
-              <Input
-                placeholder="Leírás (opcionális)"
-                value={newZoneDescription}
-                onChange={(e) => setNewZoneDescription(e.target.value)}
-              />
+              <Tabs defaultValue="data">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="data">Adatok</TabsTrigger>
+                  <TabsTrigger value="map">Térképen berajzolás</TabsTrigger>
+                </TabsList>
+                <TabsContent value="data" className="space-y-2 mt-3">
+                  <Input
+                    placeholder="Beírókörzet neve"
+                    value={newZoneName}
+                    onChange={(e) => setNewZoneName(e.target.value)}
+                  />
+                  <Input
+                    placeholder="Leírás (opcionális)"
+                    value={newZoneDescription}
+                    onChange={(e) => setNewZoneDescription(e.target.value)}
+                  />
+                </TabsContent>
+                <TabsContent value="map" className="mt-3 space-y-2">
+                  <p className="text-sm text-muted-foreground">
+                    Rajzold be a körzet határait a jobb felső polygon eszközzel.
+                  </p>
+                  <SecurityZoneMap
+                    value={newZonePolygon}
+                    onChange={setNewZonePolygon}
+                    height={400}
+                  />
+                  {newZonePolygon && (
+                    <p className="text-xs text-muted-foreground">
+                      Polygon mentésre kész ({newZonePolygon.coordinates[0].length} pont).
+                    </p>
+                  )}
+                </TabsContent>
+              </Tabs>
               <div className="flex gap-2">
                 <Button onClick={addZone}>Hozzáad</Button>
                 <Button variant="outline" onClick={() => {
                   setAddingZoneForSettlement(null);
                   setNewZoneName("");
                   setNewZoneDescription("");
+                  setNewZonePolygon(null);
                 }}>
                   Mégse
                 </Button>
@@ -527,42 +551,66 @@ export function SettlementsAndZonesDialog() {
           {editingZone && (
             <div className="space-y-2 border-t pt-4">
               <Label>Beírókörzet szerkesztése</Label>
-              <Input
-                value={editingZone.name}
-                onChange={(e) =>
-                  setEditingZone({ ...editingZone, name: e.target.value })
-                }
-              />
-              <Input
-                placeholder="Leírás (opcionális)"
-                value={editingZone.description || ""}
-                onChange={(e) =>
-                  setEditingZone({ ...editingZone, description: e.target.value })
-                }
-              />
-              <div className="space-y-2">
-                <Label>Település</Label>
-                <Select
-                  value={editingZoneSettlement}
-                  onValueChange={setEditingZoneSettlement}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Válassz települést" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {settlements.map((s) => (
-                      <SelectItem key={s.id} value={s.id}>
-                        {s.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              <Tabs defaultValue="data">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="data">Adatok</TabsTrigger>
+                  <TabsTrigger value="map">Térképen berajzolás</TabsTrigger>
+                </TabsList>
+                <TabsContent value="data" className="space-y-2 mt-3">
+                  <Input
+                    value={editingZone.name}
+                    onChange={(e) =>
+                      setEditingZone({ ...editingZone, name: e.target.value })
+                    }
+                  />
+                  <Input
+                    placeholder="Leírás (opcionális)"
+                    value={editingZone.description || ""}
+                    onChange={(e) =>
+                      setEditingZone({ ...editingZone, description: e.target.value })
+                    }
+                  />
+                  <div className="space-y-2">
+                    <Label>Település</Label>
+                    <Select
+                      value={editingZoneSettlement}
+                      onValueChange={setEditingZoneSettlement}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Válassz települést" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {settlements.map((s) => (
+                          <SelectItem key={s.id} value={s.id}>
+                            {s.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </TabsContent>
+                <TabsContent value="map" className="mt-3 space-y-2">
+                  <p className="text-sm text-muted-foreground">
+                    Rajzold be vagy szerkeszd a körzet határait.
+                  </p>
+                  <SecurityZoneMap
+                    value={editingZonePolygon}
+                    onChange={setEditingZonePolygon}
+                    height={400}
+                  />
+                  {editingZonePolygon && (
+                    <p className="text-xs text-muted-foreground">
+                      Polygon mentésre kész ({editingZonePolygon.coordinates[0].length} pont).
+                    </p>
+                  )}
+                </TabsContent>
+              </Tabs>
               <div className="flex gap-2">
                 <Button onClick={updateZone}>Mentés</Button>
                 <Button variant="outline" onClick={() => {
                   setEditingZone(null);
                   setEditingZoneSettlement("");
+                  setEditingZonePolygon(null);
                 }}>
                   Mégse
                 </Button>
