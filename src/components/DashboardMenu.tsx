@@ -633,6 +633,14 @@ export const DashboardMenu = ({ isAdmin, isEditor, isHunter, onLogout, onPriceUp
                   <DollarSign className="mr-2 h-4 w-4" />
                   Egyenleg kezelés
                 </Button>
+                <Button
+                  variant="ghost"
+                  className="w-full justify-start"
+                  onClick={() => handleNavigation("/invoices")}
+                >
+                  <FileText className="mr-2 h-4 w-4" />
+                  Számlák (Számlázz.hu)
+                </Button>
               </div>
               <Separator />
             </>
