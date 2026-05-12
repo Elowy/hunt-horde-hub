@@ -439,6 +439,7 @@ export function SettlementsAndZonesDialog() {
                                   onClick={() => {
                                     setEditingZone(zone);
                                     setEditingZoneSettlement(zone.settlement_id || "");
+                                    setEditingZonePolygon(zone.polygon_geojson || null);
                                   }}
                                 >
                                   <Pencil className="h-3 w-3" />
