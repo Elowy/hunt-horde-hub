@@ -222,6 +222,7 @@ export function SettlementsAndZonesDialog() {
       toast({ title: "Beírókörzet módosítva" });
       setEditingZone(null);
       setEditingZoneSettlement("");
+      setEditingZonePolygon(null);
       fetchData();
     }
   };
