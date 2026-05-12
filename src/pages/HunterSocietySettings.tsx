@@ -188,6 +188,9 @@ const HunterSocietySettings = () => {
 
         {/* Membership Fee Settings */}
         <MembershipFeeSettings />
+
+        {/* Számlázz.hu integráció */}
+        <SzamlazzSettingsCard />
       </div>
     </div>
   );
