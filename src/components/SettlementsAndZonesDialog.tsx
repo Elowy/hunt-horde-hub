@@ -188,6 +188,7 @@ export function SettlementsAndZonesDialog() {
       settlement_id: addingZoneForSettlement,
       user_id: user.id,
       display_order: settlementZones.length,
+      polygon_geojson: newZonePolygon as any,
     });
 
     if (error) {
@@ -196,6 +197,7 @@ export function SettlementsAndZonesDialog() {
       toast({ title: "Beírókörzet hozzáadva" });
       setNewZoneName("");
       setNewZoneDescription("");
+      setNewZonePolygon(null);
       setAddingZoneForSettlement(null);
       fetchData();
     }
@@ -210,6 +212,7 @@ export function SettlementsAndZonesDialog() {
         name: editingZone.name,
         description: editingZone.description,
         settlement_id: editingZoneSettlement || null,
+        polygon_geojson: editingZonePolygon as any,
       })
       .eq("id", editingZone.id);
 
