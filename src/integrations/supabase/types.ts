@@ -870,6 +870,87 @@ export type Database = {
         }
         Relationships: []
       }
+      invoices: {
+        Row: {
+          buyer_address: string | null
+          buyer_email: string | null
+          buyer_name: string
+          buyer_tax_number: string | null
+          created_at: string
+          created_by: string
+          currency: string
+          error_message: string | null
+          gross_amount: number
+          hunter_society_id: string
+          id: string
+          net_amount: number | null
+          source_id: string | null
+          source_type: string
+          status: string
+          szamlazz_invoice_number: string | null
+          szamlazz_url: string | null
+          updated_at: string
+          vat_amount: number | null
+        }
+        Insert: {
+          buyer_address?: string | null
+          buyer_email?: string | null
+          buyer_name: string
+          buyer_tax_number?: string | null
+          created_at?: string
+          created_by: string
+          currency?: string
+          error_message?: string | null
+          gross_amount: number
+          hunter_society_id: string
+          id?: string
+          net_amount?: number | null
+          source_id?: string | null
+          source_type: string
+          status?: string
+          szamlazz_invoice_number?: string | null
+          szamlazz_url?: string | null
+          updated_at?: string
+          vat_amount?: number | null
+        }
+        Update: {
+          buyer_address?: string | null
+          buyer_email?: string | null
+          buyer_name?: string
+          buyer_tax_number?: string | null
+          created_at?: string
+          created_by?: string
+          currency?: string
+          error_message?: string | null
+          gross_amount?: number
+          hunter_society_id?: string
+          id?: string
+          net_amount?: number | null
+          source_id?: string | null
+          source_type?: string
+          status?: string
+          szamlazz_invoice_number?: string | null
+          szamlazz_url?: string | null
+          updated_at?: string
+          vat_amount?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_hunter_society_id_fkey"
+            columns: ["hunter_society_id"]
+            isOneToOne: false
+            referencedRelation: "hunter_societies_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_hunter_society_id_fkey"
+            columns: ["hunter_society_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lifetime_subscriptions: {
         Row: {
           created_at: string
@@ -1415,6 +1496,9 @@ export type Database = {
           privacy_policy_accepted: boolean | null
           privacy_policy_accepted_at: string | null
           registration_approved: boolean | null
+          szamlazz_agent_key: string | null
+          szamlazz_enabled: boolean
+          szamlazz_invoice_prefix: string | null
           tax_number: string | null
           updated_at: string
           user_type: string | null
@@ -1440,6 +1524,9 @@ export type Database = {
           privacy_policy_accepted?: boolean | null
           privacy_policy_accepted_at?: string | null
           registration_approved?: boolean | null
+          szamlazz_agent_key?: string | null
+          szamlazz_enabled?: boolean
+          szamlazz_invoice_prefix?: string | null
           tax_number?: string | null
           updated_at?: string
           user_type?: string | null
@@ -1465,6 +1552,9 @@ export type Database = {
           privacy_policy_accepted?: boolean | null
           privacy_policy_accepted_at?: string | null
           registration_approved?: boolean | null
+          szamlazz_agent_key?: string | null
+          szamlazz_enabled?: boolean
+          szamlazz_invoice_prefix?: string | null
           tax_number?: string | null
           updated_at?: string
           user_type?: string | null

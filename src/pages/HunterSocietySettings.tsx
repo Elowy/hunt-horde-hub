@@ -10,6 +10,7 @@ import { QRCodeManagement } from "@/components/QRCodeManagement";
 import { MembershipFeeSettings } from "@/components/MembershipFeeSettings";
 import { HunterFeaturePermissions } from "@/components/HunterFeaturePermissions";
 import { EpidemicMeasuresManager } from "@/components/EpidemicMeasuresManager";
+import { SzamlazzSettingsCard } from "@/components/SzamlazzSettingsCard";
 import { useToast } from "@/hooks/use-toast";
 
 const HunterSocietySettings = () => {
@@ -187,6 +188,9 @@ const HunterSocietySettings = () => {
 
         {/* Membership Fee Settings */}
         <MembershipFeeSettings />
+
+        {/* Számlázz.hu integráció */}
+        <SzamlazzSettingsCard />
       </div>
     </div>
   );
