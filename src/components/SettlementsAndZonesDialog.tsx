@@ -74,7 +74,7 @@ export function SettlementsAndZonesDialog() {
     ]);
 
     if (settlementsResult.data) setSettlements(settlementsResult.data);
-    if (zonesResult.data) setZones(zonesResult.data);
+    if (zonesResult.data) setZones(zonesResult.data as any);
   };
 
   const toggleSettlement = (id: string) => {
