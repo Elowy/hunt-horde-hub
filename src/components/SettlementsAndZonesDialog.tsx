@@ -277,12 +277,35 @@ export function SettlementsAndZonesDialog() {
           Települések és Beírókörzetek
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Települések és Beírókörzetek kezelése</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-6">
+          {/* Térkép nézet toggle */}
+          <div className="flex justify-end">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowMapView((s) => !s)}
+            >
+              {showMapView ? (
+                <>
+                  <List className="h-4 w-4 mr-2" /> Lista nézet
+                </>
+              ) : (
+                <>
+                  <MapIcon className="h-4 w-4 mr-2" /> Térkép nézet
+                </>
+              )}
+            </Button>
+          </div>
+
+          {showMapView && (
+            <AllZonesMap zones={zones as any} height={500} />
+          )}
+
           {/* Új település */}
           <div className="space-y-2">
             <Label>Új település</Label>
