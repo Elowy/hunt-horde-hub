@@ -45,10 +45,15 @@ export function SettlementsAndZonesDialog() {
   const [addingZoneForSettlement, setAddingZoneForSettlement] = useState<string | null>(null);
   const [newZoneName, setNewZoneName] = useState("");
   const [newZoneDescription, setNewZoneDescription] = useState("");
-  
+  const [newZonePolygon, setNewZonePolygon] = useState<GeoPolygon | null>(null);
+
   // Beírókörzet szerkesztése
   const [editingZone, setEditingZone] = useState<SecurityZone | null>(null);
   const [editingZoneSettlement, setEditingZoneSettlement] = useState<string>("");
+  const [editingZonePolygon, setEditingZonePolygon] = useState<GeoPolygon | null>(null);
+
+  // Térkép nézet
+  const [showMapView, setShowMapView] = useState(false);
 
   useEffect(() => {
     if (open) {
