@@ -9,6 +9,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { HuntingLocationsManager } from "@/components/HuntingLocationsManager";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Map as MapIcon, List } from "lucide-react";
+import { SecurityZoneMap, AllZonesMap, type GeoPolygon } from "@/components/SecurityZoneMap";
 
 interface Settlement {
   id: string;
@@ -22,6 +25,7 @@ interface SecurityZone {
   description: string | null;
   settlement_id: string | null;
   display_order: number;
+  polygon_geojson: GeoPolygon | null;
 }
 
 export function SettlementsAndZonesDialog() {
