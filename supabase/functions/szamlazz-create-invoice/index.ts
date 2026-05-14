@@ -320,6 +320,11 @@ Deno.serve(async (req) => {
       .select()
       .single()
 
+    if (body.animal_ids && body.animal_ids.length > 0) {
+      const rows = body.animal_ids.map((aid) => ({ invoice_id: invoice.id, animal_id: aid }))
+      await admin.from('invoice_animals').insert(rows)
+    }
+
     return new Response(
       JSON.stringify({ success: true, invoice: updated }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
