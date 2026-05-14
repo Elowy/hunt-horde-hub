@@ -100,7 +100,7 @@ function buildXml(params: {
     <keltDatum>${formatDate(today)}</keltDatum>
     <teljesitesDatum>${formatDate(today)}</teljesitesDatum>
     <fizetesiHataridoDatum>${formatDate(due)}</fizetesiHataridoDatum>
-    <fizmod>Átutalás</fizmod>
+    <fizmod>${xmlEscape(params.paymentMethod)}</fizmod>
     <penznem>HUF</penznem>
     <szamlaNyelve>hu</szamlaNyelve>
     <megjegyzes>${xmlEscape(params.comment ?? '')}</megjegyzes>
