@@ -81,6 +81,7 @@ function buildXml(params: {
       <nettoErtek>${net}</nettoErtek>
       <afaErtek>${vat}</afaErtek>
       <bruttoErtek>${gross}</bruttoErtek>
+      <megjegyzes>${xmlEscape(it.comment ?? '')}</megjegyzes>
     </tetel>`
   }).join('\n')
 
