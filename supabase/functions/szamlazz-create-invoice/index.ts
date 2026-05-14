@@ -17,7 +17,10 @@ const ItemSchema = z.object({
   unit: z.string().min(1).max(32),
   net_unit_price: z.number().nonnegative(),
   vat_rate: z.string().min(1).max(16),
+  comment: z.string().max(1000).optional(),
 })
+
+const PaymentMethodSchema = z.enum(['Készpénz', 'Átutalás', 'Bankkártya', 'Utánvét'])
 
 const BodySchema = z.object({
   source_type: z.string().min(1).max(64),
@@ -25,6 +28,8 @@ const BodySchema = z.object({
   buyer: BuyerSchema,
   items: z.array(ItemSchema).min(1).max(100),
   comment: z.string().max(2000).optional(),
+  payment_method: PaymentMethodSchema.optional(),
+  animal_ids: z.array(z.string().uuid()).max(500).optional(),
 })
 
 function xmlEscape(value: string | number | undefined | null): string {
