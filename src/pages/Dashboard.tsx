@@ -223,6 +223,9 @@ const Dashboard = () => {
   const [vatRate, setVatRate] = useState<number>(27);
   const [loading, setLoading] = useState(true);
   const [selectedAnimals, setSelectedAnimals] = useState<Set<string>>(new Set());
+  const [invoicedAnimalIds, setInvoicedAnimalIds] = useState<Set<string>>(new Set());
+  const [invoiceDialogOpen, setInvoiceDialogOpen] = useState(false);
+  const [invoiceDialogAnimals, setInvoiceDialogAnimals] = useState<any[]>([]);
   const [showTransportDialog, setShowTransportDialog] = useState(false);
   const [transportDocuments, setTransportDocuments] = useState<Record<string, string>>({});
   const [isAdmin, setIsAdmin] = useState(false);
