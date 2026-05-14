@@ -47,6 +47,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { StorageLocationDialog } from "@/components/StorageLocationDialog";
+import { CreateInvoiceDialog } from "@/components/CreateInvoiceDialog";
 import { PriceSettingsDialog } from "@/components/PriceSettingsDialog";
 import { TransportDocumentsDialog } from "@/components/TransportDocumentsDialog";
 import { TransporterDialog } from "@/components/TransporterDialog";
