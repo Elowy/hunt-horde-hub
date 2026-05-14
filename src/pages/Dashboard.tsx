@@ -511,6 +511,18 @@ const Dashboard = () => {
       }
       
       setTransportDocuments(transportMap);
+
+      // Fetch invoiced animal IDs (animals already on an issued invoice)
+      try {
+        const { data: invAnimals } = await supabase
+          .from("invoice_animals")
+          .select("animal_id, invoices!inner(status)")
+          .eq("invoices.status", "issued");
+        const ids = new Set<string>((invAnimals || []).map((r: any) => r.animal_id));
+        setInvoicedAnimalIds(ids);
+      } catch {
+        // ignore
+      }
     } catch (error: any) {
       toast({
         title: "Hiba",
