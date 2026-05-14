@@ -60,6 +60,7 @@ function buildXml(params: {
   agentKey: string
   prefix: string
   comment?: string
+  paymentMethod: string
   buyer: z.infer<typeof BuyerSchema>
   items: z.infer<typeof ItemSchema>[]
 }): string {
