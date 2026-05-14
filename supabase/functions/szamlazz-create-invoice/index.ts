@@ -235,6 +235,7 @@ Deno.serve(async (req) => {
       agentKey: profile.szamlazz_agent_key,
       prefix: profile.szamlazz_invoice_prefix ?? 'VG',
       comment: body.comment,
+      paymentMethod: body.payment_method ?? 'Átutalás',
       buyer: body.buyer,
       items: body.items,
     })
