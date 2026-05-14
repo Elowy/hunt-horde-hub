@@ -2945,6 +2945,34 @@ const Dashboard = () => {
                           <FileDown className="h-4 w-4 mr-2" />
                           Elszállító készítése
                         </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => {
+                            const list = animals.filter(
+                              (a) => selectedAnimals.has(a.id) && !invoicedAnimalIds.has(a.id),
+                            );
+                            if (list.length === 0) {
+                              toast({
+                                title: "Nincs számlázható vad",
+                                description: "A kijelölt vadak már szerepelnek korábbi számlán.",
+                                variant: "destructive",
+                              });
+                              return;
+                            }
+                            const skipped = selectedAnimals.size - list.length;
+                            if (skipped > 0) {
+                              toast({
+                                title: `${skipped} vad kihagyva`,
+                                description: "Ezek már szerepelnek korábbi számlán.",
+                              });
+                            }
+                            setInvoiceDialogAnimals(list);
+                            setInvoiceDialogOpen(true);
+                          }}
+                          className="cursor-pointer"
+                        >
+                          <FileText className="h-4 w-4 mr-2" />
+                          Számla kiállítása
+                        </DropdownMenuItem>
                         <DropdownMenuItem onClick={exportSelectedToExcel} className="cursor-pointer">
                           <FileSpreadsheet className="h-4 w-4 mr-2" />
                           Excel export
