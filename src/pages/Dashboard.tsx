@@ -3039,7 +3039,16 @@ const Dashboard = () => {
                             <TableCell>
                               {getReservationBadge(animal.reservation_status)}
                             </TableCell>
-                            <TableCell className="font-medium">{animal.animal_id}</TableCell>
+                            <TableCell className="font-medium">
+                              <div className="flex items-center gap-2">
+                                <span>{animal.animal_id}</span>
+                                {invoicedAnimalIds.has(animal.id) && (
+                                  <Badge variant="secondary" className="text-[10px]">
+                                    <FileText className="h-3 w-3 mr-1" />Számlázva
+                                  </Badge>
+                                )}
+                              </div>
+                            </TableCell>
                             <TableCell>{animal.species}</TableCell>
                             <TableCell>{animal.weight || "-"}</TableCell>
                             <TableCell>{animal.class || "-"}</TableCell>
