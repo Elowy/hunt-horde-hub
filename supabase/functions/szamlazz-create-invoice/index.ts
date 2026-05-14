@@ -17,7 +17,10 @@ const ItemSchema = z.object({
   unit: z.string().min(1).max(32),
   net_unit_price: z.number().nonnegative(),
   vat_rate: z.string().min(1).max(16),
+  comment: z.string().max(1000).optional(),
 })
+
+const PaymentMethodSchema = z.enum(['Készpénz', 'Átutalás', 'Bankkártya', 'Utánvét'])
 
 const BodySchema = z.object({
   source_type: z.string().min(1).max(64),
@@ -25,6 +28,8 @@ const BodySchema = z.object({
   buyer: BuyerSchema,
   items: z.array(ItemSchema).min(1).max(100),
   comment: z.string().max(2000).optional(),
+  payment_method: PaymentMethodSchema.optional(),
+  animal_ids: z.array(z.string().uuid()).max(500).optional(),
 })
 
 function xmlEscape(value: string | number | undefined | null): string {
@@ -55,6 +60,7 @@ function buildXml(params: {
   agentKey: string
   prefix: string
   comment?: string
+  paymentMethod: string
   buyer: z.infer<typeof BuyerSchema>
   items: z.infer<typeof ItemSchema>[]
 }): string {
@@ -75,6 +81,7 @@ function buildXml(params: {
       <nettoErtek>${net}</nettoErtek>
       <afaErtek>${vat}</afaErtek>
       <bruttoErtek>${gross}</bruttoErtek>
+      <megjegyzes>${xmlEscape(it.comment ?? '')}</megjegyzes>
     </tetel>`
   }).join('\n')
 
@@ -93,7 +100,7 @@ function buildXml(params: {
     <keltDatum>${formatDate(today)}</keltDatum>
     <teljesitesDatum>${formatDate(today)}</teljesitesDatum>
     <fizetesiHataridoDatum>${formatDate(due)}</fizetesiHataridoDatum>
-    <fizmod>Átutalás</fizmod>
+    <fizmod>${xmlEscape(params.paymentMethod)}</fizmod>
     <penznem>HUF</penznem>
     <szamlaNyelve>hu</szamlaNyelve>
     <megjegyzes>${xmlEscape(params.comment ?? '')}</megjegyzes>
@@ -228,6 +235,7 @@ Deno.serve(async (req) => {
       agentKey: profile.szamlazz_agent_key,
       prefix: profile.szamlazz_invoice_prefix ?? 'VG',
       comment: body.comment,
+      paymentMethod: body.payment_method ?? 'Átutalás',
       buyer: body.buyer,
       items: body.items,
     })
@@ -311,6 +319,11 @@ Deno.serve(async (req) => {
       .eq('id', invoice.id)
       .select()
       .single()
+
+    if (body.animal_ids && body.animal_ids.length > 0) {
+      const rows = body.animal_ids.map((aid) => ({ invoice_id: invoice.id, animal_id: aid }))
+      await admin.from('invoice_animals').insert(rows)
+    }
 
     return new Response(
       JSON.stringify({ success: true, invoice: updated }),

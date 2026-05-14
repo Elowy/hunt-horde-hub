@@ -870,6 +870,39 @@ export type Database = {
         }
         Relationships: []
       }
+      invoice_animals: {
+        Row: {
+          animal_id: string
+          created_at: string
+          invoice_id: string
+        }
+        Insert: {
+          animal_id: string
+          created_at?: string
+          invoice_id: string
+        }
+        Update: {
+          animal_id?: string
+          created_at?: string
+          invoice_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_animals_animal_id_fkey"
+            columns: ["animal_id"]
+            isOneToOne: false
+            referencedRelation: "animals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoice_animals_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invoices: {
         Row: {
           buyer_address: string | null

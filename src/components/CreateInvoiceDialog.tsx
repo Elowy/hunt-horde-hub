@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -24,7 +24,19 @@ export interface InvoiceItem {
   unit: string;
   net_unit_price: number;
   vat_rate: string;
+  comment?: string;
 }
+
+export interface InvoiceAnimal {
+  id: string;
+  animal_id?: string | null;
+  species: string;
+  class?: string | null;
+  weight?: number | null;
+}
+
+const PAYMENT_METHODS = ["Készpénz", "Átutalás", "Bankkártya", "Utánvét"] as const;
+type PaymentMethod = typeof PAYMENT_METHODS[number];
 
 interface CreateInvoiceDialogProps {
   open: boolean;
@@ -33,16 +45,46 @@ interface CreateInvoiceDialogProps {
   sourceId?: string;
   prefilledBuyer?: Partial<InvoiceBuyer>;
   prefilledItems?: InvoiceItem[];
+  animals?: InvoiceAnimal[];
   onCreated?: (invoice: any) => void;
 }
 
 const VAT_OPTIONS = ["27", "18", "5", "0", "AAM", "TAM"];
 
 const emptyBuyer: InvoiceBuyer = { name: "", zip: "", city: "", address: "" };
-const emptyItem: InvoiceItem = { name: "", quantity: 1, unit: "db", net_unit_price: 0, vat_rate: "27" };
+const emptyItem: InvoiceItem = { name: "", quantity: 1, unit: "db", net_unit_price: 0, vat_rate: "27", comment: "" };
 
+function round1(n: number) {
+  return Math.round(n * 10) / 10;
+}
 function round2(n: number) {
   return Math.round(n * 100) / 100;
+}
+
+function shortId(a: InvoiceAnimal) {
+  return a.animal_id && a.animal_id.length > 0 ? a.animal_id : a.id.slice(0, 8);
+}
+
+function generateItemsFromAnimals(animals: InvoiceAnimal[]): InvoiceItem[] {
+  const groups = new Map<string, { name: string; weight: number; ids: string[] }>();
+  for (const a of animals) {
+    const cls = a.class ?? "";
+    const key = `${a.species}||${cls}`;
+    const name = cls ? `${a.species} ${cls}` : a.species;
+    const w = typeof a.weight === "number" ? a.weight : 0;
+    const g = groups.get(key) ?? { name, weight: 0, ids: [] };
+    g.weight += w;
+    g.ids.push(shortId(a));
+    groups.set(key, g);
+  }
+  return Array.from(groups.values()).map((g) => ({
+    name: g.name,
+    quantity: round1(g.weight),
+    unit: "kg",
+    net_unit_price: 0,
+    vat_rate: "27",
+    comment: `Azonosító: ${g.ids.join(", ")}`,
+  }));
 }
 
 export function CreateInvoiceDialog({
@@ -52,18 +94,34 @@ export function CreateInvoiceDialog({
   sourceId,
   prefilledBuyer,
   prefilledItems,
+  animals,
   onCreated,
 }: CreateInvoiceDialogProps) {
   const [buyer, setBuyer] = useState<InvoiceBuyer>({ ...emptyBuyer, ...prefilledBuyer });
-  const [items, setItems] = useState<InvoiceItem[]>(prefilledItems?.length ? prefilledItems : [emptyItem]);
+  const [items, setItems] = useState<InvoiceItem[]>(() => {
+    if (animals && animals.length > 0) return generateItemsFromAnimals(animals);
+    if (prefilledItems?.length) return prefilledItems;
+    return [{ ...emptyItem }];
+  });
   const [comment, setComment] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("Átutalás");
   const [submitting, setSubmitting] = useState(false);
+  // Track which item comments the user has manually edited so we don't overwrite them
+  const editedComments = useRef<Set<number>>(new Set());
 
   useEffect(() => {
     if (open) {
       setBuyer({ ...emptyBuyer, ...prefilledBuyer });
-      setItems(prefilledItems?.length ? prefilledItems : [{ ...emptyItem }]);
+      if (animals && animals.length > 0) {
+        setItems(generateItemsFromAnimals(animals));
+      } else if (prefilledItems?.length) {
+        setItems(prefilledItems);
+      } else {
+        setItems([{ ...emptyItem }]);
+      }
       setComment("");
+      setPaymentMethod("Átutalás");
+      editedComments.current = new Set();
     }
   }, [open]);
 
@@ -81,6 +139,7 @@ export function CreateInvoiceDialog({
   }, [items]);
 
   const updateItem = (idx: number, patch: Partial<InvoiceItem>) => {
+    if (patch.comment !== undefined) editedComments.current.add(idx);
     setItems((xs) => xs.map((x, i) => (i === idx ? { ...x, ...patch } : x)));
   };
 
@@ -102,11 +161,18 @@ export function CreateInvoiceDialog({
           buyer,
           items,
           comment: comment || undefined,
+          payment_method: paymentMethod,
+          animal_ids: animals?.map((a) => a.id),
         },
       });
       if (error) throw error;
       if ((data as any)?.error) throw new Error((data as any).error);
-      toast.success(`Számla kiállítva: ${(data as any).invoice?.szamlazz_invoice_number ?? ""}`);
+      const count = animals?.length ?? 0;
+      toast.success(
+        count > 0
+          ? `${count} vadat tartalmazó számla kiállítva: ${(data as any).invoice?.szamlazz_invoice_number ?? ""}`
+          : `Számla kiállítva: ${(data as any).invoice?.szamlazz_invoice_number ?? ""}`,
+      );
       onCreated?.((data as any).invoice);
       onOpenChange(false);
     } catch (e: any) {
@@ -121,7 +187,10 @@ export function CreateInvoiceDialog({
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Új számla kiállítása</DialogTitle>
-          <DialogDescription>Számlázz.hu Számla Agent integráción keresztül.</DialogDescription>
+          <DialogDescription>
+            Számlázz.hu Számla Agent integráción keresztül
+            {animals && animals.length > 0 ? ` — ${animals.length} kijelölt vad` : ""}.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6">
@@ -151,6 +220,17 @@ export function CreateInvoiceDialog({
               <div>
                 <Label>Cím *</Label>
                 <Input value={buyer.address} onChange={(e) => setBuyer({ ...buyer, address: e.target.value })} />
+              </div>
+              <div>
+                <Label>Fizetési mód</Label>
+                <Select value={paymentMethod} onValueChange={(v) => setPaymentMethod(v as PaymentMethod)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {PAYMENT_METHODS.map((m) => (
+                      <SelectItem key={m} value={m}>{m}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
           </section>
@@ -202,17 +282,25 @@ export function CreateInvoiceDialog({
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
+                  <div className="col-span-12">
+                    <Label className="text-xs">Megjegyzés</Label>
+                    <Input
+                      value={it.comment ?? ""}
+                      onChange={(e) => updateItem(idx, { comment: e.target.value })}
+                      placeholder="Pl. Azonosító: A123, A124"
+                    />
+                  </div>
                 </div>
               ))}
             </div>
           </section>
 
           <section className="space-y-2">
-            <Label>Megjegyzés</Label>
+            <Label>Számla megjegyzés</Label>
             <Textarea value={comment} onChange={(e) => setComment(e.target.value)} rows={2} />
           </section>
 
-          <section className="flex justify-end gap-6 text-sm border-t pt-3">
+          <section className="flex flex-wrap justify-end gap-6 text-sm border-t pt-3">
             <div>Nettó: <strong>{totals.net.toLocaleString("hu-HU")} Ft</strong></div>
             <div>ÁFA: <strong>{totals.vat.toLocaleString("hu-HU")} Ft</strong></div>
             <div>Bruttó: <strong>{totals.gross.toLocaleString("hu-HU")} Ft</strong></div>
@@ -223,7 +311,7 @@ export function CreateInvoiceDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>Mégse</Button>
           <Button onClick={submit} disabled={submitting}>
             {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-            Számla kiállítása
+            Számla kiállítása ({items.length} tételhez)
           </Button>
         </DialogFooter>
       </DialogContent>

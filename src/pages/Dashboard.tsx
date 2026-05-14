@@ -47,6 +47,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { StorageLocationDialog } from "@/components/StorageLocationDialog";
+import { CreateInvoiceDialog } from "@/components/CreateInvoiceDialog";
 import { PriceSettingsDialog } from "@/components/PriceSettingsDialog";
 import { TransportDocumentsDialog } from "@/components/TransportDocumentsDialog";
 import { TransporterDialog } from "@/components/TransporterDialog";
@@ -223,6 +224,9 @@ const Dashboard = () => {
   const [vatRate, setVatRate] = useState<number>(27);
   const [loading, setLoading] = useState(true);
   const [selectedAnimals, setSelectedAnimals] = useState<Set<string>>(new Set());
+  const [invoicedAnimalIds, setInvoicedAnimalIds] = useState<Set<string>>(new Set());
+  const [invoiceDialogOpen, setInvoiceDialogOpen] = useState(false);
+  const [invoiceDialogAnimals, setInvoiceDialogAnimals] = useState<any[]>([]);
   const [showTransportDialog, setShowTransportDialog] = useState(false);
   const [transportDocuments, setTransportDocuments] = useState<Record<string, string>>({});
   const [isAdmin, setIsAdmin] = useState(false);
@@ -511,6 +515,18 @@ const Dashboard = () => {
       }
       
       setTransportDocuments(transportMap);
+
+      // Fetch invoiced animal IDs (animals already on an issued invoice)
+      try {
+        const { data: invAnimals } = await supabase
+          .from("invoice_animals")
+          .select("animal_id, invoices!inner(status)")
+          .eq("invoices.status", "issued");
+        const ids = new Set<string>((invAnimals || []).map((r: any) => r.animal_id));
+        setInvoicedAnimalIds(ids);
+      } catch {
+        // ignore
+      }
     } catch (error: any) {
       toast({
         title: "Hiba",
@@ -2929,6 +2945,34 @@ const Dashboard = () => {
                           <FileDown className="h-4 w-4 mr-2" />
                           Elszállító készítése
                         </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => {
+                            const list = animals.filter(
+                              (a) => selectedAnimals.has(a.id) && !invoicedAnimalIds.has(a.id),
+                            );
+                            if (list.length === 0) {
+                              toast({
+                                title: "Nincs számlázható vad",
+                                description: "A kijelölt vadak már szerepelnek korábbi számlán.",
+                                variant: "destructive",
+                              });
+                              return;
+                            }
+                            const skipped = selectedAnimals.size - list.length;
+                            if (skipped > 0) {
+                              toast({
+                                title: `${skipped} vad kihagyva`,
+                                description: "Ezek már szerepelnek korábbi számlán.",
+                              });
+                            }
+                            setInvoiceDialogAnimals(list);
+                            setInvoiceDialogOpen(true);
+                          }}
+                          className="cursor-pointer"
+                        >
+                          <FileText className="h-4 w-4 mr-2" />
+                          Számla kiállítása
+                        </DropdownMenuItem>
                         <DropdownMenuItem onClick={exportSelectedToExcel} className="cursor-pointer">
                           <FileSpreadsheet className="h-4 w-4 mr-2" />
                           Excel export
@@ -2995,7 +3039,16 @@ const Dashboard = () => {
                             <TableCell>
                               {getReservationBadge(animal.reservation_status)}
                             </TableCell>
-                            <TableCell className="font-medium">{animal.animal_id}</TableCell>
+                            <TableCell className="font-medium">
+                              <div className="flex items-center gap-2">
+                                <span>{animal.animal_id}</span>
+                                {invoicedAnimalIds.has(animal.id) && (
+                                  <Badge variant="secondary" className="text-[10px]">
+                                    <FileText className="h-3 w-3 mr-1" />Számlázva
+                                  </Badge>
+                                )}
+                              </div>
+                            </TableCell>
                             <TableCell>{animal.species}</TableCell>
                             <TableCell>{animal.weight || "-"}</TableCell>
                             <TableCell>{animal.class || "-"}</TableCell>
@@ -3456,6 +3509,23 @@ const Dashboard = () => {
         open={showTransportDialog}
         onOpenChange={setShowTransportDialog}
         onTransporterSelected={generateTransportPDF}
+      />
+
+      <CreateInvoiceDialog
+        open={invoiceDialogOpen}
+        onOpenChange={setInvoiceDialogOpen}
+        sourceType="animals"
+        animals={invoiceDialogAnimals.map((a) => ({
+          id: a.id,
+          animal_id: a.animal_id,
+          species: a.species,
+          class: a.class,
+          weight: a.weight,
+        }))}
+        onCreated={() => {
+          setSelectedAnimals(new Set());
+          fetchData();
+        }}
       />
     </div>
   );
