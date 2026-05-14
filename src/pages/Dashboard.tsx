@@ -3510,6 +3510,23 @@ const Dashboard = () => {
         onOpenChange={setShowTransportDialog}
         onTransporterSelected={generateTransportPDF}
       />
+
+      <CreateInvoiceDialog
+        open={invoiceDialogOpen}
+        onOpenChange={setInvoiceDialogOpen}
+        sourceType="animals"
+        animals={invoiceDialogAnimals.map((a) => ({
+          id: a.id,
+          animal_id: a.animal_id,
+          species: a.species,
+          class: a.class,
+          weight: a.weight,
+        }))}
+        onCreated={() => {
+          setSelectedAnimals(new Set());
+          fetchData();
+        }}
+      />
     </div>
   );
 };
