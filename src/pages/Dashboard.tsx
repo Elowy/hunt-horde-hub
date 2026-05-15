@@ -128,6 +128,7 @@ interface Animal {
   reserved_at?: string | null;
   reservation_note?: string | null;
   status?: string;
+  transporter?: string | null;
 }
 
 interface TransportDocument {
