@@ -3607,6 +3607,30 @@ const Dashboard = () => {
           fetchData();
         }}
       />
+
+      <AlertDialog open={bulkStatusDialog !== null} onOpenChange={(o) => !o && setBulkStatusDialog(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Státusz módosítása</AlertDialogTitle>
+            <AlertDialogDescription>
+              {bulkStatusDialog && (
+                <>
+                  {selectedAnimals.size} vad státuszát módosítja{" "}
+                  <strong>{ANIMAL_STATUS_LABELS[bulkStatusDialog]}</strong>-ra. Folytatja?
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Mégsem</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => bulkStatusDialog && handleBulkStatusChange(bulkStatusDialog)}
+            >
+              Megerősítés
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
