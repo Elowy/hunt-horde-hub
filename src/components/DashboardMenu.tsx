@@ -18,6 +18,7 @@ import { AddAnimalDialog } from "@/components/AddAnimalDialog";
 import { GuestRegistrationQRDialog } from "@/components/GuestRegistrationQRDialog";
 import { BuyerPriceProposalDialog } from "@/components/BuyerPriceProposalDialog";
 import { Separator } from "@/components/ui/separator";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useIsSuperAdmin } from "@/hooks/useIsSuperAdmin";
 import { Alert, AlertDescription } from "@/components/ui/alert";
