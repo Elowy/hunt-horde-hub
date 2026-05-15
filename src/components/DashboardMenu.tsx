@@ -641,6 +641,14 @@ export const DashboardMenu = ({ isAdmin, isEditor, isHunter, onLogout, onPriceUp
                   <FileText className="mr-2 h-4 w-4" />
                   Számlák (Számlázz.hu)
                 </Button>
+                <Button
+                  variant="ghost"
+                  className="w-full justify-start"
+                  onClick={() => handleNavigation("/delivered-animals")}
+                >
+                  <FileText className="mr-2 h-4 w-4" />
+                  Elszállított vadak
+                </Button>
               </div>
               <Separator />
             </>
