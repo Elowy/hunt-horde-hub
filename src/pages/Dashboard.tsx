@@ -3314,7 +3314,7 @@ const Dashboard = () => {
                           <TableHead>Állat ár</TableHead>
                           <TableHead>Hűtési díj</TableHead>
                           <TableHead>Vadász</TableHead>
-                          <TableHead>Helyszín</TableHead>
+                          <TableHead>Elszállító</TableHead>
                           <TableHead>Elszállítva</TableHead>
                           <TableHead className="text-right">Műveletek</TableHead>
                         </TableRow>
