@@ -28,6 +28,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { format } from "date-fns";
 import { hu } from "date-fns/locale";
 import { AssignAnimalToRegistrationDialog } from "@/components/AssignAnimalToRegistrationDialog";
+import { SecurityZoneSelectorMap } from "@/components/SecurityZoneSelectorMap";
 
 interface SecurityZone {
   id: string;
