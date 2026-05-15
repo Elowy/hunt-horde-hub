@@ -627,6 +627,36 @@ const Dashboard = () => {
     }
   };
 
+  const handleBulkStatusChange = async (newStatus: AnimalStatus) => {
+    const ids = Array.from(selectedAnimals);
+    if (ids.length === 0) return;
+    const updates: Record<string, unknown> = { status: newStatus };
+    if (newStatus === "elszallitva") {
+      updates.is_transported = true;
+      updates.transported_at = new Date().toISOString();
+    } else if (newStatus === "archivalva") {
+      updates.archived = true;
+    } else if (newStatus === "elerheto") {
+      // visszaállítás
+      updates.archived = false;
+    }
+    const { error } = await supabase
+      .from("animals")
+      .update(updates)
+      .in("id", ids);
+    if (error) {
+      toast({ title: "Hiba", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({
+      title: "Státusz frissítve",
+      description: `${ids.length} vad státusza módosítva: ${ANIMAL_STATUS_LABELS[newStatus]}.`,
+    });
+    setSelectedAnimals(new Set());
+    setBulkStatusDialog(null);
+    void fetchData();
+  };
+
   const handleBulkDelete = async () => {
     if (selectedAnimals.size === 0) {
       toast({
