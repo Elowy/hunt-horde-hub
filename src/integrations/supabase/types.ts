@@ -83,6 +83,7 @@ export type Database = {
           security_zone_id: string | null
           shooting_date: string | null
           species: string
+          status: Database["public"]["Enums"]["animal_status"]
           storage_location_id: string
           transport_cooling_price: number | null
           transport_cooling_vat_rate: number | null
@@ -134,6 +135,7 @@ export type Database = {
           security_zone_id?: string | null
           shooting_date?: string | null
           species: string
+          status?: Database["public"]["Enums"]["animal_status"]
           storage_location_id: string
           transport_cooling_price?: number | null
           transport_cooling_vat_rate?: number | null
@@ -185,6 +187,7 @@ export type Database = {
           security_zone_id?: string | null
           shooting_date?: string | null
           species?: string
+          status?: Database["public"]["Enums"]["animal_status"]
           storage_location_id?: string
           transport_cooling_price?: number | null
           transport_cooling_vat_rate?: number | null
@@ -2443,6 +2446,12 @@ export type Database = {
       }
     }
     Enums: {
+      animal_status:
+        | "elerheto"
+        | "foglalva"
+        | "szamlazva"
+        | "elszallitva"
+        | "archivalva"
       announcement_type: "news" | "maintenance" | "outage"
       app_role: "admin" | "editor" | "viewer" | "hunter" | "super_admin"
       epidemic_severity:
@@ -2597,6 +2606,13 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      animal_status: [
+        "elerheto",
+        "foglalva",
+        "szamlazva",
+        "elszallitva",
+        "archivalva",
+      ],
       announcement_type: ["news", "maintenance", "outage"],
       app_role: ["admin", "editor", "viewer", "hunter", "super_admin"],
       epidemic_severity: [
