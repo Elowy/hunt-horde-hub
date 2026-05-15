@@ -1066,7 +1066,7 @@ const HuntingRegistrations = () => {
                         <CardHeader className="pb-3">
                           <CardTitle className="text-sm">Időjárás előrejelzés - {weatherData.settlement}</CardTitle>
                         </CardHeader>
-                        <CardContent className="space-y-4">
+                        <CardContent className="space-y-4 max-h-[300px] md:max-h-[400px] overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch]">
                           {/* Current weather */}
                           <div className="border-b pb-3">
                             <div className="text-xs font-semibold text-muted-foreground mb-2">Most</div>
