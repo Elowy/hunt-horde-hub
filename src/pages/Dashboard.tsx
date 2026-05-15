@@ -3046,7 +3046,7 @@ const Dashboard = () => {
                               </TableCell>
                             )}
                             <TableCell>
-                              {getReservationBadge(animal.reservation_status)}
+                              {getReservationBadge(animal.reservation_status, animal.status)}
                             </TableCell>
                             <TableCell className="font-medium">
                               <div className="flex items-center gap-2">
@@ -3261,7 +3261,7 @@ const Dashboard = () => {
                                 </TableCell>
                               )}
                               <TableCell>
-                                {getReservationBadge(animal.reservation_status)}
+                                {getReservationBadge(animal.reservation_status, animal.status)}
                               </TableCell>
                               <TableCell className="font-medium">{animal.animal_id}</TableCell>
                               <TableCell>{animal.species}</TableCell>
@@ -3429,7 +3429,7 @@ const Dashboard = () => {
                                 />
                               </TableCell>
                               <TableCell>
-                                {getReservationBadge(animal.reservation_status)}
+                                {getReservationBadge(animal.reservation_status, animal.status)}
                               </TableCell>
                               <TableCell className="font-medium">{animal.animal_id}</TableCell>
                               <TableCell>{animal.species}</TableCell>
