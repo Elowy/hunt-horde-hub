@@ -1824,7 +1824,18 @@ const Dashboard = () => {
   });
 
   // Szétválasztás hűtött, elszállított és archivált állatokra
-  const cooledAnimals = filteredAnimals.filter(animal => !animal.is_transported && !animal.archived);
+  const baseCooled = filteredAnimals.filter(animal => !animal.is_transported && !animal.archived);
+  const cooledAnimals = statusFilter === "mind"
+    ? baseCooled
+    : baseCooled.filter(a => (a.status || "elerheto") === statusFilter);
+  const cooledStatusCounts: Record<AnimalStatus | "mind", number> = {
+    mind: baseCooled.length,
+    elerheto: baseCooled.filter(a => (a.status || "elerheto") === "elerheto").length,
+    foglalva: baseCooled.filter(a => a.status === "foglalva").length,
+    szamlazva: baseCooled.filter(a => a.status === "szamlazva").length,
+    elszallitva: baseCooled.filter(a => a.status === "elszallitva").length,
+    archivalva: baseCooled.filter(a => a.status === "archivalva").length,
+  };
   const transportedAnimals = filteredAnimals.filter(animal => animal.is_transported && !animal.archived);
   const archivedAnimals = filteredAnimals.filter(animal => animal.archived);
 
