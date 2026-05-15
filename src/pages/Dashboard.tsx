@@ -228,6 +228,8 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [selectedAnimals, setSelectedAnimals] = useState<Set<string>>(new Set());
   const [invoicedAnimalIds, setInvoicedAnimalIds] = useState<Set<string>>(new Set());
+  const [statusFilter, setStatusFilter] = useState<"mind" | AnimalStatus>("mind");
+  const [bulkStatusDialog, setBulkStatusDialog] = useState<AnimalStatus | null>(null);
   const [invoiceDialogOpen, setInvoiceDialogOpen] = useState(false);
   const [invoiceDialogAnimals, setInvoiceDialogAnimals] = useState<any[]>([]);
   const [showTransportDialog, setShowTransportDialog] = useState(false);
