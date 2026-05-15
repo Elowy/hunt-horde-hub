@@ -76,6 +76,8 @@ import { generateTransportTicket } from "@/lib/generateTransportTicket";
 import { addTransportTicketToPage } from "@/lib/addTransportTicketToPage";
 import { format, startOfMonth, endOfMonth, subMonths } from "date-fns";
 import { cn } from "@/lib/utils";
+import { AnimalStatusBadge, ANIMAL_STATUS_LABELS, USER_SETTABLE_STATUSES, type AnimalStatus } from "@/components/AnimalStatusBadge";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 interface StorageLocation {
   id: string;
@@ -125,6 +127,7 @@ interface Animal {
   reserved_by?: string | null;
   reserved_at?: string | null;
   reservation_note?: string | null;
+  status?: string;
 }
 
 interface TransportDocument {
@@ -225,6 +228,8 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [selectedAnimals, setSelectedAnimals] = useState<Set<string>>(new Set());
   const [invoicedAnimalIds, setInvoicedAnimalIds] = useState<Set<string>>(new Set());
+  const [statusFilter, setStatusFilter] = useState<"mind" | AnimalStatus>("mind");
+  const [bulkStatusDialog, setBulkStatusDialog] = useState<AnimalStatus | null>(null);
   const [invoiceDialogOpen, setInvoiceDialogOpen] = useState(false);
   const [invoiceDialogAnimals, setInvoiceDialogAnimals] = useState<any[]>([]);
   const [showTransportDialog, setShowTransportDialog] = useState(false);
@@ -620,6 +625,36 @@ const Dashboard = () => {
         variant: "destructive",
       });
     }
+  };
+
+  const handleBulkStatusChange = async (newStatus: AnimalStatus) => {
+    const ids = Array.from(selectedAnimals);
+    if (ids.length === 0) return;
+    const updates: Record<string, unknown> = { status: newStatus };
+    if (newStatus === "elszallitva") {
+      updates.is_transported = true;
+      updates.transported_at = new Date().toISOString();
+    } else if (newStatus === "archivalva") {
+      updates.archived = true;
+    } else if (newStatus === "elerheto") {
+      // visszaállítás
+      updates.archived = false;
+    }
+    const { error } = await supabase
+      .from("animals")
+      .update(updates)
+      .in("id", ids);
+    if (error) {
+      toast({ title: "Hiba", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({
+      title: "Státusz frissítve",
+      description: `${ids.length} vad státusza módosítva: ${ANIMAL_STATUS_LABELS[newStatus]}.`,
+    });
+    setSelectedAnimals(new Set());
+    setBulkStatusDialog(null);
+    void fetchData();
   };
 
   const handleBulkDelete = async () => {
@@ -1819,7 +1854,18 @@ const Dashboard = () => {
   });
 
   // Szétválasztás hűtött, elszállított és archivált állatokra
-  const cooledAnimals = filteredAnimals.filter(animal => !animal.is_transported && !animal.archived);
+  const baseCooled = filteredAnimals.filter(animal => !animal.is_transported && !animal.archived);
+  const cooledAnimals = statusFilter === "mind"
+    ? baseCooled
+    : baseCooled.filter(a => (a.status || "elerheto") === statusFilter);
+  const cooledStatusCounts: Record<AnimalStatus | "mind", number> = {
+    mind: baseCooled.length,
+    elerheto: baseCooled.filter(a => (a.status || "elerheto") === "elerheto").length,
+    foglalva: baseCooled.filter(a => a.status === "foglalva").length,
+    szamlazva: baseCooled.filter(a => a.status === "szamlazva").length,
+    elszallitva: baseCooled.filter(a => a.status === "elszallitva").length,
+    archivalva: baseCooled.filter(a => a.status === "archivalva").length,
+  };
   const transportedAnimals = filteredAnimals.filter(animal => animal.is_transported && !animal.archived);
   const archivedAnimals = filteredAnimals.filter(animal => animal.archived);
 
@@ -2036,7 +2082,11 @@ const Dashboard = () => {
     return `${monthNames[parseInt(month) - 1]} ${year}`;
   };
 
-  const getReservationBadge = (status: string = 'available') => {
+  const getReservationBadge = (status: string = 'available', animalStatus?: string) => {
+    // Új életciklus státusz preferencia
+    if (animalStatus) {
+      return <AnimalStatusBadge status={animalStatus} className="mr-2" />;
+    }
     switch (status) {
       case 'available':
         return <Badge className="bg-green-500 hover:bg-green-600 text-white text-xs mr-2">Elérhető</Badge>;
@@ -2925,6 +2975,26 @@ const Dashboard = () => {
               )}
 
               <TabsContent value="cooled">
+                {/* Státusz szűrő pills */}
+                <div className="mb-3 -mx-1 overflow-x-auto">
+                  <div className="flex gap-2 px-1 min-w-max">
+                    {(["mind", "elerheto", "foglalva", "szamlazva"] as const).map((s) => {
+                      const active = statusFilter === s;
+                      const label = s === "mind" ? "Mind" : ANIMAL_STATUS_LABELS[s];
+                      return (
+                        <Button
+                          key={s}
+                          size="sm"
+                          variant={active ? "default" : "outline"}
+                          onClick={() => setStatusFilter(s)}
+                          className="rounded-full"
+                        >
+                          {label} ({cooledStatusCounts[s]})
+                        </Button>
+                      );
+                    })}
+                  </div>
+                </div>
                 {/* Csoportos műveletek */}
                 {!isHunter && selectedAnimals.size > 0 && (
                   <div className="mb-4 flex flex-wrap gap-2 justify-end">
@@ -2973,6 +3043,16 @@ const Dashboard = () => {
                           <FileText className="h-4 w-4 mr-2" />
                           Számla kiállítása
                         </DropdownMenuItem>
+                        {USER_SETTABLE_STATUSES.map((s) => (
+                          <DropdownMenuItem
+                            key={s}
+                            onClick={() => setBulkStatusDialog(s)}
+                            className="cursor-pointer"
+                          >
+                            <AnimalStatusBadge status={s} className="mr-2" />
+                            Státusz: {ANIMAL_STATUS_LABELS[s]}
+                          </DropdownMenuItem>
+                        ))}
                         <DropdownMenuItem onClick={exportSelectedToExcel} className="cursor-pointer">
                           <FileSpreadsheet className="h-4 w-4 mr-2" />
                           Excel export
@@ -3037,7 +3117,7 @@ const Dashboard = () => {
                               </TableCell>
                             )}
                             <TableCell>
-                              {getReservationBadge(animal.reservation_status)}
+                              {getReservationBadge(animal.reservation_status, animal.status)}
                             </TableCell>
                             <TableCell className="font-medium">
                               <div className="flex items-center gap-2">
@@ -3252,7 +3332,7 @@ const Dashboard = () => {
                                 </TableCell>
                               )}
                               <TableCell>
-                                {getReservationBadge(animal.reservation_status)}
+                                {getReservationBadge(animal.reservation_status, animal.status)}
                               </TableCell>
                               <TableCell className="font-medium">{animal.animal_id}</TableCell>
                               <TableCell>{animal.species}</TableCell>
@@ -3420,7 +3500,7 @@ const Dashboard = () => {
                                 />
                               </TableCell>
                               <TableCell>
-                                {getReservationBadge(animal.reservation_status)}
+                                {getReservationBadge(animal.reservation_status, animal.status)}
                               </TableCell>
                               <TableCell className="font-medium">{animal.animal_id}</TableCell>
                               <TableCell>{animal.species}</TableCell>
@@ -3527,6 +3607,30 @@ const Dashboard = () => {
           fetchData();
         }}
       />
+
+      <AlertDialog open={bulkStatusDialog !== null} onOpenChange={(o) => !o && setBulkStatusDialog(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Státusz módosítása</AlertDialogTitle>
+            <AlertDialogDescription>
+              {bulkStatusDialog && (
+                <>
+                  {selectedAnimals.size} vad státuszát módosítja{" "}
+                  <strong>{ANIMAL_STATUS_LABELS[bulkStatusDialog]}</strong>-ra. Folytatja?
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Mégsem</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => bulkStatusDialog && handleBulkStatusChange(bulkStatusDialog)}
+            >
+              Megerősítés
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

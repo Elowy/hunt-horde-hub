@@ -35,6 +35,7 @@ import DeleteAllUsers from "./pages/DeleteAllUsers";
 import HiredHunterRegister from "./pages/HiredHunterRegister";
 import BalanceTransactions from "./pages/BalanceTransactions";
 import Invoices from "./pages/Invoices";
+import DeliveredAnimals from "./pages/DeliveredAnimals";
 import NotFound from "./pages/NotFound";
 import { useAuthRecovery } from "./hooks/useAuthRecovery";
 
@@ -81,6 +82,7 @@ const App = () => {
             <Route path="/hired-hunter-register/:token" element={<HiredHunterRegister />} />
             <Route path="/balance-transactions" element={<BalanceTransactions />} />
             <Route path="/invoices" element={<Invoices />} />
+            <Route path="/delivered-animals" element={<DeliveredAnimals />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
