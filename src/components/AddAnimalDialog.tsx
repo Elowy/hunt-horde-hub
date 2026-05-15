@@ -635,6 +635,7 @@ export const AddAnimalDialog = ({ onAnimalAdded }: AddAnimalDialogProps) => {
         buyerCity: "",
         buyerAddress: "",
         buyerTaxNumber: "",
+        transporter: "",
       });
       setSkipCooling(false);
       setPricing({ netPrice: "", grossPrice: "", priceVat: "", coolingPricePerKg: "", coolingVat: "", invoiceNumber: "" });
