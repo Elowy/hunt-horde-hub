@@ -76,6 +76,8 @@ import { generateTransportTicket } from "@/lib/generateTransportTicket";
 import { addTransportTicketToPage } from "@/lib/addTransportTicketToPage";
 import { format, startOfMonth, endOfMonth, subMonths } from "date-fns";
 import { cn } from "@/lib/utils";
+import { AnimalStatusBadge, ANIMAL_STATUS_LABELS, USER_SETTABLE_STATUSES, type AnimalStatus } from "@/components/AnimalStatusBadge";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 interface StorageLocation {
   id: string;
