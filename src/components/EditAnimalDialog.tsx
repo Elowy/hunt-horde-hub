@@ -576,6 +576,7 @@ export const EditAnimalDialog = ({ animal, locations, onAnimalUpdated }: EditAni
           buyer_city: formData.buyer_city || null,
           buyer_address: formData.buyer_address || null,
           buyer_tax_number: formData.buyer_tax_number || null,
+          transporter: formData.transporter || null,
         } as any)
         .eq("id", animal.id);
 
