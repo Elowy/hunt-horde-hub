@@ -595,6 +595,7 @@ export const AddAnimalDialog = ({ onAnimalAdded }: AddAnimalDialogProps) => {
         buyer_city: formData.buyerCity || null,
         buyer_address: formData.buyerAddress || null,
         buyer_tax_number: formData.buyerTaxNumber || null,
+        transporter: formData.transporter || null,
       } as any);
 
       if (error) throw error;
