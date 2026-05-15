@@ -33,6 +33,7 @@ interface SecurityZone {
   id: string;
   name: string;
   description: string | null;
+  polygon_geojson: any | null;
   settlements: {
     name: string;
   } | null;
