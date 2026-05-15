@@ -28,11 +28,13 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { format } from "date-fns";
 import { hu } from "date-fns/locale";
 import { AssignAnimalToRegistrationDialog } from "@/components/AssignAnimalToRegistrationDialog";
+import { SecurityZoneSelectorMap } from "@/components/SecurityZoneSelectorMap";
 
 interface SecurityZone {
   id: string;
   name: string;
   description: string | null;
+  polygon_geojson: any | null;
   settlements: {
     name: string;
   } | null;
@@ -977,38 +979,80 @@ const HuntingRegistrations = () => {
                     )}
                     <div className="space-y-2">
                       <Label>Biztonsági körzet *</Label>
-                      <Select 
-                        value={formData.security_zone_id} 
-                        onValueChange={(value) => {
-                          setFormData({ ...formData, security_zone_id: value, hunting_location_id: "" });
-                          fetchLocations(value);
-                          
-                          const selectedZone = zones.find(z => z.id === value);
-                          if (selectedZone?.settlements?.name) {
-                            fetchWeather(selectedZone.settlements.name);
-                          }
-                          fetchHuntingChance(value);
-                        }}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Válasszon körzetet" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {zones.map((zone) => {
-                            const isClosed = closures.some(c => c.security_zone_id === zone.id);
-                            return (
-                              <SelectItem 
-                                key={zone.id} 
-                                value={zone.id}
-                                disabled={isClosed}
-                              >
-                                {zone.settlements?.name ? `${zone.settlements.name} - ${zone.name}` : zone.name}
-                                {isClosed && " (Lezárva)"}
-                              </SelectItem>
-                            );
-                          })}
-                        </SelectContent>
-                      </Select>
+                      <Tabs defaultValue="list" className="w-full">
+                        <TabsList className="grid w-full grid-cols-2">
+                          <TabsTrigger value="list">Lista</TabsTrigger>
+                          <TabsTrigger value="map">Térkép</TabsTrigger>
+                        </TabsList>
+                        <TabsContent value="list" className="mt-2">
+                          <Select 
+                            value={formData.security_zone_id} 
+                            onValueChange={(value) => {
+                              setFormData({ ...formData, security_zone_id: value, hunting_location_id: "" });
+                              fetchLocations(value);
+                              const selectedZone = zones.find(z => z.id === value);
+                              if (selectedZone?.settlements?.name) {
+                                fetchWeather(selectedZone.settlements.name);
+                              }
+                              fetchHuntingChance(value);
+                            }}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Válasszon körzetet" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {zones.map((zone) => {
+                                const isClosed = closures.some(c => c.security_zone_id === zone.id);
+                                const hasPoly = (zone.polygon_geojson?.coordinates?.[0]?.length ?? 0) >= 4;
+                                return (
+                                  <SelectItem 
+                                    key={zone.id} 
+                                    value={zone.id}
+                                    disabled={isClosed}
+                                  >
+                                    <span className="inline-flex items-center gap-1">
+                                      {hasPoly && <MapPin className="h-3 w-3 text-primary" />}
+                                      {zone.settlements?.name ? `${zone.settlements.name} - ${zone.name}` : zone.name}
+                                      {isClosed && " (Lezárva)"}
+                                    </span>
+                                  </SelectItem>
+                                );
+                              })}
+                            </SelectContent>
+                          </Select>
+                        </TabsContent>
+                        <TabsContent value="map" className="mt-2">
+                          <SecurityZoneSelectorMap
+                            zones={zones}
+                            selectedZoneId={formData.security_zone_id || null}
+                            onZoneSelect={(zoneId) => {
+                              const isClosed = closures.some(c => c.security_zone_id === zoneId);
+                              if (isClosed) {
+                                toast({ title: "Lezárt körzet", description: "Ez a körzet jelenleg le van zárva.", variant: "destructive" });
+                                return;
+                              }
+                              setFormData({ ...formData, security_zone_id: zoneId, hunting_location_id: "" });
+                              fetchLocations(zoneId);
+                              const selectedZone = zones.find(z => z.id === zoneId);
+                              if (selectedZone?.settlements?.name) {
+                                fetchWeather(selectedZone.settlements.name);
+                              }
+                              fetchHuntingChance(zoneId);
+                              if (selectedZone) {
+                                toast({ title: "Kiválasztva", description: selectedZone.name });
+                              }
+                            }}
+                            height="380px"
+                          />
+                        </TabsContent>
+                      </Tabs>
+                      {formData.security_zone_id && (
+                        <p className="text-xs text-muted-foreground">
+                          Kiválasztott körzet: <span className="font-medium text-foreground">
+                            {zones.find(z => z.id === formData.security_zone_id)?.name || "—"}
+                          </span>
+                        </p>
+                      )}
                     </div>
                     
                     {loadingWeather && formData.security_zone_id && (
@@ -1022,7 +1066,7 @@ const HuntingRegistrations = () => {
                         <CardHeader className="pb-3">
                           <CardTitle className="text-sm">Időjárás előrejelzés - {weatherData.settlement}</CardTitle>
                         </CardHeader>
-                        <CardContent className="space-y-4">
+                        <CardContent className="space-y-4 max-h-[300px] md:max-h-[400px] overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch]">
                           {/* Current weather */}
                           <div className="border-b pb-3">
                             <div className="text-xs font-semibold text-muted-foreground mb-2">Most</div>

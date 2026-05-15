@@ -18,6 +18,7 @@ import { AddAnimalDialog } from "@/components/AddAnimalDialog";
 import { GuestRegistrationQRDialog } from "@/components/GuestRegistrationQRDialog";
 import { BuyerPriceProposalDialog } from "@/components/BuyerPriceProposalDialog";
 import { Separator } from "@/components/ui/separator";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useIsSuperAdmin } from "@/hooks/useIsSuperAdmin";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -150,6 +151,55 @@ function AdminBalanceSection() {
       }]} 
       compact={false}
     />
+  );
+}
+
+// Security zones accordion for the menu
+function SecurityZonesAccordion({ onNavigate }: { onNavigate: (path: string) => void }) {
+  const [zones, setZones] = useState<any[]>([]);
+
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase
+        .from("security_zones")
+        .select("id, name, polygon_geojson, settlements(name)")
+        .order("name");
+      setZones(data || []);
+    })();
+  }, []);
+
+  if (zones.length === 0) return null;
+
+  return (
+    <Accordion type="single" collapsible className="w-full">
+      <AccordionItem value="zones" className="border-none">
+        <AccordionTrigger className="py-2 px-3 hover:no-underline rounded hover:bg-accent">
+          <span className="flex items-center gap-2 text-sm font-normal">
+            <MapPin className="h-4 w-4" />
+            Vadászati körzetek ({zones.length})
+          </span>
+        </AccordionTrigger>
+        <AccordionContent>
+          <div className="flex flex-col gap-1 max-h-64 overflow-y-auto pl-6 pr-2">
+            {zones.map((z: any) => {
+              const hasPoly = (z.polygon_geojson?.coordinates?.[0]?.length ?? 0) >= 4;
+              return (
+                <button
+                  key={z.id}
+                  onClick={() => onNavigate("/zone-statistics")}
+                  className="text-left text-sm py-1.5 px-2 rounded hover:bg-accent flex items-center gap-2"
+                >
+                  {hasPoly && <MapPin className="h-3 w-3 text-primary shrink-0" />}
+                  <span className="truncate">
+                    {z.settlements?.name ? `${z.settlements.name} - ${z.name}` : z.name}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </AccordionContent>
+      </AccordionItem>
+    </Accordion>
   );
 }
 
@@ -507,6 +557,7 @@ export const DashboardMenu = ({ isAdmin, isEditor, isHunter, onLogout, onPriceUp
                             <MapPin className="mr-2 h-4 w-4" />
                             Terület statisztikák
                           </Button>
+                          <SecurityZonesAccordion onNavigate={handleNavigation} />
                         </>
                       )}
                     </>
