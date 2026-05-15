@@ -2041,7 +2041,11 @@ const Dashboard = () => {
     return `${monthNames[parseInt(month) - 1]} ${year}`;
   };
 
-  const getReservationBadge = (status: string = 'available') => {
+  const getReservationBadge = (status: string = 'available', animalStatus?: string) => {
+    // Új életciklus státusz preferencia
+    if (animalStatus) {
+      return <AnimalStatusBadge status={animalStatus} className="mr-2" />;
+    }
     switch (status) {
       case 'available':
         return <Badge className="bg-green-500 hover:bg-green-600 text-white text-xs mr-2">Elérhető</Badge>;
