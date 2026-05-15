@@ -557,6 +557,7 @@ export const DashboardMenu = ({ isAdmin, isEditor, isHunter, onLogout, onPriceUp
                             <MapPin className="mr-2 h-4 w-4" />
                             Terület statisztikák
                           </Button>
+                          <SecurityZonesAccordion onNavigate={handleNavigation} />
                         </>
                       )}
                     </>
