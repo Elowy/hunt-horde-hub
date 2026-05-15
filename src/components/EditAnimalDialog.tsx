@@ -161,6 +161,7 @@ export const EditAnimalDialog = ({ animal, locations, onAnimalUpdated }: EditAni
     buyer_city: animal.buyer_city || "",
     buyer_address: animal.buyer_address || "",
     buyer_tax_number: animal.buyer_tax_number || "",
+    transporter: animal.transporter || "",
   });
 
   const buildInitialPricing = () => {
