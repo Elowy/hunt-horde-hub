@@ -979,38 +979,80 @@ const HuntingRegistrations = () => {
                     )}
                     <div className="space-y-2">
                       <Label>Biztonsági körzet *</Label>
-                      <Select 
-                        value={formData.security_zone_id} 
-                        onValueChange={(value) => {
-                          setFormData({ ...formData, security_zone_id: value, hunting_location_id: "" });
-                          fetchLocations(value);
-                          
-                          const selectedZone = zones.find(z => z.id === value);
-                          if (selectedZone?.settlements?.name) {
-                            fetchWeather(selectedZone.settlements.name);
-                          }
-                          fetchHuntingChance(value);
-                        }}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Válasszon körzetet" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {zones.map((zone) => {
-                            const isClosed = closures.some(c => c.security_zone_id === zone.id);
-                            return (
-                              <SelectItem 
-                                key={zone.id} 
-                                value={zone.id}
-                                disabled={isClosed}
-                              >
-                                {zone.settlements?.name ? `${zone.settlements.name} - ${zone.name}` : zone.name}
-                                {isClosed && " (Lezárva)"}
-                              </SelectItem>
-                            );
-                          })}
-                        </SelectContent>
-                      </Select>
+                      <Tabs defaultValue="list" className="w-full">
+                        <TabsList className="grid w-full grid-cols-2">
+                          <TabsTrigger value="list">Lista</TabsTrigger>
+                          <TabsTrigger value="map">Térkép</TabsTrigger>
+                        </TabsList>
+                        <TabsContent value="list" className="mt-2">
+                          <Select 
+                            value={formData.security_zone_id} 
+                            onValueChange={(value) => {
+                              setFormData({ ...formData, security_zone_id: value, hunting_location_id: "" });
+                              fetchLocations(value);
+                              const selectedZone = zones.find(z => z.id === value);
+                              if (selectedZone?.settlements?.name) {
+                                fetchWeather(selectedZone.settlements.name);
+                              }
+                              fetchHuntingChance(value);
+                            }}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Válasszon körzetet" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {zones.map((zone) => {
+                                const isClosed = closures.some(c => c.security_zone_id === zone.id);
+                                const hasPoly = (zone.polygon_geojson?.coordinates?.[0]?.length ?? 0) >= 4;
+                                return (
+                                  <SelectItem 
+                                    key={zone.id} 
+                                    value={zone.id}
+                                    disabled={isClosed}
+                                  >
+                                    <span className="inline-flex items-center gap-1">
+                                      {hasPoly && <MapPin className="h-3 w-3 text-primary" />}
+                                      {zone.settlements?.name ? `${zone.settlements.name} - ${zone.name}` : zone.name}
+                                      {isClosed && " (Lezárva)"}
+                                    </span>
+                                  </SelectItem>
+                                );
+                              })}
+                            </SelectContent>
+                          </Select>
+                        </TabsContent>
+                        <TabsContent value="map" className="mt-2">
+                          <SecurityZoneSelectorMap
+                            zones={zones}
+                            selectedZoneId={formData.security_zone_id || null}
+                            onZoneSelect={(zoneId) => {
+                              const isClosed = closures.some(c => c.security_zone_id === zoneId);
+                              if (isClosed) {
+                                toast({ title: "Lezárt körzet", description: "Ez a körzet jelenleg le van zárva.", variant: "destructive" });
+                                return;
+                              }
+                              setFormData({ ...formData, security_zone_id: zoneId, hunting_location_id: "" });
+                              fetchLocations(zoneId);
+                              const selectedZone = zones.find(z => z.id === zoneId);
+                              if (selectedZone?.settlements?.name) {
+                                fetchWeather(selectedZone.settlements.name);
+                              }
+                              fetchHuntingChance(zoneId);
+                              if (selectedZone) {
+                                toast({ title: "Kiválasztva", description: selectedZone.name });
+                              }
+                            }}
+                            height="380px"
+                          />
+                        </TabsContent>
+                      </Tabs>
+                      {formData.security_zone_id && (
+                        <p className="text-xs text-muted-foreground">
+                          Kiválasztott körzet: <span className="font-medium text-foreground">
+                            {zones.find(z => z.id === formData.security_zone_id)?.name || "—"}
+                          </span>
+                        </p>
+                      )}
                     </div>
                     
                     {loadingWeather && formData.security_zone_id && (
