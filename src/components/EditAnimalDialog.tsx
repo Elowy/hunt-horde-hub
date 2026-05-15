@@ -71,6 +71,7 @@ interface Animal {
   buyer_city?: string | null;
   buyer_address?: string | null;
   buyer_tax_number?: string | null;
+  transporter?: string | null;
 }
 
 interface StorageLocation {
