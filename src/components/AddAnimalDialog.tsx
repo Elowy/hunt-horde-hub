@@ -126,6 +126,7 @@ export const AddAnimalDialog = ({ onAnimalAdded }: AddAnimalDialogProps) => {
     buyerCity: "",
     buyerAddress: "",
     buyerTaxNumber: "",
+    transporter: "",
   });
 
   useEffect(() => {
