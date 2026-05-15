@@ -173,6 +173,11 @@ export function CreateInvoiceDialog({
           ? `${count} vadat tartalmazó számla kiállítva: ${(data as any).invoice?.szamlazz_invoice_number ?? ""}`
           : `Számla kiállítva: ${(data as any).invoice?.szamlazz_invoice_number ?? ""}`,
       );
+      if (count > 0 && buyer?.name) {
+        toast.success(
+          `Az állatok elszállítója automatikusan beállítva a vevő nevére: ${buyer.name}`,
+        );
+      }
       onCreated?.((data as any).invoice);
       onOpenChange(false);
     } catch (e: any) {

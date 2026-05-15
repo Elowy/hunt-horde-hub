@@ -71,6 +71,7 @@ interface Animal {
   buyer_city?: string | null;
   buyer_address?: string | null;
   buyer_tax_number?: string | null;
+  transporter?: string | null;
 }
 
 interface StorageLocation {
@@ -160,6 +161,7 @@ export const EditAnimalDialog = ({ animal, locations, onAnimalUpdated }: EditAni
     buyer_city: animal.buyer_city || "",
     buyer_address: animal.buyer_address || "",
     buyer_tax_number: animal.buyer_tax_number || "",
+    transporter: animal.transporter || "",
   });
 
   const buildInitialPricing = () => {
@@ -574,6 +576,7 @@ export const EditAnimalDialog = ({ animal, locations, onAnimalUpdated }: EditAni
           buyer_city: formData.buyer_city || null,
           buyer_address: formData.buyer_address || null,
           buyer_tax_number: formData.buyer_tax_number || null,
+          transporter: formData.transporter || null,
         } as any)
         .eq("id", animal.id);
 
@@ -1158,6 +1161,24 @@ export const EditAnimalDialog = ({ animal, locations, onAnimalUpdated }: EditAni
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               disabled={loading}
             />
+          </div>
+
+          <div className={cn(
+            "space-y-2",
+            animal.is_transported && "rounded-md border border-accent/40 bg-accent/5 p-3"
+          )}>
+            <Label htmlFor="transporter">Elszállító</Label>
+            <Input
+              id="transporter"
+              value={formData.transporter}
+              onChange={(e) => setFormData({ ...formData, transporter: e.target.value })}
+              placeholder="pl. Kovács Gábor / XY Vadkereskedés Kft."
+              maxLength={200}
+              disabled={loading}
+            />
+            <p className="text-xs text-muted-foreground">
+              Automatikusan kitöltődik, ha számlát állítasz ki erre az állatra. Manuálisan is megadható.
+            </p>
           </div>
 
           <div className="flex justify-end gap-2">

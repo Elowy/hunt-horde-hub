@@ -128,6 +128,7 @@ interface Animal {
   reserved_at?: string | null;
   reservation_note?: string | null;
   status?: string;
+  transporter?: string | null;
 }
 
 interface TransportDocument {
@@ -3313,7 +3314,7 @@ const Dashboard = () => {
                           <TableHead>Állat ár</TableHead>
                           <TableHead>Hűtési díj</TableHead>
                           <TableHead>Vadász</TableHead>
-                          <TableHead>Helyszín</TableHead>
+                          <TableHead>Elszállító</TableHead>
                           <TableHead>Elszállítva</TableHead>
                           <TableHead className="text-right">Műveletek</TableHead>
                         </TableRow>
@@ -3361,10 +3362,17 @@ const Dashboard = () => {
                                 })()}
                               </TableCell>
                               <TableCell>{animal.hunter_name || "-"}</TableCell>
-                              <TableCell>
-                                <Badge variant="outline" className="bg-accent/10 text-accent border-accent">
-                                  {transportDocuments[animal.id] || "Ismeretlen elszállító"}
-                                </Badge>
+                              <TableCell className="max-w-[180px]">
+                                {animal.transporter ? (
+                                  <span
+                                    className="block truncate"
+                                    title={animal.transporter}
+                                  >
+                                    {animal.transporter}
+                                  </span>
+                                ) : (
+                                  <span className="text-muted-foreground">—</span>
+                                )}
                               </TableCell>
                               <TableCell>
                                 {animal.transported_at
@@ -3375,7 +3383,7 @@ const Dashboard = () => {
                                 <div className="flex justify-end gap-2">
                                   <ViewAnimalDialog 
                                     animal={animal} 
-                                    locationName={transportDocuments[animal.id] || "Ismeretlen elszállító"}
+                                    locationName={animal.transporter || "—"}
                                     price={price.gross}
                                   />
                                   <EditAnimalDialog 

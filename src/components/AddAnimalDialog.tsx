@@ -126,6 +126,7 @@ export const AddAnimalDialog = ({ onAnimalAdded }: AddAnimalDialogProps) => {
     buyerCity: "",
     buyerAddress: "",
     buyerTaxNumber: "",
+    transporter: "",
   });
 
   useEffect(() => {
@@ -594,6 +595,7 @@ export const AddAnimalDialog = ({ onAnimalAdded }: AddAnimalDialogProps) => {
         buyer_city: formData.buyerCity || null,
         buyer_address: formData.buyerAddress || null,
         buyer_tax_number: formData.buyerTaxNumber || null,
+        transporter: formData.transporter || null,
       } as any);
 
       if (error) throw error;
@@ -633,6 +635,7 @@ export const AddAnimalDialog = ({ onAnimalAdded }: AddAnimalDialogProps) => {
         buyerCity: "",
         buyerAddress: "",
         buyerTaxNumber: "",
+        transporter: "",
       });
       setSkipCooling(false);
       setPricing({ netPrice: "", grossPrice: "", priceVat: "", coolingPricePerKg: "", coolingVat: "", invoiceNumber: "" });
@@ -1311,6 +1314,20 @@ export const AddAnimalDialog = ({ onAnimalAdded }: AddAnimalDialogProps) => {
                     placeholder="Ide írhat bármilyen további információt"
                     rows={3}
                   />
+                </div>
+
+                <div className="space-y-2 md:col-span-2">
+                  <Label htmlFor="transporter">Elszállító</Label>
+                  <Input
+                    id="transporter"
+                    value={formData.transporter}
+                    onChange={(e) => handleInputChange("transporter", e.target.value)}
+                    placeholder="pl. Kovács Gábor / XY Vadkereskedés Kft."
+                    maxLength={200}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Automatikusan kitöltődik, ha számlát állítasz ki erre az állatra. Manuálisan is megadható.
+                  </p>
                 </div>
               </div>
             </CollapsibleContent>
