@@ -3023,6 +3023,29 @@ const Dashboard = () => {
                           <FileText className="h-4 w-4 mr-2" />
                           Számla kiállítása
                         </DropdownMenuItem>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <DropdownMenuItem
+                              onSelect={(e) => e.preventDefault()}
+                              className="cursor-pointer"
+                            >
+                              <CheckSquare className="h-4 w-4 mr-2" />
+                              Státusz módosítása
+                            </DropdownMenuItem>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="bg-background border border-border z-50">
+                            {USER_SETTABLE_STATUSES.map((s) => (
+                              <DropdownMenuItem
+                                key={s}
+                                onClick={() => setBulkStatusDialog(s)}
+                                className="cursor-pointer"
+                              >
+                                <AnimalStatusBadge status={s} className="mr-2" />
+                                {ANIMAL_STATUS_LABELS[s]}
+                              </DropdownMenuItem>
+                            ))}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                         <DropdownMenuItem onClick={exportSelectedToExcel} className="cursor-pointer">
                           <FileSpreadsheet className="h-4 w-4 mr-2" />
                           Excel export
