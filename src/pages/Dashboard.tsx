@@ -2975,6 +2975,26 @@ const Dashboard = () => {
               )}
 
               <TabsContent value="cooled">
+                {/* Státusz szűrő pills */}
+                <div className="mb-3 -mx-1 overflow-x-auto">
+                  <div className="flex gap-2 px-1 min-w-max">
+                    {(["mind", "elerheto", "foglalva", "szamlazva"] as const).map((s) => {
+                      const active = statusFilter === s;
+                      const label = s === "mind" ? "Mind" : ANIMAL_STATUS_LABELS[s];
+                      return (
+                        <Button
+                          key={s}
+                          size="sm"
+                          variant={active ? "default" : "outline"}
+                          onClick={() => setStatusFilter(s)}
+                          className="rounded-full"
+                        >
+                          {label} ({cooledStatusCounts[s]})
+                        </Button>
+                      );
+                    })}
+                  </div>
+                </div>
                 {/* Csoportos műveletek */}
                 {!isHunter && selectedAnimals.size > 0 && (
                   <div className="mb-4 flex flex-wrap gap-2 justify-end">
