@@ -90,6 +90,7 @@ export type Database = {
           transport_price_per_kg: number | null
           transport_vat_rate: number | null
           transported_at: string | null
+          transporter: string | null
           updated_at: string
           usage_type: string | null
           user_id: string
@@ -142,6 +143,7 @@ export type Database = {
           transport_price_per_kg?: number | null
           transport_vat_rate?: number | null
           transported_at?: string | null
+          transporter?: string | null
           updated_at?: string
           usage_type?: string | null
           user_id: string
@@ -194,6 +196,7 @@ export type Database = {
           transport_price_per_kg?: number | null
           transport_vat_rate?: number | null
           transported_at?: string | null
+          transporter?: string | null
           updated_at?: string
           usage_type?: string | null
           user_id?: string
