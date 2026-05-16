@@ -209,18 +209,31 @@ const CashRegisterPage = () => {
 
   const openNewReg = () => {
     setEditingReg(null);
-    setRegForm({ name: "", description: "", opening_balance: "0", is_active: true });
+    // Suggest next register code (KP01, KP02, ...)
+    const usedCodes = new Set(registers.map((r) => r.register_code));
+    let suggested = "";
+    for (let i = 1; i <= 99; i++) {
+      const c = "KP" + String(i).padStart(2, "0");
+      if (!usedCodes.has(c)) { suggested = c; break; }
+    }
+    setRegForm({ name: "", description: "", opening_balance: "0", is_active: true, register_code: suggested });
+    setRegCodeLocked(false);
     setRegDialogOpen(true);
   };
-  const openEditReg = (r: CashRegister) => {
+  const openEditReg = async (r: CashRegister) => {
     setEditingReg(r);
     setRegForm({ name: r.name, description: r.description || "",
-      opening_balance: String(r.opening_balance), is_active: r.is_active });
+      opening_balance: String(r.opening_balance), is_active: r.is_active, register_code: r.register_code });
+    // Lock code if register already has any entries
+    const { count } = await supabase.from("cash_entries").select("*", { count: "exact", head: true })
+      .eq("cash_register_id", r.id);
+    setRegCodeLocked((count || 0) > 0);
     setRegDialogOpen(true);
   };
   const saveRegister = async () => {
     if (!societyId) return;
     if (!regForm.name.trim()) { toast.error("A név kötelező"); return; }
+    if (!regForm.register_code.trim()) { toast.error("A pénztárkód kötelező (pl. KP01)"); return; }
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
     const payload = {
@@ -228,9 +241,13 @@ const CashRegisterPage = () => {
       description: regForm.description.trim() || null,
       opening_balance: Number(regForm.opening_balance) || 0,
       is_active: regForm.is_active,
+      register_code: regForm.register_code.trim().toUpperCase(),
     };
     if (editingReg) {
-      const { error } = await supabase.from("cash_registers").update(payload).eq("id", editingReg.id);
+      const updatePayload = regCodeLocked
+        ? { ...payload, register_code: editingReg.register_code }
+        : payload;
+      const { error } = await supabase.from("cash_registers").update(updatePayload).eq("id", editingReg.id);
       if (error) { toast.error("Mentés sikertelen: " + error.message); return; }
       toast.success("Pénztár frissítve");
     } else {
