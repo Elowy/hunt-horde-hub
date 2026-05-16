@@ -802,9 +802,12 @@ const CashRegisterPage = () => {
                     <Pencil className="h-4 w-4 mr-1" /> Szerkesztés
                   </Button>
                 )}
-                <div className="ml-auto flex gap-2">
+                <div className="ml-auto flex gap-2 flex-wrap">
                   <Button onClick={openNewEntry}>
                     <Plus className="h-4 w-4 mr-2" /> Új bizonylat
+                  </Button>
+                  <Button variant="outline" onClick={openToBank}>
+                    <Landmark className="h-4 w-4 mr-2" /> Pénztár → bank
                   </Button>
                   <Button variant="outline" onClick={exportCSV}>
                     <Download className="h-4 w-4 mr-2" /> Export CSV
