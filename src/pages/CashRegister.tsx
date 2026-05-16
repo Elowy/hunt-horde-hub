@@ -1461,6 +1461,87 @@ const CashRegisterPage = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Cash → Bank dialog */}
+      <Dialog open={toBankOpen} onOpenChange={(o) => { if (!toBankSubmitting) setToBankOpen(o); }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Landmark className="h-5 w-5" /> Pénztár → bank (KPB)
+            </DialogTitle>
+            <DialogDescription>
+              Készpénz bankba történő befizetés rögzítése. Szabályos kiadási pénztárbizonylat (KPB) készül,
+              amely csökkenti a pénztáregyenleget. Véglegesítés után nem módosítható (Sztv. 165/168. §).
+            </DialogDescription>
+          </DialogHeader>
+          {selectedReg && (
+            <div className="space-y-3">
+              <div className="text-sm p-2 rounded bg-muted/40 flex justify-between">
+                <span className="text-muted-foreground">Pénztár</span>
+                <span className="font-medium">{selectedReg.name} ({selectedReg.register_code})</span>
+              </div>
+              <div className="text-sm p-2 rounded bg-muted/40 flex justify-between">
+                <span className="text-muted-foreground">Aktuális készpénz-egyenleg</span>
+                <span className="font-semibold">{fmtHUF(currentBalance)}</span>
+              </div>
+              {overMax && (
+                <div className="text-xs p-2 rounded border border-amber-500/50 bg-amber-500/10 text-amber-800 dark:text-amber-200">
+                  A pénztáregyenleg meghaladja a szabályzati maximumot ({fmtHUF(maxCashBalance!)}). Javasolt legalább {fmtHUF(currentBalance - maxCashBalance!)} bankba helyezése.
+                </div>
+              )}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label>Összeg (Ft) *</Label>
+                  <Input type="number" value={toBankForm.amount}
+                    onChange={(e) => setToBankForm({ ...toBankForm, amount: e.target.value })} />
+                  {(() => {
+                    const n = Number(toBankForm.amount);
+                    if (n > 0 && n > currentBalance) {
+                      return <p className="text-xs text-destructive mt-1">A pénztárban csak {fmtHUF(currentBalance)} van.</p>;
+                    }
+                    if (overMax && n > 0) {
+                      const suggested = currentBalance - maxCashBalance!;
+                      if (Math.abs(n - suggested) > 1)
+                        return <p className="text-xs text-muted-foreground mt-1">Javasolt: {fmtHUF(suggested)}</p>;
+                    }
+                    return null;
+                  })()}
+                </div>
+                <div>
+                  <Label>Dátum *</Label>
+                  <Input type="date" value={toBankForm.event_date}
+                    onChange={(e) => setToBankForm({ ...toBankForm, event_date: e.target.value })} />
+                </div>
+              </div>
+              <div>
+                <Label>Bankszámla / banki hivatkozás *</Label>
+                <Input value={toBankForm.bank_ref}
+                  onChange={(e) => setToBankForm({ ...toBankForm, bank_ref: e.target.value })}
+                  placeholder='pl. "OTP 11770000-12345678 befizetés" vagy banki bizonylatszám' />
+                <p className="text-xs text-muted-foreground mt-1">
+                  A pénzmozgás nyomon követhetősége miatt kötelező.
+                </p>
+              </div>
+              <div>
+                <Label>Megjegyzés</Label>
+                <Textarea value={toBankForm.note}
+                  onChange={(e) => setToBankForm({ ...toBankForm, note: e.target.value })}
+                  placeholder="opcionális" />
+              </div>
+            </div>
+          )}
+          <DialogFooter className="gap-2">
+            <Button variant="ghost" onClick={() => setToBankOpen(false)} disabled={toBankSubmitting}>Mégse</Button>
+            <Button variant="outline" onClick={() => submitToBank(false)} disabled={toBankSubmitting}>
+              Piszkozat mentése
+            </Button>
+            <Button onClick={() => submitToBank(true)} disabled={toBankSubmitting}>
+              {toBankSubmitting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <FileCheck className="h-4 w-4 mr-2" />}
+              Véglegesítés
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
