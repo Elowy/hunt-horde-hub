@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { supabaseAnon as supabase } from "@/integrations/supabase/anonClient";
 import { MapPin, CheckCircle } from "lucide-react";
 
 export default function QRAnimalSubmit() {
