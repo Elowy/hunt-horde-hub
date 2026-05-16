@@ -461,6 +461,16 @@ export const DashboardMenu = ({ isAdmin, isEditor, isHunter, onLogout, onPriceUp
                   <BarChart className="mr-2 h-4 w-4" />
                   Kvóták
                 </Button>
+                {isHunterSociety && (
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-start"
+                    onClick={() => handleNavigation("/cash-register")}
+                  >
+                    <DollarSign className="mr-2 h-4 w-4" />
+                    Házipénztár
+                  </Button>
+                )}
                 <Button
                   variant="ghost"
                   className="w-full justify-start"
