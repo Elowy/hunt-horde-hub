@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
-import { AlertTriangle, ArrowLeft, Download, Loader2, Plus, Pencil, Trash2, Wallet, Settings, FileCheck, Eye } from "lucide-react";
+import { AlertTriangle, ArrowLeft, Download, Loader2, Plus, Pencil, Trash2, Wallet, Settings, FileCheck, Eye, RotateCcw, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 import { numberToHungarianWords } from "@/lib/numberToHungarianWords";
 
@@ -66,6 +66,11 @@ interface CashEntry {
   document_number: string | null;
   seq_year: number | null;
   seq_number: number | null;
+  corrects_entry_id: string | null;
+  correction_type: "storno" | "helyesbites" | "ellentetelezes" | null;
+  correction_reason: string | null;
+  original_amount: number | null;
+  corrected_amount: number | null;
 }
 
 const fmtHUF = (n: number) =>
@@ -122,6 +127,17 @@ const CashRegisterPage = () => {
   const [entryForm, setEntryForm] = useState(emptyEntryForm(""));
   const [confirmFinalizeOpen, setConfirmFinalizeOpen] = useState(false);
   const [viewEntry, setViewEntry] = useState<CashEntry | null>(null);
+
+  // Correction (M3) dialog state
+  const [corrTarget, setCorrTarget] = useState<CashEntry | null>(null);
+  const [corrStep, setCorrStep] = useState<"choose" | "form">("choose");
+  const [corrType, setCorrType] = useState<"storno" | "helyesbites" | "ellentetelezes" | null>(null);
+  const [corrReason, setCorrReason] = useState("");
+  const [corrReasonCode, setCorrReasonCode] = useState("");
+  const [corrCorrectedAmount, setCorrCorrectedAmount] = useState(""); // helyesbites: helyes érték
+  const [corrEllAmount, setCorrEllAmount] = useState(""); // ellentetelezes: tényleges összeg
+  const [corrDescription, setCorrDescription] = useState("");
+  const [corrSubmitting, setCorrSubmitting] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -191,7 +207,9 @@ const CashRegisterPage = () => {
       if (fromDate && d < fromDate) return false;
       if (toDate && d > toDate) return false;
       if (categoryFilter && (e.category || "") !== categoryFilter) return false;
-      if (statusFilter && e.status !== statusFilter) return false;
+      if (statusFilter === "__corrections__") {
+        if (!["STO", "HEL", "ELL"].includes(e.document_type)) return false;
+      } else if (statusFilter && e.status !== statusFilter) return false;
       return true;
     });
   }, [entries, fromDate, toDate, categoryFilter, statusFilter]);
@@ -360,6 +378,12 @@ const CashRegisterPage = () => {
   const requestFinalize = () => {
     const err = validateForFinalize();
     if (err) { toast.error(err); return; }
+    const amt = Number(entryForm.amount);
+    const projected = simulateBalance(entryForm.cash_register_id, entryForm.entry_type, amt, entryForm.id || undefined);
+    if (projected < 0) {
+      toast.error(`Ez a művelet negatívba vinné a pénztárt (${fmtHUF(projected)}). Nem véglegesíthető.`);
+      return;
+    }
     setConfirmFinalizeOpen(true);
   };
   const finalizeEntry = async () => {
@@ -393,10 +417,177 @@ const CashRegisterPage = () => {
     if (e.status !== "piszkozat") return;
     if (!confirm("Biztosan törlöd ezt a piszkozatot?")) return;
     const { error } = await supabase.from("cash_entries").delete().eq("id", e.id);
-    if (error) { toast.error(error.message); return; }
-    toast.success("Piszkozat törölve");
-    if (selectedRegId) await loadEntries(selectedRegId);
   };
+
+  // --- M3: Korrekció helpers ---
+  // Egyenleg-szimuláció: mi lenne az aktuális egyenleg, ha hozzáadnánk egy új tételt?
+  const simulateBalance = (regId: string, entryType: "bevetel" | "kiadas", amount: number, excludeId?: string) => {
+    const reg = registers.find((r) => r.id === regId);
+    if (!reg) return 0;
+    let bal = Number(reg.opening_balance || 0);
+    for (const e of entries) {
+      if (e.id === excludeId) continue;
+      if (e.status === "veglegesitett") {
+        bal += e.entry_type === "bevetel" ? Number(e.amount) : -Number(e.amount);
+      }
+    }
+    bal += entryType === "bevetel" ? amount : -amount;
+    return bal;
+  };
+
+  const openCorrection = (e: CashEntry) => {
+    setCorrTarget(e);
+    setCorrStep("choose");
+    setCorrType(null);
+    setCorrReason("");
+    setCorrReasonCode("");
+    setCorrCorrectedAmount("");
+    setCorrEllAmount("");
+    setCorrDescription("");
+  };
+  const closeCorrection = () => {
+    setCorrTarget(null);
+    setCorrStep("choose");
+    setCorrType(null);
+  };
+
+  const selectCorrType = (t: "storno" | "helyesbites" | "ellentetelezes") => {
+    setCorrType(t);
+    setCorrStep("form");
+  };
+
+  const correctionPreviewBalance = useMemo(() => {
+    if (!corrTarget || !corrType) return null;
+    let amt = 0;
+    let opp: "bevetel" | "kiadas" = corrTarget.entry_type === "bevetel" ? "kiadas" : "bevetel";
+    if (corrType === "storno") amt = Number(corrTarget.amount);
+    if (corrType === "helyesbites") {
+      const corrected = Number(corrCorrectedAmount) || 0;
+      const diff = corrected - Number(corrTarget.amount);
+      // diff > 0: kiegészítés azonos irányban; diff < 0: ellentétes irányú visszavétel
+      if (diff === 0) return simulateBalance(corrTarget.cash_register_id, corrTarget.entry_type, 0);
+      if (diff > 0) {
+        opp = corrTarget.entry_type;
+        amt = diff;
+      } else {
+        opp = corrTarget.entry_type === "bevetel" ? "kiadas" : "bevetel";
+        amt = -diff;
+      }
+    }
+    if (corrType === "ellentetelezes") amt = Number(corrEllAmount) || 0;
+    return simulateBalance(corrTarget.cash_register_id, opp, amt);
+  }, [corrTarget, corrType, corrCorrectedAmount, corrEllAmount, entries, registers]);
+
+  const submitCorrection = async () => {
+    if (!corrTarget || !corrType || !societyId) return;
+    if (corrReason.trim().length < 3) { toast.error("Az indoklás kötelező (min. 3 karakter)."); return; }
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    let entry_type: "bevetel" | "kiadas";
+    let amount: number;
+    let document_type: "STO" | "HEL" | "ELL";
+    let original_amount: number | null = null;
+    let corrected_amount: number | null = null;
+    const opposite: "bevetel" | "kiadas" = corrTarget.entry_type === "bevetel" ? "kiadas" : "bevetel";
+
+    if (corrType === "storno") {
+      document_type = "STO";
+      entry_type = opposite;
+      amount = Number(corrTarget.amount);
+    } else if (corrType === "helyesbites") {
+      const corrected = Number(corrCorrectedAmount);
+      if (!corrected || corrected <= 0) { toast.error("A helyes érték kötelező és pozitív."); return; }
+      if (corrected === Number(corrTarget.amount)) { toast.error("A helyes érték eltér kell legyen az eredetitől."); return; }
+      document_type = "HEL";
+      original_amount = Number(corrTarget.amount);
+      corrected_amount = corrected;
+      const diff = corrected - original_amount;
+      if (diff > 0) { entry_type = corrTarget.entry_type; amount = diff; }
+      else { entry_type = opposite; amount = -diff; }
+    } else {
+      const ell = Number(corrEllAmount);
+      if (!ell || ell <= 0) { toast.error("Az ellentételezett összeg kötelező és pozitív."); return; }
+      document_type = "ELL";
+      entry_type = opposite;
+      amount = ell;
+    }
+
+    // Frontend negatív-egyenleg pre-check
+    const projected = simulateBalance(corrTarget.cash_register_id, entry_type, amount);
+    if (projected < 0) {
+      toast.error(`Ez a művelet negatívba vinné a pénztárt (${Math.round(projected)} Ft). Nem véglegesíthető.`);
+      return;
+    }
+
+    const reasonFull = corrReasonCode
+      ? `[${corrReasonCode}] ${corrReason.trim()}`
+      : corrReason.trim();
+
+    const words = numberToHungarianWords(amount);
+    const eventDate = new Date().toISOString().slice(0, 10);
+    const corrLabel: Record<typeof corrType, string> =
+      { storno: "Stornó", helyesbites: "Helyesbítés", ellentetelezes: "Ellentételezés" } as any;
+
+    const payload: any = {
+      cash_register_id: corrTarget.cash_register_id,
+      hunter_society_id: societyId,
+      entry_type,
+      document_type,
+      status: "veglegesitett",
+      amount,
+      entry_date: eventDate,
+      event_date: eventDate,
+      category: corrTarget.category || `${corrLabel[corrType]} (korrekció)`,
+      description: corrDescription.trim()
+        || `${corrLabel[corrType]} a(z) ${corrTarget.document_number || corrTarget.id} bizonylathoz. Indok: ${reasonFull}`,
+      partner_name: corrTarget.partner_name || "—",
+      partner_tax_id: corrTarget.partner_tax_id,
+      amount_in_words: words,
+      source_type: "correction",
+      source_id: corrTarget.id,
+      created_by: user.id,
+      corrects_entry_id: corrTarget.id,
+      correction_type: corrType,
+      correction_reason: reasonFull,
+      original_amount,
+      corrected_amount,
+    };
+
+    setCorrSubmitting(true);
+    const { data, error } = await supabase.from("cash_entries").insert(payload)
+      .select("document_number").maybeSingle();
+    setCorrSubmitting(false);
+    if (error) { toast.error("Korrekció sikertelen: " + error.message); return; }
+    const docNo = (data as any)?.document_number;
+    toast.success(
+      `${corrLabel[corrType]} véglegesítve${docNo ? `: ${docNo}` : ""}` +
+      (corrType !== "ellentetelezes"
+        ? `. Az eredeti bizonylat (${corrTarget.document_number || ""}) ${corrType === "storno" ? "stornózva" : "helyesbítve"}.`
+        : ". Az eredeti bizonylat érvényben marad (új valós pénzmozgás).")
+    );
+    closeCorrection();
+    setViewEntry(null);
+    await loadEntries(corrTarget.cash_register_id);
+    if (selectedRegId) await loadGaps(selectedRegId);
+  };
+
+  // Korrekciós kapcsolatok lookup
+  const correctionByOriginal = useMemo(() => {
+    const m = new Map<string, CashEntry>();
+    for (const e of entries) {
+      if (e.corrects_entry_id && (e.correction_type === "storno" || e.correction_type === "helyesbites")) {
+        m.set(e.corrects_entry_id, e);
+      }
+    }
+    return m;
+  }, [entries]);
+  const originalById = useMemo(() => {
+    const m = new Map<string, CashEntry>();
+    for (const e of entries) m.set(e.id, e);
+    return m;
+  }, [entries]);
+
 
   const exportCSV = () => {
     if (!selectedReg) return;
@@ -596,6 +787,9 @@ const CashRegisterPage = () => {
                       <SelectItem value="__all__">Mind</SelectItem>
                       <SelectItem value="piszkozat">Piszkozat</SelectItem>
                       <SelectItem value="veglegesitett">Véglegesített</SelectItem>
+                      <SelectItem value="stornozott">Stornózott</SelectItem>
+                      <SelectItem value="helyesbitett">Helyesbített</SelectItem>
+                      <SelectItem value="__corrections__">Csak korrekciók</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -634,30 +828,54 @@ const CashRegisterPage = () => {
                       const isIncome = e.entry_type === "bevetel";
                       const isDraft = e.status === "piszkozat";
                       const isFinal = e.status === "veglegesitett";
+                      const isVoided = e.status === "stornozott" || e.status === "helyesbitett";
+                      const isCorrection = ["STO", "HEL", "ELL"].includes(e.document_type);
+                      const correction = correctionByOriginal.get(e.id);
+                      const original = e.corrects_entry_id ? originalById.get(e.corrects_entry_id) : null;
                       return (
-                        <TableRow key={e.id} className={isDraft ? "opacity-80" : ""}>
+                        <TableRow key={e.id} className={isDraft ? "opacity-80" : isVoided ? "opacity-60" : ""}>
                           <TableCell>
                             <Badge
                               variant={isFinal ? "default" : isDraft ? "secondary" : "outline"}
                               className={
                                 isDraft ? "bg-yellow-500/20 text-yellow-800 dark:text-yellow-200 border-yellow-500/40"
                                   : isFinal ? "bg-green-500/20 text-green-800 dark:text-green-200 border-green-500/40"
+                                  : isVoided ? "bg-red-500/15 text-red-800 dark:text-red-200 border-red-500/40"
                                   : ""
                               }
                             >
                               {STATUS_LABEL[e.status]}
                             </Badge>
                           </TableCell>
-                          <TableCell className="text-xs font-mono">{e.document_type}</TableCell>
-                          <TableCell className="text-xs font-mono whitespace-nowrap">
+                          <TableCell className="text-xs font-mono">
+                            {e.document_type}
+                            {isCorrection && (
+                              <Badge variant="outline" className="ml-1 text-[10px]">Korrekció</Badge>
+                            )}
+                          </TableCell>
+                          <TableCell className={`text-xs font-mono whitespace-nowrap ${isVoided ? "line-through" : ""}`}>
                             {e.document_number
                               ? <span className="font-semibold">{e.document_number}</span>
                               : <span className="text-muted-foreground italic">— (véglegesítéskor kap sorszámot)</span>}
+                            {correction && (
+                              <div className="text-[10px] text-muted-foreground no-underline mt-0.5">
+                                ↳ <button className="underline hover:text-foreground" onClick={() => setViewEntry(correction)}>
+                                  {correction.document_number || "korrekció"}
+                                </button>
+                              </div>
+                            )}
+                            {original && (
+                              <div className="text-[10px] text-muted-foreground mt-0.5">
+                                eredeti: <button className="underline hover:text-foreground" onClick={() => setViewEntry(original)}>
+                                  {original.document_number || original.id.slice(0, 8)}
+                                </button>
+                              </div>
+                            )}
                           </TableCell>
                           <TableCell className="whitespace-nowrap">{e.event_date || e.entry_date}</TableCell>
                           <TableCell>
                             {e.category || <span className="text-muted-foreground">—</span>}
-                            {e.source_type && e.source_type !== "manual" && (
+                            {e.source_type && e.source_type !== "manual" && e.source_type !== "correction" && (
                               <Badge variant="outline" className="ml-2 text-xs">Auto</Badge>
                             )}
                           </TableCell>
@@ -682,9 +900,16 @@ const CashRegisterPage = () => {
                                 </Button>
                               </>
                             ) : (
-                              <Button size="sm" variant="ghost" onClick={() => setViewEntry(e)} title="Megtekintés">
-                                <Eye className="h-4 w-4" />
-                              </Button>
+                              <>
+                                <Button size="sm" variant="ghost" onClick={() => setViewEntry(e)} title="Megtekintés">
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                                {isFinal && !isCorrection && (
+                                  <Button size="sm" variant="ghost" onClick={() => openCorrection(e)} title="Korrekció (stornó / helyesbítés / ellentételezés)">
+                                    <RotateCcw className="h-4 w-4" />
+                                  </Button>
+                                )}
+                              </>
                             )}
                           </TableCell>
                         </TableRow>
@@ -899,10 +1124,203 @@ const CashRegisterPage = () => {
               {viewEntry.related_document_ref && <div className="flex justify-between"><span className="text-muted-foreground">Alapbizonylat</span><span>{viewEntry.related_document_ref}</span></div>}
               {viewEntry.booking_ref && <div className="flex justify-between"><span className="text-muted-foreground">Kontírozás</span><span>{viewEntry.booking_ref}</span></div>}
               {viewEntry.description && <div><span className="text-muted-foreground">Leírás:</span><p className="mt-1">{viewEntry.description}</p></div>}
+              {viewEntry.correction_type && viewEntry.corrects_entry_id && (
+                <div className="mt-3 p-2 rounded border bg-muted/30 text-xs space-y-1">
+                  <div className="font-semibold">Korrekciós bizonylat</div>
+                  <div>Típus: {viewEntry.correction_type === "storno" ? "Stornó" : viewEntry.correction_type === "helyesbites" ? "Helyesbítés" : "Ellentételezés"}</div>
+                  {viewEntry.correction_reason && <div>Indok: {viewEntry.correction_reason}</div>}
+                  {viewEntry.original_amount != null && <div>Eredeti érték: {fmtHUF(Number(viewEntry.original_amount))}</div>}
+                  {viewEntry.corrected_amount != null && <div>Helyes érték: {fmtHUF(Number(viewEntry.corrected_amount))}</div>}
+                  {(() => {
+                    const orig = originalById.get(viewEntry.corrects_entry_id);
+                    return orig ? (
+                      <div>Eredeti bizonylat: <button className="underline" onClick={() => setViewEntry(orig)}>{orig.document_number || orig.id.slice(0, 8)}</button></div>
+                    ) : null;
+                  })()}
+                </div>
+              )}
+              {(() => {
+                const corr = correctionByOriginal.get(viewEntry.id);
+                return corr ? (
+                  <div className="mt-3 p-2 rounded border border-destructive/40 bg-destructive/5 text-xs">
+                    Erre a bizonylatra korrekció készült:{" "}
+                    <button className="underline font-semibold" onClick={() => setViewEntry(corr)}>
+                      {corr.document_number || "korrekció megnyitása"}
+                    </button>
+                  </div>
+                ) : null;
+              })()}
             </div>
           )}
-          <DialogFooter>
+          <DialogFooter className="gap-2">
+            {viewEntry && viewEntry.status === "veglegesitett" && !["STO", "HEL", "ELL"].includes(viewEntry.document_type) && (
+              <Button variant="outline" onClick={() => { const t = viewEntry; setViewEntry(null); openCorrection(t); }}>
+                <RotateCcw className="h-4 w-4 mr-2" /> Korrekció
+              </Button>
+            )}
             <Button onClick={() => setViewEntry(null)}>Bezár</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* M3: Correction dialog */}
+      <Dialog open={!!corrTarget} onOpenChange={(o) => { if (!o) closeCorrection(); }}>
+        <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {corrStep === "choose" ? "Korrekciós művelet választása" :
+                corrType === "storno" ? "Stornó" :
+                corrType === "helyesbites" ? "Helyesbítés" : "Ellentételezés"}
+            </DialogTitle>
+            <DialogDescription>
+              Eredeti bizonylat: <span className="font-mono">{corrTarget?.document_number || corrTarget?.id.slice(0, 8)}</span>
+              {" — "}{corrTarget?.entry_type === "bevetel" ? "Bevétel" : "Kiadás"} {corrTarget && fmtHUF(Number(corrTarget.amount))}
+            </DialogDescription>
+          </DialogHeader>
+
+          {corrStep === "choose" && corrTarget && (
+            <div className="space-y-2">
+              <button
+                className="w-full text-left p-3 rounded border hover:bg-accent transition"
+                onClick={() => selectCorrType("storno")}
+              >
+                <div className="font-semibold flex items-center gap-2"><RotateCcw className="h-4 w-4" /> Stornó (STO)</div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  A bizonylat teljesen hibás vagy nem valós esemény (téves kiállítás, duplikáció).
+                  A teljes összeg ellentétes irányban érvénytelenítve. Az eredeti "stornózott" lesz.
+                </p>
+              </button>
+              <button
+                className="w-full text-left p-3 rounded border hover:bg-accent transition"
+                onClick={() => selectCorrType("helyesbites")}
+              >
+                <div className="font-semibold flex items-center gap-2"><Pencil className="h-4 w-4" /> Helyesbítés (HEL)</div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Az esemény valós, de egyes adatok hibásak (összeg, jogcím, partner).
+                  Az eredeti + helyes érték + különbözet kerül rögzítésre. Az eredeti "helyesbített" lesz.
+                </p>
+              </button>
+              <button
+                className="w-full text-left p-3 rounded border hover:bg-accent transition"
+                onClick={() => selectCorrType("ellentetelezes")}
+              >
+                <div className="font-semibold flex items-center gap-2"><ArrowRight className="h-4 w-4" /> Ellentételezés (ELL)</div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Valós ellentétes pénzmozgás (téves kifizetés visszavétele, túlfizetés visszaadása).
+                  Új, valós gazdasági esemény — az eredeti bizonylat érvényben marad.
+                </p>
+              </button>
+            </div>
+          )}
+
+          {corrStep === "form" && corrTarget && corrType && (
+            <div className="space-y-3">
+              {corrType === "storno" && (
+                <div className="p-2 rounded bg-muted/40 text-sm">
+                  Stornó összege: <strong>{fmtHUF(Number(corrTarget.amount))}</strong>{" "}
+                  ({corrTarget.entry_type === "bevetel" ? "kiadásként" : "bevételként"} kerül rögzítésre, nem szerkeszthető).
+                </div>
+              )}
+              {corrType === "helyesbites" && (
+                <>
+                  <div>
+                    <Label>Eredeti érték</Label>
+                    <Input value={fmtHUF(Number(corrTarget.amount))} readOnly className="bg-muted" />
+                  </div>
+                  <div>
+                    <Label>Helyes érték (Ft) *</Label>
+                    <Input type="number" value={corrCorrectedAmount} onChange={(e) => setCorrCorrectedAmount(e.target.value)} />
+                  </div>
+                  {corrCorrectedAmount && Number(corrCorrectedAmount) > 0 && (
+                    <div className="p-2 rounded bg-muted/40 text-xs">
+                      Különbözet: <strong>{fmtHUF(Number(corrCorrectedAmount) - Number(corrTarget.amount))}</strong>
+                      {" — "}
+                      {Number(corrCorrectedAmount) > Number(corrTarget.amount)
+                        ? `kiegészítés ${corrTarget.entry_type === "bevetel" ? "bevételként" : "kiadásként"}`
+                        : `visszavétel ${corrTarget.entry_type === "bevetel" ? "kiadásként" : "bevételként"}`}
+                    </div>
+                  )}
+                </>
+              )}
+              {corrType === "ellentetelezes" && (
+                <>
+                  <div className="p-2 rounded bg-yellow-500/10 border border-yellow-500/30 text-xs">
+                    Ez új, valós pénzmozgást rögzít. Az eredeti bizonylat érvényben marad.
+                  </div>
+                  <div>
+                    <Label>Ellentételezett összeg (Ft) *</Label>
+                    <Input type="number" value={corrEllAmount} onChange={(e) => setCorrEllAmount(e.target.value)} />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {corrTarget.entry_type === "bevetel" ? "Kiadásként" : "Bevételként"} kerül rögzítésre.
+                    </p>
+                  </div>
+                </>
+              )}
+              <div>
+                <Label>Okkód</Label>
+                <Select value={corrReasonCode || "__none__"} onValueChange={(v) => setCorrReasonCode(v === "__none__" ? "" : v)}>
+                  <SelectTrigger><SelectValue placeholder="Válassz okot" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">— Egyéb —</SelectItem>
+                    <SelectItem value="TEVES_KIALLITAS">Téves kiállítás</SelectItem>
+                    <SelectItem value="NEM_VALOS_ESEMENY">Nem valós esemény</SelectItem>
+                    <SelectItem value="DUPLIKALT">Duplikált rögzítés</SelectItem>
+                    <SelectItem value="OSSZEG_HIBA">Hibás összeg</SelectItem>
+                    <SelectItem value="PARTNER_HIBA">Hibás partner</SelectItem>
+                    <SelectItem value="JOGCIM_HIBA">Hibás jogcím</SelectItem>
+                    <SelectItem value="VISSZAFIZETES">Visszafizetés</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Indoklás * (min. 3 karakter)</Label>
+                <Textarea value={corrReason} onChange={(e) => setCorrReason(e.target.value)}
+                  placeholder="A korrekció oka részletesen..." />
+              </div>
+              <div>
+                <Label>Megjegyzés (opcionális)</Label>
+                <Textarea value={corrDescription} onChange={(e) => setCorrDescription(e.target.value)} />
+              </div>
+
+              {correctionPreviewBalance !== null && (
+                <div className={`p-2 rounded text-sm ${
+                  correctionPreviewBalance < 0
+                    ? "bg-destructive/10 border border-destructive text-destructive"
+                    : "bg-muted/40"
+                }`}>
+                  {correctionPreviewBalance < 0 ? (
+                    <span className="flex items-center gap-2">
+                      <AlertTriangle className="h-4 w-4" />
+                      <strong>Ez a művelet negatívba vinné a pénztárt ({fmtHUF(correctionPreviewBalance)}). Nem véglegesíthető.</strong>
+                    </span>
+                  ) : (
+                    <>Várható egyenleg a véglegesítés után: <strong>{fmtHUF(correctionPreviewBalance)}</strong></>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          <DialogFooter className="gap-2">
+            {corrStep === "form" && (
+              <Button variant="ghost" onClick={() => setCorrStep("choose")}>Vissza</Button>
+            )}
+            <Button variant="ghost" onClick={closeCorrection}>Mégse</Button>
+            {corrStep === "form" && (
+              <Button
+                onClick={submitCorrection}
+                disabled={
+                  corrSubmitting ||
+                  corrReason.trim().length < 3 ||
+                  (correctionPreviewBalance !== null && correctionPreviewBalance < 0) ||
+                  (corrType === "helyesbites" && (!Number(corrCorrectedAmount) || Number(corrCorrectedAmount) === Number(corrTarget?.amount))) ||
+                  (corrType === "ellentetelezes" && !Number(corrEllAmount))
+                }
+              >
+                {corrSubmitting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <FileCheck className="h-4 w-4 mr-2" />}
+                Korrekció véglegesítése
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
