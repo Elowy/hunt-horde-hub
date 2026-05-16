@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
-import { AlertTriangle, ArrowLeft, Download, Loader2, Plus, Pencil, Trash2, Wallet, Settings, FileCheck, Eye, RotateCcw, ArrowRight } from "lucide-react";
+import { AlertTriangle, ArrowLeft, Download, Loader2, Plus, Pencil, Trash2, Wallet, Settings, FileCheck, Eye, RotateCcw, ArrowRight, Landmark } from "lucide-react";
 import { toast } from "sonner";
 import { numberToHungarianWords } from "@/lib/numberToHungarianWords";
 import CashClosingsPanel from "@/components/CashClosingsPanel";
@@ -112,6 +112,17 @@ const CashRegisterPage = () => {
   const [entries, setEntries] = useState<CashEntry[]>([]);
   const [categories, setCategories] = useState<CashCategory[]>([]);
   const [closingCycle, setClosingCycle] = useState<"napi" | "heti" | "havi">("napi");
+  const [maxCashBalance, setMaxCashBalance] = useState<number | null>(null);
+
+  // Cash → Bank dialog
+  const [toBankOpen, setToBankOpen] = useState(false);
+  const [toBankSubmitting, setToBankSubmitting] = useState(false);
+  const [toBankForm, setToBankForm] = useState({
+    amount: "",
+    event_date: new Date().toISOString().slice(0, 10),
+    bank_ref: "",
+    note: "",
+  });
 
   // Filters
   const [fromDate, setFromDate] = useState("");
@@ -158,8 +169,9 @@ const CashRegisterPage = () => {
       await loadRegisters(profile.id);
       await loadCategories(profile.id);
       const { data: pol } = await (supabase as any).from("cash_policy")
-        .select("closing_cycle").eq("hunter_society_id", profile.id).maybeSingle();
+        .select("closing_cycle, max_cash_balance").eq("hunter_society_id", profile.id).maybeSingle();
       if (pol?.closing_cycle) setClosingCycle(pol.closing_cycle);
+      setMaxCashBalance(pol?.max_cash_balance != null ? Number(pol.max_cash_balance) : null);
       setLoading(false);
     })();
   }, []);
@@ -596,6 +608,98 @@ const CashRegisterPage = () => {
   }, [entries]);
 
 
+  // --- Cash → Bank (KPB) ---
+  const CASH_TO_BANK_NAME = "Készpénz bankba";
+  const CASH_TO_BANK_CODE = "BANK";
+  const ensureCashToBankCategory = async (): Promise<string> => {
+    if (!societyId) return CASH_TO_BANK_NAME;
+    const existing = categories.find((c) => c.name === CASH_TO_BANK_NAME);
+    if (existing) return existing.name;
+    const { error } = await supabase.from("cash_categories").insert({
+      hunter_society_id: societyId,
+      code: CASH_TO_BANK_CODE,
+      name: CASH_TO_BANK_NAME,
+      direction: "kiadas",
+      is_active: true,
+    } as any);
+    if (error && !String(error.message).toLowerCase().includes("duplicate")) {
+      console.warn("Kategória létrehozás:", error.message);
+    }
+    await loadCategories(societyId);
+    return CASH_TO_BANK_NAME;
+  };
+
+  const openToBank = () => {
+    if (!selectedRegId) { toast.error("Először válassz egy pénztárat"); return; }
+    setToBankForm({
+      amount: "",
+      event_date: new Date().toISOString().slice(0, 10),
+      bank_ref: "",
+      note: "",
+    });
+    setToBankOpen(true);
+  };
+
+  const submitToBank = async (finalize: boolean) => {
+    if (!societyId || !selectedRegId) return;
+    const amt = Number(toBankForm.amount);
+    if (!amt || amt <= 0) { toast.error("Az összegnek pozitív számnak kell lennie"); return; }
+    if (!toBankForm.event_date) { toast.error("A dátum kötelező"); return; }
+    if (toBankForm.event_date > new Date().toISOString().slice(0, 10)) {
+      toast.error("A dátum nem lehet jövőbeli"); return;
+    }
+    if (!toBankForm.bank_ref.trim()) {
+      toast.error("A banki hivatkozás (számla / bizonylatszám) kötelező");
+      return;
+    }
+    if (finalize) {
+      const projected = simulateBalance(selectedRegId, "kiadas", amt);
+      if (projected < 0) {
+        toast.error(`A pénztárban csak ${fmtHUF(currentBalance)} van, ennyit nem lehet bankba vinni.`);
+        return;
+      }
+    }
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    setToBankSubmitting(true);
+    const categoryName = await ensureCashToBankCategory();
+    const words = numberToHungarianWords(amt);
+    const desc = "Készpénz bankba befizetés" + (toBankForm.note.trim() ? ` — ${toBankForm.note.trim()}` : "");
+
+    const payload: any = {
+      cash_register_id: selectedRegId,
+      hunter_society_id: societyId,
+      entry_type: "kiadas",
+      document_type: "KPB",
+      status: finalize ? "veglegesitett" : "piszkozat",
+      amount: amt,
+      entry_date: toBankForm.event_date,
+      event_date: toBankForm.event_date,
+      category: categoryName,
+      description: desc,
+      partner_name: "Bank",
+      related_document_ref: toBankForm.bank_ref.trim(),
+      amount_in_words: words,
+      source_type: "cash_to_bank",
+      created_by: user.id,
+    };
+
+    const { data, error } = await supabase.from("cash_entries").insert(payload)
+      .select("document_number").maybeSingle();
+    setToBankSubmitting(false);
+    if (error) { toast.error("Mentés sikertelen: " + error.message); return; }
+    const docNo = (data as any)?.document_number;
+    toast.success(finalize
+      ? `Pénztár → bank véglegesítve${docNo ? `: ${docNo}` : ""}`
+      : "Pénztár → bank piszkozat mentve");
+    setToBankOpen(false);
+    await loadEntries(selectedRegId);
+    if (selectedRegId) await loadGaps(selectedRegId);
+  };
+
+  const overMax = maxCashBalance != null && maxCashBalance > 0 && currentBalance > maxCashBalance;
+
   const exportCSV = () => {
     if (!selectedReg) return;
     const rows = [["Esemény dátuma", "Típus", "Bizonylattípus", "Státusz", "Jogcím", "Partner",
@@ -698,9 +802,12 @@ const CashRegisterPage = () => {
                     <Pencil className="h-4 w-4 mr-1" /> Szerkesztés
                   </Button>
                 )}
-                <div className="ml-auto flex gap-2">
+                <div className="ml-auto flex gap-2 flex-wrap">
                   <Button onClick={openNewEntry}>
                     <Plus className="h-4 w-4 mr-2" /> Új bizonylat
+                  </Button>
+                  <Button variant="outline" onClick={openToBank}>
+                    <Landmark className="h-4 w-4 mr-2" /> Pénztár → bank
                   </Button>
                   <Button variant="outline" onClick={exportCSV}>
                     <Download className="h-4 w-4 mr-2" /> Export CSV
@@ -732,6 +839,17 @@ const CashRegisterPage = () => {
               <div className="flex items-center gap-2 p-3 rounded-md border border-yellow-500/50 bg-yellow-500/10 text-yellow-700 dark:text-yellow-300 text-sm">
                 <FileCheck className="h-4 w-4 shrink-0" />
                 <span>{draftCount} piszkozat vár véglegesítésre. A piszkozatok nem számítanak bele az egyenlegbe.</span>
+              </div>
+            )}
+            {overMax && (
+              <div className="flex items-center gap-2 p-3 rounded-md border border-amber-500/50 bg-amber-500/10 text-amber-800 dark:text-amber-200 text-sm">
+                <Landmark className="h-4 w-4 shrink-0" />
+                <span className="flex-1">
+                  A pénztáregyenleg ({fmtHUF(currentBalance)}) meghaladja a szabályzati maximumot ({fmtHUF(maxCashBalance!)}). Javasolt a felesleg bankba helyezése.
+                </span>
+                <Button size="sm" variant="outline" onClick={openToBank}>
+                  Pénztár → bank
+                </Button>
               </div>
             )}
             {currentBalance < 0 && (
@@ -1340,6 +1458,87 @@ const CashRegisterPage = () => {
                 Korrekció véglegesítése
               </Button>
             )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Cash → Bank dialog */}
+      <Dialog open={toBankOpen} onOpenChange={(o) => { if (!toBankSubmitting) setToBankOpen(o); }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Landmark className="h-5 w-5" /> Pénztár → bank (KPB)
+            </DialogTitle>
+            <DialogDescription>
+              Készpénz bankba történő befizetés rögzítése. Szabályos kiadási pénztárbizonylat (KPB) készül,
+              amely csökkenti a pénztáregyenleget. Véglegesítés után nem módosítható (Sztv. 165/168. §).
+            </DialogDescription>
+          </DialogHeader>
+          {selectedReg && (
+            <div className="space-y-3">
+              <div className="text-sm p-2 rounded bg-muted/40 flex justify-between">
+                <span className="text-muted-foreground">Pénztár</span>
+                <span className="font-medium">{selectedReg.name} ({selectedReg.register_code})</span>
+              </div>
+              <div className="text-sm p-2 rounded bg-muted/40 flex justify-between">
+                <span className="text-muted-foreground">Aktuális készpénz-egyenleg</span>
+                <span className="font-semibold">{fmtHUF(currentBalance)}</span>
+              </div>
+              {overMax && (
+                <div className="text-xs p-2 rounded border border-amber-500/50 bg-amber-500/10 text-amber-800 dark:text-amber-200">
+                  A pénztáregyenleg meghaladja a szabályzati maximumot ({fmtHUF(maxCashBalance!)}). Javasolt legalább {fmtHUF(currentBalance - maxCashBalance!)} bankba helyezése.
+                </div>
+              )}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label>Összeg (Ft) *</Label>
+                  <Input type="number" value={toBankForm.amount}
+                    onChange={(e) => setToBankForm({ ...toBankForm, amount: e.target.value })} />
+                  {(() => {
+                    const n = Number(toBankForm.amount);
+                    if (n > 0 && n > currentBalance) {
+                      return <p className="text-xs text-destructive mt-1">A pénztárban csak {fmtHUF(currentBalance)} van.</p>;
+                    }
+                    if (overMax && n > 0) {
+                      const suggested = currentBalance - maxCashBalance!;
+                      if (Math.abs(n - suggested) > 1)
+                        return <p className="text-xs text-muted-foreground mt-1">Javasolt: {fmtHUF(suggested)}</p>;
+                    }
+                    return null;
+                  })()}
+                </div>
+                <div>
+                  <Label>Dátum *</Label>
+                  <Input type="date" value={toBankForm.event_date}
+                    onChange={(e) => setToBankForm({ ...toBankForm, event_date: e.target.value })} />
+                </div>
+              </div>
+              <div>
+                <Label>Bankszámla / banki hivatkozás *</Label>
+                <Input value={toBankForm.bank_ref}
+                  onChange={(e) => setToBankForm({ ...toBankForm, bank_ref: e.target.value })}
+                  placeholder='pl. "OTP 11770000-12345678 befizetés" vagy banki bizonylatszám' />
+                <p className="text-xs text-muted-foreground mt-1">
+                  A pénzmozgás nyomon követhetősége miatt kötelező.
+                </p>
+              </div>
+              <div>
+                <Label>Megjegyzés</Label>
+                <Textarea value={toBankForm.note}
+                  onChange={(e) => setToBankForm({ ...toBankForm, note: e.target.value })}
+                  placeholder="opcionális" />
+              </div>
+            </div>
+          )}
+          <DialogFooter className="gap-2">
+            <Button variant="ghost" onClick={() => setToBankOpen(false)} disabled={toBankSubmitting}>Mégse</Button>
+            <Button variant="outline" onClick={() => submitToBank(false)} disabled={toBankSubmitting}>
+              Piszkozat mentése
+            </Button>
+            <Button onClick={() => submitToBank(true)} disabled={toBankSubmitting}>
+              {toBankSubmitting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <FileCheck className="h-4 w-4 mr-2" />}
+              Véglegesítés
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
