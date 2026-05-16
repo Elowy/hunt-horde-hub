@@ -941,6 +941,8 @@ export const AddAnimalDialog = ({ onAnimalAdded }: AddAnimalDialogProps) => {
                       value={pricing.netPrice}
                       onChange={(e) => handlePricingChange("netPrice", e.target.value)}
                       placeholder="0"
+                      readOnly={isKartalanitas && !!matchedEpidemicMeasure}
+                      className={isKartalanitas && matchedEpidemicMeasure ? "bg-muted" : undefined}
                     />
                   </div>
                   <div className="space-y-2">
@@ -952,6 +954,8 @@ export const AddAnimalDialog = ({ onAnimalAdded }: AddAnimalDialogProps) => {
                       value={pricing.priceVat}
                       onChange={(e) => handlePricingChange("priceVat", e.target.value)}
                       placeholder="27"
+                      readOnly={isKartalanitas && !!matchedEpidemicMeasure}
+                      className={isKartalanitas && matchedEpidemicMeasure ? "bg-muted" : undefined}
                     />
                   </div>
                   <div className="space-y-2">
@@ -963,6 +967,8 @@ export const AddAnimalDialog = ({ onAnimalAdded }: AddAnimalDialogProps) => {
                       value={pricing.grossPrice}
                       onChange={(e) => handlePricingChange("grossPrice", e.target.value)}
                       placeholder="0"
+                      readOnly={isKartalanitas && !!matchedEpidemicMeasure}
+                      className={isKartalanitas && matchedEpidemicMeasure ? "bg-muted" : undefined}
                     />
                   </div>
                   <div className="space-y-2">
