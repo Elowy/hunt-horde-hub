@@ -885,6 +885,7 @@ const CashRegisterPage = () => {
           </DialogHeader>
           {viewEntry && (
             <div className="space-y-2 text-sm">
+              {viewEntry.document_number && <div className="flex justify-between"><span className="text-muted-foreground">Sorszám</span><span className="font-mono font-semibold">{viewEntry.document_number}</span></div>}
               <div className="flex justify-between"><span className="text-muted-foreground">Bizonylattípus</span><span className="font-mono">{viewEntry.document_type}</span></div>
               <div className="flex justify-between"><span className="text-muted-foreground">Státusz</span><span>{STATUS_LABEL[viewEntry.status]}</span></div>
               <div className="flex justify-between"><span className="text-muted-foreground">Esemény dátuma</span><span>{viewEntry.event_date}</span></div>
