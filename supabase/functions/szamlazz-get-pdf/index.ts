@@ -68,7 +68,7 @@ Deno.serve(async (req) => {
     const admin = createClient(supabaseUrl, serviceKey)
     const { data: signed, error: signErr } = await admin.storage
       .from('invoices')
-      .createSignedUrl(invoice.szamlazz_url, 3600)
+      .createSignedUrl(invoice.szamlazz_url, 3600, { download: true })
 
     if (signErr || !signed) {
       return new Response(JSON.stringify({ error: 'Nem sikerült aláírt URL-t generálni' }), {
