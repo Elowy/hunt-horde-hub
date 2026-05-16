@@ -3,53 +3,22 @@
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { supabase } from "@/integrations/supabase/client";
+import { notoSansRegularBase64 } from "@/lib/pdfFont";
 
-// Magyar ékezetes Unicode font (DejaVu Sans) — runtime fetch + cache
-// Több CDN fallbackkel, hogy ne legyen single point of failure.
-const FONT_URLS = [
-  "https://cdn.jsdelivr.net/gh/dejavu-fonts/dejavu-fonts@version_2_37/ttf/DejaVuSans.ttf",
-  "https://raw.githubusercontent.com/dejavu-fonts/dejavu-fonts/version_2_37/ttf/DejaVuSans.ttf",
-];
-const FONT_URLS_BOLD = [
-  "https://cdn.jsdelivr.net/gh/dejavu-fonts/dejavu-fonts@version_2_37/ttf/DejaVuSans-Bold.ttf",
-  "https://raw.githubusercontent.com/dejavu-fonts/dejavu-fonts/version_2_37/ttf/DejaVuSans-Bold.ttf",
-];
-
-let cachedFontB64: string | null = null;
-let cachedFontBoldB64: string | null = null;
-
-async function fetchFontBase64(urls: string[]): Promise<string> {
-  let lastErr: unknown;
-  for (const url of urls) {
-    try {
-      const r = await fetch(url);
-      if (!r.ok) throw new Error(`HTTP ${r.status}`);
-      const buf = new Uint8Array(await r.arrayBuffer());
-      // ArrayBuffer -> base64 (chunkolva, hogy ne fusson le a call stack)
-      let binary = "";
-      const chunk = 0x8000;
-      for (let i = 0; i < buf.length; i += chunk) {
-        binary += String.fromCharCode.apply(null, Array.from(buf.subarray(i, i + chunk)));
-      }
-      return btoa(binary);
-    } catch (e) {
-      lastErr = e;
-    }
+// Magyar ékezetes Unicode font (NotoSans Regular) — beágyazva a bundle-be.
+// Bold variánst NEM ágyazunk be a méret miatt; a "bold" stílusra ugyanezt a
+// fontot regisztráljuk a jsPDF API kompatibilitása érdekében (a megjelenés
+// regular marad, de a magyar karakterek mindenhol helyesek lesznek).
+let fontRegistered = false;
+function ensureHungarianFont(doc: jsPDF) {
+  if (!fontRegistered) {
+    // VFS-be egyszer elég berakni, de jsPDF instance-onként új addFont kell
   }
-  throw lastErr instanceof Error ? lastErr : new Error("Font fetch failed");
-}
-
-async function ensureHungarianFont(doc: jsPDF) {
-  if (!cachedFontB64) cachedFontB64 = await fetchFontBase64(FONT_URLS);
-  if (!cachedFontBoldB64) {
-    try { cachedFontBoldB64 = await fetchFontBase64(FONT_URLS_BOLD); }
-    catch { cachedFontBoldB64 = cachedFontB64; }
-  }
-  doc.addFileToVFS("DejaVuSans.ttf", cachedFontB64);
-  doc.addFont("DejaVuSans.ttf", "DejaVu", "normal");
-  doc.addFileToVFS("DejaVuSans-Bold.ttf", cachedFontBoldB64);
-  doc.addFont("DejaVuSans-Bold.ttf", "DejaVu", "bold");
+  doc.addFileToVFS("NotoSans.ttf", notoSansRegularBase64);
+  doc.addFont("NotoSans.ttf", "DejaVu", "normal");
+  doc.addFont("NotoSans.ttf", "DejaVu", "bold");
   doc.setFont("DejaVu", "normal");
+  fontRegistered = true;
 }
 
 const fmtHUF = (n: number) =>
@@ -89,7 +58,7 @@ export async function generateCashReportPdf(closingId: string): Promise<void> {
   const [{ data: reg }, { data: soc }, { data: entries }, { data: denoms }, { data: closer }] =
     await Promise.all([
       supabase.from("cash_registers").select("register_code, name").eq("id", c.cash_register_id).maybeSingle(),
-      supabase.from("profiles").select("company_name, full_name").eq("id", c.hunter_society_id).maybeSingle(),
+      supabase.from("profiles").select("company_name, contact_name").eq("id", c.hunter_society_id).maybeSingle(),
       supabase.from("cash_entries")
         .select("document_number, entry_type, amount, event_date, category, partner_name, description, related_document_ref, status, seq_number")
         .eq("cash_register_id", c.cash_register_id)
@@ -98,12 +67,12 @@ export async function generateCashReportPdf(closingId: string): Promise<void> {
         .order("event_date", { ascending: true })
         .order("seq_number", { ascending: true }),
       (supabase as any).from("cash_denominations").select("denomination, count").eq("closing_id", c.id).order("denomination", { ascending: false }),
-      supabase.from("profiles").select("full_name").eq("id", c.closed_by).maybeSingle(),
+      supabase.from("profiles").select("company_name, contact_name").eq("id", c.closed_by).maybeSingle(),
     ]);
 
   // 2) Dokumentum + magyar font
   const doc = new jsPDF({ unit: "pt", format: "a4", orientation: "portrait" });
-  await ensureHungarianFont(doc);
+  ensureHungarianFont(doc);
 
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
@@ -116,7 +85,7 @@ export async function generateCashReportPdf(closingId: string): Promise<void> {
     doc.setFontSize(10);
     doc.text(`Sorszám: ${c.closing_number}`, pageW - margin, margin + 6, { align: "right" });
     doc.setFont("DejaVu", "normal"); doc.setFontSize(9);
-    const gName = (soc as any)?.company_name || (soc as any)?.full_name || "-";
+    const gName = (soc as any)?.company_name || (soc as any)?.contact_name || "-";
     doc.text(`Gazdálkodó: ${gName}`, margin, margin + 22);
     doc.text(`Pénztár: ${(reg as any)?.name ?? ""} (${(reg as any)?.register_code ?? ""})`, margin, margin + 34);
     doc.text(`Időszak: ${fmtDate(c.period_start)} – ${fmtDate(c.period_end)}`, margin, margin + 46);
@@ -178,7 +147,8 @@ export async function generateCashReportPdf(closingId: string): Promise<void> {
       // Lábléc
       doc.setFont("DejaVu", "normal"); doc.setFontSize(7);
       doc.setTextColor(80);
-      const footer = `Készítette: ${(closer as any)?.full_name ?? ""} | Zárás: ${fmtDateTime(c.closed_at)} | Verzió: ${c.version}`;
+      const closerName = (closer as any)?.contact_name ?? (closer as any)?.company_name ?? "";
+      const footer = `Készítette: ${closerName} | Zárás: ${fmtDateTime(c.closed_at)} | Verzió: ${c.version}`;
       doc.text(footer, margin, pageH - 14);
       const pg = (doc as any).internal.getNumberOfPages();
       doc.text(`${doc.getCurrentPageInfo().pageNumber} / ${pg}`, pageW - margin, pageH - 14, { align: "right" });
