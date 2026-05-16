@@ -128,6 +128,17 @@ const CashRegisterPage = () => {
   const [confirmFinalizeOpen, setConfirmFinalizeOpen] = useState(false);
   const [viewEntry, setViewEntry] = useState<CashEntry | null>(null);
 
+  // Correction (M3) dialog state
+  const [corrTarget, setCorrTarget] = useState<CashEntry | null>(null);
+  const [corrStep, setCorrStep] = useState<"choose" | "form">("choose");
+  const [corrType, setCorrType] = useState<"storno" | "helyesbites" | "ellentetelezes" | null>(null);
+  const [corrReason, setCorrReason] = useState("");
+  const [corrReasonCode, setCorrReasonCode] = useState("");
+  const [corrCorrectedAmount, setCorrCorrectedAmount] = useState(""); // helyesbites: helyes érték
+  const [corrEllAmount, setCorrEllAmount] = useState(""); // ellentetelezes: tényleges összeg
+  const [corrDescription, setCorrDescription] = useState("");
+  const [corrSubmitting, setCorrSubmitting] = useState(false);
+
   useEffect(() => {
     (async () => {
       const { data: { user } } = await supabase.auth.getUser();
