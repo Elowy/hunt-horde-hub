@@ -108,6 +108,47 @@ export function CreateInvoiceDialog({
   const [submitting, setSubmitting] = useState(false);
   // Track which item comments the user has manually edited so we don't overwrite them
   const editedComments = useRef<Set<number>>(new Set());
+  const editedPrices = useRef<Set<number>>(new Set());
+  // Map of "species||class" -> price info from price_settings
+  const [priceMap, setPriceMap] = useState<Map<string, { price_per_kg: number; vat_rate: number }>>(new Map());
+  const [pricesLoaded, setPricesLoaded] = useState(false);
+
+  const normalizeSpecies = (s: string) => s.replace(/^\p{Extended_Pictographic}+\s*/u, "").trim().toLowerCase();
+  const priceKey = (species: string, cls: string | null | undefined) =>
+    `${normalizeSpecies(species)}||${(cls ?? "").trim().toLowerCase()}`;
+
+  // Load active price list for the current hunter society
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    (async () => {
+      setPricesLoaded(false);
+      const { data: userData } = await supabase.auth.getUser();
+      const uid = userData.user?.id;
+      if (!uid) { setPriceMap(new Map()); setPricesLoaded(true); return; }
+      const { data, error } = await supabase
+        .from("price_settings")
+        .select("species, class, price_per_kg, vat_rate")
+        .eq("user_id", uid)
+        .eq("is_archived", false);
+      if (cancelled) return;
+      if (error) {
+        console.warn("price_settings load error", error);
+        setPriceMap(new Map());
+      } else {
+        const m = new Map<string, { price_per_kg: number; vat_rate: number }>();
+        for (const r of data ?? []) {
+          m.set(priceKey(r.species as string, r.class as string), {
+            price_per_kg: Number(r.price_per_kg) || 0,
+            vat_rate: Number(r.vat_rate) || 27,
+          });
+        }
+        setPriceMap(m);
+      }
+      setPricesLoaded(true);
+    })();
+    return () => { cancelled = true; };
+  }, [open]);
 
   useEffect(() => {
     if (open) {
