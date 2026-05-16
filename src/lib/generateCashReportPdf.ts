@@ -72,7 +72,7 @@ export async function generateCashReportPdf(closingId: string): Promise<void> {
 
   // 2) Dokumentum + magyar font
   const doc = new jsPDF({ unit: "pt", format: "a4", orientation: "portrait" });
-  await ensureHungarianFont(doc);
+  ensureHungarianFont(doc);
 
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
