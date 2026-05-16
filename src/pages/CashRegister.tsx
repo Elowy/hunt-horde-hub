@@ -852,6 +852,7 @@ const CashRegisterPage = () => {
                 </Button>
               </div>
             )}
+            {currentBalance < 0 && (
               <div className="flex items-center gap-2 p-3 rounded-md border border-destructive bg-destructive/10 text-destructive text-sm">
                 <AlertTriangle className="h-4 w-4 shrink-0" />
                 <span>Figyelem: a pénztár egyenlege negatív. Ellenőrizd a tételeket.</span>
