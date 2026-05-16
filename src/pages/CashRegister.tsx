@@ -608,6 +608,98 @@ const CashRegisterPage = () => {
   }, [entries]);
 
 
+  // --- Cash → Bank (KPB) ---
+  const CASH_TO_BANK_NAME = "Készpénz bankba";
+  const CASH_TO_BANK_CODE = "BANK";
+  const ensureCashToBankCategory = async (): Promise<string> => {
+    if (!societyId) return CASH_TO_BANK_NAME;
+    const existing = categories.find((c) => c.name === CASH_TO_BANK_NAME);
+    if (existing) return existing.name;
+    const { error } = await supabase.from("cash_categories").insert({
+      hunter_society_id: societyId,
+      code: CASH_TO_BANK_CODE,
+      name: CASH_TO_BANK_NAME,
+      direction: "kiadas",
+      is_active: true,
+    } as any);
+    if (error && !String(error.message).toLowerCase().includes("duplicate")) {
+      console.warn("Kategória létrehozás:", error.message);
+    }
+    await loadCategories(societyId);
+    return CASH_TO_BANK_NAME;
+  };
+
+  const openToBank = () => {
+    if (!selectedRegId) { toast.error("Először válassz egy pénztárat"); return; }
+    setToBankForm({
+      amount: "",
+      event_date: new Date().toISOString().slice(0, 10),
+      bank_ref: "",
+      note: "",
+    });
+    setToBankOpen(true);
+  };
+
+  const submitToBank = async (finalize: boolean) => {
+    if (!societyId || !selectedRegId) return;
+    const amt = Number(toBankForm.amount);
+    if (!amt || amt <= 0) { toast.error("Az összegnek pozitív számnak kell lennie"); return; }
+    if (!toBankForm.event_date) { toast.error("A dátum kötelező"); return; }
+    if (toBankForm.event_date > new Date().toISOString().slice(0, 10)) {
+      toast.error("A dátum nem lehet jövőbeli"); return;
+    }
+    if (!toBankForm.bank_ref.trim()) {
+      toast.error("A banki hivatkozás (számla / bizonylatszám) kötelező");
+      return;
+    }
+    if (finalize) {
+      const projected = simulateBalance(selectedRegId, "kiadas", amt);
+      if (projected < 0) {
+        toast.error(`A pénztárban csak ${fmtHUF(currentBalance)} van, ennyit nem lehet bankba vinni.`);
+        return;
+      }
+    }
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    setToBankSubmitting(true);
+    const categoryName = await ensureCashToBankCategory();
+    const words = numberToHungarianWords(amt);
+    const desc = "Készpénz bankba befizetés" + (toBankForm.note.trim() ? ` — ${toBankForm.note.trim()}` : "");
+
+    const payload: any = {
+      cash_register_id: selectedRegId,
+      hunter_society_id: societyId,
+      entry_type: "kiadas",
+      document_type: "KPB",
+      status: finalize ? "veglegesitett" : "piszkozat",
+      amount: amt,
+      entry_date: toBankForm.event_date,
+      event_date: toBankForm.event_date,
+      category: categoryName,
+      description: desc,
+      partner_name: "Bank",
+      related_document_ref: toBankForm.bank_ref.trim(),
+      amount_in_words: words,
+      source_type: "cash_to_bank",
+      created_by: user.id,
+    };
+
+    const { data, error } = await supabase.from("cash_entries").insert(payload)
+      .select("document_number").maybeSingle();
+    setToBankSubmitting(false);
+    if (error) { toast.error("Mentés sikertelen: " + error.message); return; }
+    const docNo = (data as any)?.document_number;
+    toast.success(finalize
+      ? `Pénztár → bank véglegesítve${docNo ? `: ${docNo}` : ""}`
+      : "Pénztár → bank piszkozat mentve");
+    setToBankOpen(false);
+    await loadEntries(selectedRegId);
+    if (selectedRegId) await loadGaps(selectedRegId);
+  };
+
+  const overMax = maxCashBalance != null && maxCashBalance > 0 && currentBalance > maxCashBalance;
+
   const exportCSV = () => {
     if (!selectedReg) return;
     const rows = [["Esemény dátuma", "Típus", "Bizonylattípus", "Státusz", "Jogcím", "Partner",
