@@ -419,6 +419,130 @@ export type Database = {
         }
         Relationships: []
       }
+      cash_entries: {
+        Row: {
+          amount: number
+          cash_register_id: string
+          category: string | null
+          created_at: string
+          created_by: string
+          description: string | null
+          entry_date: string
+          entry_type: string
+          hunter_society_id: string
+          id: string
+          reference_number: string | null
+          source_id: string | null
+          source_type: string | null
+        }
+        Insert: {
+          amount: number
+          cash_register_id: string
+          category?: string | null
+          created_at?: string
+          created_by: string
+          description?: string | null
+          entry_date?: string
+          entry_type: string
+          hunter_society_id: string
+          id?: string
+          reference_number?: string | null
+          source_id?: string | null
+          source_type?: string | null
+        }
+        Update: {
+          amount?: number
+          cash_register_id?: string
+          category?: string | null
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          entry_date?: string
+          entry_type?: string
+          hunter_society_id?: string
+          id?: string
+          reference_number?: string | null
+          source_id?: string | null
+          source_type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cash_entries_cash_register_id_fkey"
+            columns: ["cash_register_id"]
+            isOneToOne: false
+            referencedRelation: "cash_registers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cash_entries_hunter_society_id_fkey"
+            columns: ["hunter_society_id"]
+            isOneToOne: false
+            referencedRelation: "hunter_societies_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cash_entries_hunter_society_id_fkey"
+            columns: ["hunter_society_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cash_registers: {
+        Row: {
+          created_at: string
+          created_by: string
+          currency: string
+          description: string | null
+          hunter_society_id: string
+          id: string
+          is_active: boolean
+          name: string
+          opening_balance: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          currency?: string
+          description?: string | null
+          hunter_society_id: string
+          id?: string
+          is_active?: boolean
+          name: string
+          opening_balance?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          currency?: string
+          description?: string | null
+          hunter_society_id?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          opening_balance?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cash_registers_hunter_society_id_fkey"
+            columns: ["hunter_society_id"]
+            isOneToOne: false
+            referencedRelation: "hunter_societies_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cash_registers_hunter_society_id_fkey"
+            columns: ["hunter_society_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cooling_prices: {
         Row: {
           class: string | null
@@ -978,6 +1102,7 @@ export type Database = {
           hunter_society_id: string
           id: string
           net_amount: number | null
+          payment_method: string | null
           source_id: string | null
           source_type: string
           status: string
@@ -999,6 +1124,7 @@ export type Database = {
           hunter_society_id: string
           id?: string
           net_amount?: number | null
+          payment_method?: string | null
           source_id?: string | null
           source_type: string
           status?: string
@@ -1020,6 +1146,7 @@ export type Database = {
           hunter_society_id?: string
           id?: string
           net_amount?: number | null
+          payment_method?: string | null
           source_id?: string | null
           source_type?: string
           status?: string
