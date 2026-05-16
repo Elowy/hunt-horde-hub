@@ -748,17 +748,23 @@ export const EditAnimalDialog = ({ animal, locations, onAnimalUpdated }: EditAni
                 <div className="space-y-2">
                   <Label htmlFor="netPrice">Nettó ár (Ft)</Label>
                   <Input id="netPrice" type="number" step="0.01" value={pricing.netPrice}
-                    onChange={(e) => handlePricingChange("netPrice", e.target.value)} placeholder="0" />
+                    onChange={(e) => handlePricingChange("netPrice", e.target.value)} placeholder="0"
+                    readOnly={isKartalanitas && !!matchedEpidemicMeasure}
+                    className={isKartalanitas && matchedEpidemicMeasure ? "bg-muted" : undefined} />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="priceVat">ÁFA (%)</Label>
                   <Input id="priceVat" type="number" step="0.01" value={pricing.priceVat}
-                    onChange={(e) => handlePricingChange("priceVat", e.target.value)} placeholder="27" />
+                    onChange={(e) => handlePricingChange("priceVat", e.target.value)} placeholder="27"
+                    readOnly={isKartalanitas && !!matchedEpidemicMeasure}
+                    className={isKartalanitas && matchedEpidemicMeasure ? "bg-muted" : undefined} />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="grossPrice">Bruttó ár (Ft)</Label>
                   <Input id="grossPrice" type="number" step="0.01" value={pricing.grossPrice}
-                    onChange={(e) => handlePricingChange("grossPrice", e.target.value)} placeholder="0" />
+                    onChange={(e) => handlePricingChange("grossPrice", e.target.value)} placeholder="0"
+                    readOnly={isKartalanitas && !!matchedEpidemicMeasure}
+                    className={isKartalanitas && matchedEpidemicMeasure ? "bg-muted" : undefined} />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="coolingPricePerKg">Hűtési díj (Ft/kg)</Label>
