@@ -706,6 +706,7 @@ const CashRegisterPage = () => {
             <div>
               <Label>Név *</Label>
               <Input value={regForm.name} onChange={(e) => setRegForm({ ...regForm, name: e.target.value })} placeholder="pl. Fő pénztár" />
+            </div>
             <div>
               <Label>Pénztárkód *</Label>
               <Input
