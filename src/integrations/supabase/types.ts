@@ -471,6 +471,10 @@ export type Database = {
           booking_ref: string | null
           cash_register_id: string
           category: string | null
+          corrected_amount: number | null
+          correction_reason: string | null
+          correction_type: string | null
+          corrects_entry_id: string | null
           created_at: string
           created_by: string
           description: string | null
@@ -484,6 +488,7 @@ export type Database = {
           issued_at: string | null
           issued_by: string | null
           ordered_by: string | null
+          original_amount: number | null
           partner_name: string | null
           partner_tax_id: string | null
           recorded_at: string | null
@@ -501,6 +506,10 @@ export type Database = {
           booking_ref?: string | null
           cash_register_id: string
           category?: string | null
+          corrected_amount?: number | null
+          correction_reason?: string | null
+          correction_type?: string | null
+          corrects_entry_id?: string | null
           created_at?: string
           created_by: string
           description?: string | null
@@ -514,6 +523,7 @@ export type Database = {
           issued_at?: string | null
           issued_by?: string | null
           ordered_by?: string | null
+          original_amount?: number | null
           partner_name?: string | null
           partner_tax_id?: string | null
           recorded_at?: string | null
@@ -531,6 +541,10 @@ export type Database = {
           booking_ref?: string | null
           cash_register_id?: string
           category?: string | null
+          corrected_amount?: number | null
+          correction_reason?: string | null
+          correction_type?: string | null
+          corrects_entry_id?: string | null
           created_at?: string
           created_by?: string
           description?: string | null
@@ -544,6 +558,7 @@ export type Database = {
           issued_at?: string | null
           issued_by?: string | null
           ordered_by?: string | null
+          original_amount?: number | null
           partner_name?: string | null
           partner_tax_id?: string | null
           recorded_at?: string | null
@@ -561,6 +576,13 @@ export type Database = {
             columns: ["cash_register_id"]
             isOneToOne: false
             referencedRelation: "cash_registers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cash_entries_corrects_entry_id_fkey"
+            columns: ["corrects_entry_id"]
+            isOneToOne: false
+            referencedRelation: "cash_entries"
             referencedColumns: ["id"]
           },
           {
