@@ -474,6 +474,7 @@ export type Database = {
           created_at: string
           created_by: string
           description: string | null
+          document_number: string | null
           document_type: string
           entry_date: string
           entry_type: string
@@ -488,6 +489,8 @@ export type Database = {
           recorded_at: string | null
           reference_number: string | null
           related_document_ref: string | null
+          seq_number: number | null
+          seq_year: number | null
           source_id: string | null
           source_type: string | null
           status: string
@@ -501,6 +504,7 @@ export type Database = {
           created_at?: string
           created_by: string
           description?: string | null
+          document_number?: string | null
           document_type?: string
           entry_date?: string
           entry_type: string
@@ -515,6 +519,8 @@ export type Database = {
           recorded_at?: string | null
           reference_number?: string | null
           related_document_ref?: string | null
+          seq_number?: number | null
+          seq_year?: number | null
           source_id?: string | null
           source_type?: string | null
           status?: string
@@ -528,6 +534,7 @@ export type Database = {
           created_at?: string
           created_by?: string
           description?: string | null
+          document_number?: string | null
           document_type?: string
           entry_date?: string
           entry_type?: string
@@ -542,6 +549,8 @@ export type Database = {
           recorded_at?: string | null
           reference_number?: string | null
           related_document_ref?: string | null
+          seq_number?: number | null
+          seq_year?: number | null
           source_id?: string | null
           source_type?: string | null
           status?: string
@@ -645,6 +654,7 @@ export type Database = {
           is_active: boolean
           name: string
           opening_balance: number
+          register_code: string
           updated_at: string
         }
         Insert: {
@@ -657,6 +667,7 @@ export type Database = {
           is_active?: boolean
           name: string
           opening_balance?: number
+          register_code: string
           updated_at?: string
         }
         Update: {
@@ -669,6 +680,7 @@ export type Database = {
           is_active?: boolean
           name?: string
           opening_balance?: number
+          register_code?: string
           updated_at?: string
         }
         Relationships: [
@@ -684,6 +696,35 @@ export type Database = {
             columns: ["hunter_society_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cash_sequences: {
+        Row: {
+          cash_register_id: string
+          document_type: string
+          last_number: number
+          seq_year: number
+        }
+        Insert: {
+          cash_register_id: string
+          document_type: string
+          last_number?: number
+          seq_year: number
+        }
+        Update: {
+          cash_register_id?: string
+          document_type?: string
+          last_number?: number
+          seq_year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cash_sequences_cash_register_id_fkey"
+            columns: ["cash_register_id"]
+            isOneToOne: false
+            referencedRelation: "cash_registers"
             referencedColumns: ["id"]
           },
         ]
@@ -2772,6 +2813,24 @@ export type Database = {
       }
     }
     Views: {
+      cash_sequence_gaps: {
+        Row: {
+          cash_register_id: string | null
+          document_type: string | null
+          next_number: number | null
+          seq_number: number | null
+          seq_year: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cash_entries_cash_register_id_fkey"
+            columns: ["cash_register_id"]
+            isOneToOne: false
+            referencedRelation: "cash_registers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hunter_societies_public: {
         Row: {
           company_name: string | null
