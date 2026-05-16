@@ -625,7 +625,7 @@ const CashRegisterPage = () => {
                   <TableBody>
                     {filteredEntries.length === 0 && (
                       <TableRow>
-                        <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
+                        <TableCell colSpan={10} className="text-center text-muted-foreground py-8">
                           Nincs megjeleníthető bizonylat
                         </TableCell>
                       </TableRow>
@@ -649,6 +649,11 @@ const CashRegisterPage = () => {
                             </Badge>
                           </TableCell>
                           <TableCell className="text-xs font-mono">{e.document_type}</TableCell>
+                          <TableCell className="text-xs font-mono whitespace-nowrap">
+                            {e.document_number
+                              ? <span className="font-semibold">{e.document_number}</span>
+                              : <span className="text-muted-foreground italic">— (véglegesítéskor kap sorszámot)</span>}
+                          </TableCell>
                           <TableCell className="whitespace-nowrap">{e.event_date || e.entry_date}</TableCell>
                           <TableCell>
                             {e.category || <span className="text-muted-foreground">—</span>}
