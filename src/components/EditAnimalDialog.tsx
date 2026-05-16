@@ -583,6 +583,7 @@ export const EditAnimalDialog = ({ animal, locations, onAnimalUpdated }: EditAni
           transport_cooling_price: !isNaN(coolingPerKg) ? coolingPerKg : null,
           transport_cooling_vat_rate: !isNaN(coolingVatNum) ? coolingVatNum : null,
           usage_type: formData.usage_type || null,
+          epidemic_measure_id: isKartalanitas && matchedEpidemicMeasure ? matchedEpidemicMeasure.id : null,
           buyer_type: formData.buyer_type || null,
           buyer_name: formData.buyer_name || null,
           buyer_zip: formData.buyer_zip || null,
