@@ -207,7 +207,9 @@ const CashRegisterPage = () => {
       if (fromDate && d < fromDate) return false;
       if (toDate && d > toDate) return false;
       if (categoryFilter && (e.category || "") !== categoryFilter) return false;
-      if (statusFilter && e.status !== statusFilter) return false;
+      if (statusFilter === "__corrections__") {
+        if (!["STO", "HEL", "ELL"].includes(e.document_type)) return false;
+      } else if (statusFilter && e.status !== statusFilter) return false;
       return true;
     });
   }, [entries, fromDate, toDate, categoryFilter, statusFilter]);
