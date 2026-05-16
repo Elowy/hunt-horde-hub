@@ -104,12 +104,14 @@ const emptyEntryForm = (regId: string) => ({
 
 const CashRegisterPage = () => {
   const navigate = useNavigate();
+  const { isSuperAdmin } = useIsSuperAdmin();
   const [loading, setLoading] = useState(true);
   const [societyId, setSocietyId] = useState<string | null>(null);
   const [registers, setRegisters] = useState<CashRegister[]>([]);
   const [selectedRegId, setSelectedRegId] = useState<string | null>(null);
   const [entries, setEntries] = useState<CashEntry[]>([]);
   const [categories, setCategories] = useState<CashCategory[]>([]);
+  const [closingCycle, setClosingCycle] = useState<"napi" | "heti" | "havi">("napi");
 
   // Filters
   const [fromDate, setFromDate] = useState("");
