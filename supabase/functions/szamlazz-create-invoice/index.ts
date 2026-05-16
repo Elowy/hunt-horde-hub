@@ -258,16 +258,22 @@ Deno.serve(async (req) => {
       body: fd,
     })
 
-    const errorCode = szResp.headers.get('szlahu_error_code')
-    const errorMsg = szResp.headers.get('szlahu_error')
-    const invoiceNumber = szResp.headers.get('szlahu_szamlaszam')
-    const netResp = szResp.headers.get('szlahu_nettovegosszeg')
-    const grossResp = szResp.headers.get('szlahu_bruttovegosszeg')
+    const errorCodeHeader = szResp.headers.get('szlahu_error_code')
+    const errorMsgHeader = szResp.headers.get('szlahu_error')
 
-    if (errorCode || !invoiceNumber) {
-      const decoded = errorMsg
-        ? decodeURIComponent(errorMsg.replace(/\+/g, ' '))
-        : `Számlázz.hu hiba (kód: ${errorCode ?? 'ismeretlen'})`
+    // A Számlázz.hu XML-választ ad vissza, amiben a PDF base64-ben szerepel
+    const responseText = await szResp.text()
+
+    const sikeresMatch = responseText.match(/<sikeres>(.*?)<\/sikeres>/)
+    const hibakodMatch = responseText.match(/<hibakod>(.*?)<\/hibakod>/)
+    const hibauzenetMatch = responseText.match(/<hibauzenet>(.*?)<\/hibauzenet>/)
+    const isSuccess = sikeresMatch?.[1]?.trim() === 'true' && !hibakodMatch
+
+    if (errorCodeHeader || !isSuccess) {
+      const decoded =
+        hibauzenetMatch?.[1]?.trim() ||
+        (errorMsgHeader ? decodeURIComponent(errorMsgHeader.replace(/\+/g, ' ')) : null) ||
+        `Számlázz.hu hiba (kód: ${hibakodMatch?.[1] ?? errorCodeHeader ?? 'ismeretlen'})`
       await admin
         .from('invoices')
         .update({ status: 'failed', error_message: decoded })
@@ -279,8 +285,43 @@ Deno.serve(async (req) => {
       )
     }
 
-    // PDF feltöltés
-    const pdfBytes = new Uint8Array(await szResp.arrayBuffer())
+    const szamlaszamMatch = responseText.match(/<szamlaszam>(.*?)<\/szamlaszam>/)
+    const invoiceNumber = szamlaszamMatch?.[1]?.trim() || szResp.headers.get('szlahu_szamlaszam')
+    const nettoMatch = responseText.match(/<szamlanetto>(.*?)<\/szamlanetto>/)
+    const bruttoMatch = responseText.match(/<szamlabrutto>(.*?)<\/szamlabrutto>/)
+    const netResp = nettoMatch?.[1]?.trim() || szResp.headers.get('szlahu_nettovegosszeg')
+    const grossResp = bruttoMatch?.[1]?.trim() || szResp.headers.get('szlahu_bruttovegosszeg')
+
+    if (!invoiceNumber) {
+      await admin
+        .from('invoices')
+        .update({ status: 'failed', error_message: 'Hiányzó számlaszám a válaszban' })
+        .eq('id', invoice.id)
+      return new Response(
+        JSON.stringify({ error: 'Hiányzó számlaszám a Számlázz.hu válaszában', invoice_id: invoice.id }),
+        { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      )
+    }
+
+    // PDF kinyerése a <pdf> base64 tag-ből
+    const pdfMatch = responseText.match(/<pdf>([\s\S]*?)<\/pdf>/)
+    if (!pdfMatch) {
+      await admin
+        .from('invoices')
+        .update({
+          status: 'failed',
+          szamlazz_invoice_number: invoiceNumber,
+          error_message: 'A Számlázz.hu válasz nem tartalmaz PDF-et',
+        })
+        .eq('id', invoice.id)
+      return new Response(
+        JSON.stringify({ error: 'Nincs PDF a Számlázz.hu válaszában', invoice_number: invoiceNumber }),
+        { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      )
+    }
+    const pdfBase64 = pdfMatch[1].replace(/\s+/g, '')
+    const pdfBytes = Uint8Array.from(atob(pdfBase64), (c) => c.charCodeAt(0))
+
     const safeNumber = invoiceNumber.replace(/[^A-Za-z0-9_-]/g, '_')
     const storagePath = `${profile.id}/${safeNumber}.pdf`
 
