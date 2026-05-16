@@ -66,6 +66,11 @@ interface CashEntry {
   document_number: string | null;
   seq_year: number | null;
   seq_number: number | null;
+  corrects_entry_id: string | null;
+  correction_type: "storno" | "helyesbites" | "ellentetelezes" | null;
+  correction_reason: string | null;
+  original_amount: number | null;
+  corrected_amount: number | null;
 }
 
 const fmtHUF = (n: number) =>
