@@ -333,12 +333,16 @@ export function CreateInvoiceDialog({
           <section className="space-y-3">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-semibold">Tételek</h3>
-              <Button size="sm" variant="outline" onClick={() => setItems([...items, { ...emptyItem }])}>
+              <Button size="sm" variant="outline" onClick={addEmptyItem}>
                 <Plus className="h-4 w-4 mr-1" /> Tétel
               </Button>
             </div>
             <div className="space-y-2">
-              {items.map((it, idx) => (
+              {items.map((it, idx) => {
+                const key = itemKeys[idx];
+                const hasPrice = key ? priceMap.has(priceKey(...key.split("||") as [string, string])) : false;
+                const isEdited = editedPrices.current.has(idx);
+                return (
                 <div key={idx} className="grid grid-cols-12 gap-2 items-end border rounded p-2">
                   <div className="col-span-12 md:col-span-4">
                     <Label className="text-xs">Megnevezés</Label>
@@ -355,6 +359,17 @@ export function CreateInvoiceDialog({
                   <div className="col-span-4 md:col-span-2">
                     <Label className="text-xs">Nettó egys.ár</Label>
                     <Input type="number" step="0.01" value={it.net_unit_price} onChange={(e) => updateItem(idx, { net_unit_price: parseFloat(e.target.value) || 0 })} />
+                    {key && pricesLoaded && (
+                      hasPrice ? (
+                        <p className="text-[10px] text-muted-foreground mt-0.5">
+                          {isEdited ? "Egyedi ár" : "Ár az Árlistából"}
+                        </p>
+                      ) : (
+                        <p className="text-[10px] text-amber-600 mt-0.5">
+                          Nincs beállított ár — add meg kézzel.
+                        </p>
+                      )
+                    )}
                   </div>
                   <div className="col-span-8 md:col-span-2">
                     <Label className="text-xs">ÁFA</Label>
@@ -371,7 +386,7 @@ export function CreateInvoiceDialog({
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => setItems(items.filter((_, i) => i !== idx))}
+                      onClick={() => removeItem(idx)}
                       disabled={items.length === 1}
                     >
                       <Trash2 className="h-4 w-4" />
