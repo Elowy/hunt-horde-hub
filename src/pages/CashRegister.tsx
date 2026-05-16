@@ -63,6 +63,9 @@ interface CashEntry {
   booking_ref: string | null;
   issued_at: string | null;
   created_at: string;
+  document_number: string | null;
+  seq_year: number | null;
+  seq_number: number | null;
 }
 
 const fmtHUF = (n: number) =>
