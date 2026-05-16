@@ -409,10 +409,177 @@ const CashRegisterPage = () => {
     if (e.status !== "piszkozat") return;
     if (!confirm("Biztosan törlöd ezt a piszkozatot?")) return;
     const { error } = await supabase.from("cash_entries").delete().eq("id", e.id);
-    if (error) { toast.error(error.message); return; }
-    toast.success("Piszkozat törölve");
-    if (selectedRegId) await loadEntries(selectedRegId);
   };
+
+  // --- M3: Korrekció helpers ---
+  // Egyenleg-szimuláció: mi lenne az aktuális egyenleg, ha hozzáadnánk egy új tételt?
+  const simulateBalance = (regId: string, entryType: "bevetel" | "kiadas", amount: number, excludeId?: string) => {
+    const reg = registers.find((r) => r.id === regId);
+    if (!reg) return 0;
+    let bal = Number(reg.opening_balance || 0);
+    for (const e of entries) {
+      if (e.id === excludeId) continue;
+      if (e.status === "veglegesitett") {
+        bal += e.entry_type === "bevetel" ? Number(e.amount) : -Number(e.amount);
+      }
+    }
+    bal += entryType === "bevetel" ? amount : -amount;
+    return bal;
+  };
+
+  const openCorrection = (e: CashEntry) => {
+    setCorrTarget(e);
+    setCorrStep("choose");
+    setCorrType(null);
+    setCorrReason("");
+    setCorrReasonCode("");
+    setCorrCorrectedAmount("");
+    setCorrEllAmount("");
+    setCorrDescription("");
+  };
+  const closeCorrection = () => {
+    setCorrTarget(null);
+    setCorrStep("choose");
+    setCorrType(null);
+  };
+
+  const selectCorrType = (t: "storno" | "helyesbites" | "ellentetelezes") => {
+    setCorrType(t);
+    setCorrStep("form");
+  };
+
+  const correctionPreviewBalance = useMemo(() => {
+    if (!corrTarget || !corrType) return null;
+    let amt = 0;
+    let opp: "bevetel" | "kiadas" = corrTarget.entry_type === "bevetel" ? "kiadas" : "bevetel";
+    if (corrType === "storno") amt = Number(corrTarget.amount);
+    if (corrType === "helyesbites") {
+      const corrected = Number(corrCorrectedAmount) || 0;
+      const diff = corrected - Number(corrTarget.amount);
+      // diff > 0: kiegészítés azonos irányban; diff < 0: ellentétes irányú visszavétel
+      if (diff === 0) return simulateBalance(corrTarget.cash_register_id, corrTarget.entry_type, 0);
+      if (diff > 0) {
+        opp = corrTarget.entry_type;
+        amt = diff;
+      } else {
+        opp = corrTarget.entry_type === "bevetel" ? "kiadas" : "bevetel";
+        amt = -diff;
+      }
+    }
+    if (corrType === "ellentetelezes") amt = Number(corrEllAmount) || 0;
+    return simulateBalance(corrTarget.cash_register_id, opp, amt);
+  }, [corrTarget, corrType, corrCorrectedAmount, corrEllAmount, entries, registers]);
+
+  const submitCorrection = async () => {
+    if (!corrTarget || !corrType || !societyId) return;
+    if (corrReason.trim().length < 3) { toast.error("Az indoklás kötelező (min. 3 karakter)."); return; }
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    let entry_type: "bevetel" | "kiadas";
+    let amount: number;
+    let document_type: "STO" | "HEL" | "ELL";
+    let original_amount: number | null = null;
+    let corrected_amount: number | null = null;
+    const opposite: "bevetel" | "kiadas" = corrTarget.entry_type === "bevetel" ? "kiadas" : "bevetel";
+
+    if (corrType === "storno") {
+      document_type = "STO";
+      entry_type = opposite;
+      amount = Number(corrTarget.amount);
+    } else if (corrType === "helyesbites") {
+      const corrected = Number(corrCorrectedAmount);
+      if (!corrected || corrected <= 0) { toast.error("A helyes érték kötelező és pozitív."); return; }
+      if (corrected === Number(corrTarget.amount)) { toast.error("A helyes érték eltér kell legyen az eredetitől."); return; }
+      document_type = "HEL";
+      original_amount = Number(corrTarget.amount);
+      corrected_amount = corrected;
+      const diff = corrected - original_amount;
+      if (diff > 0) { entry_type = corrTarget.entry_type; amount = diff; }
+      else { entry_type = opposite; amount = -diff; }
+    } else {
+      const ell = Number(corrEllAmount);
+      if (!ell || ell <= 0) { toast.error("Az ellentételezett összeg kötelező és pozitív."); return; }
+      document_type = "ELL";
+      entry_type = opposite;
+      amount = ell;
+    }
+
+    // Frontend negatív-egyenleg pre-check
+    const projected = simulateBalance(corrTarget.cash_register_id, entry_type, amount);
+    if (projected < 0) {
+      toast.error(`Ez a művelet negatívba vinné a pénztárt (${Math.round(projected)} Ft). Nem véglegesíthető.`);
+      return;
+    }
+
+    const reasonFull = corrReasonCode
+      ? `[${corrReasonCode}] ${corrReason.trim()}`
+      : corrReason.trim();
+
+    const words = numberToHungarianWords(amount);
+    const eventDate = new Date().toISOString().slice(0, 10);
+    const corrLabel: Record<typeof corrType, string> =
+      { storno: "Stornó", helyesbites: "Helyesbítés", ellentetelezes: "Ellentételezés" } as any;
+
+    const payload: any = {
+      cash_register_id: corrTarget.cash_register_id,
+      hunter_society_id: societyId,
+      entry_type,
+      document_type,
+      status: "veglegesitett",
+      amount,
+      entry_date: eventDate,
+      event_date: eventDate,
+      category: corrTarget.category || `${corrLabel[corrType]} (korrekció)`,
+      description: corrDescription.trim()
+        || `${corrLabel[corrType]} a(z) ${corrTarget.document_number || corrTarget.id} bizonylathoz. Indok: ${reasonFull}`,
+      partner_name: corrTarget.partner_name || "—",
+      partner_tax_id: corrTarget.partner_tax_id,
+      amount_in_words: words,
+      source_type: "correction",
+      source_id: corrTarget.id,
+      created_by: user.id,
+      corrects_entry_id: corrTarget.id,
+      correction_type: corrType,
+      correction_reason: reasonFull,
+      original_amount,
+      corrected_amount,
+    };
+
+    setCorrSubmitting(true);
+    const { data, error } = await supabase.from("cash_entries").insert(payload)
+      .select("document_number").maybeSingle();
+    setCorrSubmitting(false);
+    if (error) { toast.error("Korrekció sikertelen: " + error.message); return; }
+    const docNo = (data as any)?.document_number;
+    toast.success(
+      `${corrLabel[corrType]} véglegesítve${docNo ? `: ${docNo}` : ""}` +
+      (corrType !== "ellentetelezes"
+        ? `. Az eredeti bizonylat (${corrTarget.document_number || ""}) ${corrType === "storno" ? "stornózva" : "helyesbítve"}.`
+        : ". Az eredeti bizonylat érvényben marad (új valós pénzmozgás).")
+    );
+    closeCorrection();
+    setViewEntry(null);
+    await loadEntries(corrTarget.cash_register_id);
+    if (selectedRegId) await loadGaps(selectedRegId);
+  };
+
+  // Korrekciós kapcsolatok lookup
+  const correctionByOriginal = useMemo(() => {
+    const m = new Map<string, CashEntry>();
+    for (const e of entries) {
+      if (e.corrects_entry_id && (e.correction_type === "storno" || e.correction_type === "helyesbites")) {
+        m.set(e.corrects_entry_id, e);
+      }
+    }
+    return m;
+  }, [entries]);
+  const originalById = useMemo(() => {
+    const m = new Map<string, CashEntry>();
+    for (const e of entries) m.set(e.id, e);
+    return m;
+  }, [entries]);
+
 
   const exportCSV = () => {
     if (!selectedReg) return;
