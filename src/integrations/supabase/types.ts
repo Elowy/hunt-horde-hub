@@ -419,51 +419,132 @@ export type Database = {
         }
         Relationships: []
       }
+      cash_categories: {
+        Row: {
+          code: string
+          created_at: string
+          direction: string
+          hunter_society_id: string
+          id: string
+          is_active: boolean
+          name: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          direction: string
+          hunter_society_id: string
+          id?: string
+          is_active?: boolean
+          name: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          direction?: string
+          hunter_society_id?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cash_categories_hunter_society_id_fkey"
+            columns: ["hunter_society_id"]
+            isOneToOne: false
+            referencedRelation: "hunter_societies_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cash_categories_hunter_society_id_fkey"
+            columns: ["hunter_society_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cash_entries: {
         Row: {
           amount: number
+          amount_in_words: string | null
+          booking_ref: string | null
           cash_register_id: string
           category: string | null
           created_at: string
           created_by: string
           description: string | null
+          document_type: string
           entry_date: string
           entry_type: string
+          event_date: string | null
           hunter_society_id: string
           id: string
+          issued_at: string | null
+          issued_by: string | null
+          ordered_by: string | null
+          partner_name: string | null
+          partner_tax_id: string | null
+          recorded_at: string | null
           reference_number: string | null
+          related_document_ref: string | null
           source_id: string | null
           source_type: string | null
+          status: string
         }
         Insert: {
           amount: number
+          amount_in_words?: string | null
+          booking_ref?: string | null
           cash_register_id: string
           category?: string | null
           created_at?: string
           created_by: string
           description?: string | null
+          document_type?: string
           entry_date?: string
           entry_type: string
+          event_date?: string | null
           hunter_society_id: string
           id?: string
+          issued_at?: string | null
+          issued_by?: string | null
+          ordered_by?: string | null
+          partner_name?: string | null
+          partner_tax_id?: string | null
+          recorded_at?: string | null
           reference_number?: string | null
+          related_document_ref?: string | null
           source_id?: string | null
           source_type?: string | null
+          status?: string
         }
         Update: {
           amount?: number
+          amount_in_words?: string | null
+          booking_ref?: string | null
           cash_register_id?: string
           category?: string | null
           created_at?: string
           created_by?: string
           description?: string | null
+          document_type?: string
           entry_date?: string
           entry_type?: string
+          event_date?: string | null
           hunter_society_id?: string
           id?: string
+          issued_at?: string | null
+          issued_by?: string | null
+          ordered_by?: string | null
+          partner_name?: string | null
+          partner_tax_id?: string | null
+          recorded_at?: string | null
           reference_number?: string | null
+          related_document_ref?: string | null
           source_id?: string | null
           source_type?: string | null
+          status?: string
         }
         Relationships: [
           {
@@ -482,6 +563,70 @@ export type Database = {
           },
           {
             foreignKeyName: "cash_entries_hunter_society_id_fkey"
+            columns: ["hunter_society_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cash_policy: {
+        Row: {
+          cash_register_id: string | null
+          closing_cycle: string
+          created_at: string
+          digital_only: boolean
+          hunter_society_id: string
+          id: string
+          max_cash_balance: number | null
+          require_signature: boolean
+          retention_years: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          cash_register_id?: string | null
+          closing_cycle?: string
+          created_at?: string
+          digital_only?: boolean
+          hunter_society_id: string
+          id?: string
+          max_cash_balance?: number | null
+          require_signature?: boolean
+          retention_years?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          cash_register_id?: string | null
+          closing_cycle?: string
+          created_at?: string
+          digital_only?: boolean
+          hunter_society_id?: string
+          id?: string
+          max_cash_balance?: number | null
+          require_signature?: boolean
+          retention_years?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cash_policy_cash_register_id_fkey"
+            columns: ["cash_register_id"]
+            isOneToOne: false
+            referencedRelation: "cash_registers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cash_policy_hunter_society_id_fkey"
+            columns: ["hunter_society_id"]
+            isOneToOne: false
+            referencedRelation: "hunter_societies_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cash_policy_hunter_society_id_fkey"
             columns: ["hunter_society_id"]
             isOneToOne: false
             referencedRelation: "profiles"
