@@ -841,7 +841,17 @@ const CashRegisterPage = () => {
                 <span>{draftCount} piszkozat vár véglegesítésre. A piszkozatok nem számítanak bele az egyenlegbe.</span>
               </div>
             )}
-            {currentBalance < 0 && (
+            {overMax && (
+              <div className="flex items-center gap-2 p-3 rounded-md border border-amber-500/50 bg-amber-500/10 text-amber-800 dark:text-amber-200 text-sm">
+                <Landmark className="h-4 w-4 shrink-0" />
+                <span className="flex-1">
+                  A pénztáregyenleg ({fmtHUF(currentBalance)}) meghaladja a szabályzati maximumot ({fmtHUF(maxCashBalance!)}). Javasolt a felesleg bankba helyezése.
+                </span>
+                <Button size="sm" variant="outline" onClick={openToBank}>
+                  Pénztár → bank
+                </Button>
+              </div>
+            )}
               <div className="flex items-center gap-2 p-3 rounded-md border border-destructive bg-destructive/10 text-destructive text-sm">
                 <AlertTriangle className="h-4 w-4 shrink-0" />
                 <span>Figyelem: a pénztár egyenlege negatív. Ellenőrizd a tételeket.</span>
