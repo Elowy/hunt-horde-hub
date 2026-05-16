@@ -13,6 +13,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { AlertTriangle, ArrowLeft, Download, Loader2, Plus, Pencil, Trash2, Wallet, Settings, FileCheck, Eye, RotateCcw, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 import { numberToHungarianWords } from "@/lib/numberToHungarianWords";
+import CashClosingsPanel from "@/components/CashClosingsPanel";
+import { useIsSuperAdmin } from "@/hooks/useIsSuperAdmin";
 
 interface CashRegister {
   id: string;
@@ -102,12 +104,14 @@ const emptyEntryForm = (regId: string) => ({
 
 const CashRegisterPage = () => {
   const navigate = useNavigate();
+  const { isSuperAdmin } = useIsSuperAdmin();
   const [loading, setLoading] = useState(true);
   const [societyId, setSocietyId] = useState<string | null>(null);
   const [registers, setRegisters] = useState<CashRegister[]>([]);
   const [selectedRegId, setSelectedRegId] = useState<string | null>(null);
   const [entries, setEntries] = useState<CashEntry[]>([]);
   const [categories, setCategories] = useState<CashCategory[]>([]);
+  const [closingCycle, setClosingCycle] = useState<"napi" | "heti" | "havi">("napi");
 
   // Filters
   const [fromDate, setFromDate] = useState("");
@@ -153,6 +157,9 @@ const CashRegisterPage = () => {
       setSocietyId(profile.id);
       await loadRegisters(profile.id);
       await loadCategories(profile.id);
+      const { data: pol } = await (supabase as any).from("cash_policy")
+        .select("closing_cycle").eq("hunter_society_id", profile.id).maybeSingle();
+      if (pol?.closing_cycle) setClosingCycle(pol.closing_cycle);
       setLoading(false);
     })();
   }, []);
@@ -919,6 +926,18 @@ const CashRegisterPage = () => {
                 </Table>
               </CardContent>
             </Card>
+
+            {selectedReg && societyId && (
+              <CashClosingsPanel
+                societyId={societyId}
+                registerId={selectedReg.id}
+                registerCode={selectedReg.register_code}
+                openingBalance={Number(selectedReg.opening_balance || 0)}
+                closingCycle={closingCycle}
+                isSuperAdmin={isSuperAdmin}
+                onClosed={() => selectedRegId && loadEntries(selectedRegId)}
+              />
+            )}
           </>
         )}
       </div>

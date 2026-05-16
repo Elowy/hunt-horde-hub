@@ -464,6 +464,124 @@ export type Database = {
           },
         ]
       }
+      cash_closings: {
+        Row: {
+          cash_register_id: string
+          closed_at: string
+          closed_by: string
+          closing_balance: number
+          closing_number: string
+          closing_seq_number: number
+          closing_seq_year: number
+          counted_cash: number | null
+          created_at: string
+          difference: number | null
+          difference_note: string | null
+          hunter_society_id: string
+          id: string
+          opening_balance: number
+          pdf_path: string | null
+          period_end: string
+          period_start: string
+          reopen_reason: string | null
+          reopened_at: string | null
+          reopened_by: string | null
+          status: string
+          total_expense: number
+          total_income: number
+          version: number
+        }
+        Insert: {
+          cash_register_id: string
+          closed_at?: string
+          closed_by: string
+          closing_balance: number
+          closing_number: string
+          closing_seq_number: number
+          closing_seq_year: number
+          counted_cash?: number | null
+          created_at?: string
+          difference?: number | null
+          difference_note?: string | null
+          hunter_society_id: string
+          id?: string
+          opening_balance: number
+          pdf_path?: string | null
+          period_end: string
+          period_start: string
+          reopen_reason?: string | null
+          reopened_at?: string | null
+          reopened_by?: string | null
+          status?: string
+          total_expense: number
+          total_income: number
+          version?: number
+        }
+        Update: {
+          cash_register_id?: string
+          closed_at?: string
+          closed_by?: string
+          closing_balance?: number
+          closing_number?: string
+          closing_seq_number?: number
+          closing_seq_year?: number
+          counted_cash?: number | null
+          created_at?: string
+          difference?: number | null
+          difference_note?: string | null
+          hunter_society_id?: string
+          id?: string
+          opening_balance?: number
+          pdf_path?: string | null
+          period_end?: string
+          period_start?: string
+          reopen_reason?: string | null
+          reopened_at?: string | null
+          reopened_by?: string | null
+          status?: string
+          total_expense?: number
+          total_income?: number
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cash_closings_cash_register_id_fkey"
+            columns: ["cash_register_id"]
+            isOneToOne: false
+            referencedRelation: "cash_registers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cash_denominations: {
+        Row: {
+          closing_id: string
+          count: number
+          denomination: number
+          id: string
+        }
+        Insert: {
+          closing_id: string
+          count?: number
+          denomination: number
+          id?: string
+        }
+        Update: {
+          closing_id?: string
+          count?: number
+          denomination?: number
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cash_denominations_closing_id_fkey"
+            columns: ["closing_id"]
+            isOneToOne: false
+            referencedRelation: "cash_closings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cash_entries: {
         Row: {
           amount: number
