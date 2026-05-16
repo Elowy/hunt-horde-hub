@@ -316,16 +316,23 @@ export const EditAnimalDialog = ({ animal, locations, onAnimalUpdated }: EditAni
       .sort((a, b) => b.score - a.score)[0]?.p ?? null;
   };
 
+  const matchedEpidemicMeasure = useMemo(
+    () => epidemicMeasures.find((m) => m.is_active && m.affected_species.includes(formData.species)) || null,
+    [epidemicMeasures, formData.species]
+  );
+  const isKartalanitas = formData.usage_type === "kartalanitas";
+
   // Auto-fill pricing fields from current price list (skip fields user has touched / already set)
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const activeMeasure = epidemicMeasures.find(
-        (m) => m.is_active && m.affected_species.includes(formData.species)
-      );
+      const activeMeasure = matchedEpidemicMeasure;
       let netTotal = 0;
       let vat = vatRate;
-      if (activeMeasure) {
+      if (isKartalanitas && activeMeasure) {
+        netTotal = Number(activeMeasure.price_per_unit) || 0;
+        vat = (activeMeasure as any).vat_rate || vatRate;
+      } else if (activeMeasure) {
         netTotal = activeMeasure.shooting_fee + activeMeasure.sampling_fee + activeMeasure.price_per_unit;
         vat = (activeMeasure as any).vat_rate || vatRate;
       } else if (formData.species && formData.class) {
@@ -348,9 +355,15 @@ export const EditAnimalDialog = ({ animal, locations, onAnimalUpdated }: EditAni
       if (cancelled) return;
       setPricing((prev) => {
         const next = { ...prev };
-        if (!pricingTouched.netPrice) next.netPrice = netTotal ? String(Math.round(netTotal)) : "";
-        if (!pricingTouched.priceVat) next.priceVat = String(vat);
-        if (!pricingTouched.grossPrice) next.grossPrice = netTotal ? String(Math.round(netTotal * (1 + vat / 100))) : "";
+        if (isKartalanitas && activeMeasure) {
+          next.netPrice = String(Math.round(netTotal));
+          next.priceVat = String(vat);
+          next.grossPrice = String(Math.round(netTotal * (1 + vat / 100)));
+        } else {
+          if (!pricingTouched.netPrice) next.netPrice = netTotal ? String(Math.round(netTotal)) : "";
+          if (!pricingTouched.priceVat) next.priceVat = String(vat);
+          if (!pricingTouched.grossPrice) next.grossPrice = netTotal ? String(Math.round(netTotal * (1 + vat / 100))) : "";
+        }
         if (!pricingTouched.coolingPricePerKg) next.coolingPricePerKg = coolingPerKg ? String(coolingPerKg) : "";
         if (!pricingTouched.coolingVat) next.coolingVat = coolingVatVal ? String(coolingVatVal) : "";
         return next;
@@ -358,7 +371,7 @@ export const EditAnimalDialog = ({ animal, locations, onAnimalUpdated }: EditAni
     })();
     return () => { cancelled = true; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [formData.weight, formData.species, formData.class, formData.storage_location_id, priceSettings, vatRate, epidemicMeasures]);
+  }, [formData.weight, formData.species, formData.class, formData.storage_location_id, formData.usage_type, priceSettings, vatRate, epidemicMeasures, isKartalanitas, matchedEpidemicMeasure]);
 
   const handlePricingChange = (field: keyof typeof pricing, value: string) => {
     setPricing((prev) => {
