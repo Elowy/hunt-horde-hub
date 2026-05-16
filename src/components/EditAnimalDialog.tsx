@@ -816,8 +816,19 @@ export const EditAnimalDialog = ({ animal, locations, onAnimalUpdated }: EditAni
                         <SelectItem value="ajandekozas">Ajándékozás</SelectItem>
                         <SelectItem value="barter">Barter</SelectItem>
                         <SelectItem value="eladas">Eladás</SelectItem>
+                        <SelectItem value="kartalanitas">Kártalanítás</SelectItem>
                       </SelectContent>
                     </Select>
+                    {isKartalanitas && matchedEpidemicMeasure && (
+                      <p className="text-xs text-muted-foreground">
+                        Az ár a járványügyi intézkedésből származik: <strong>{matchedEpidemicMeasure.name}</strong>
+                      </p>
+                    )}
+                    {isKartalanitas && !matchedEpidemicMeasure && (
+                      <p className="text-xs text-destructive">
+                        Nincs aktív járványügyi intézkedés erre a fajra ({formData.species || "—"}). Állíts be egyet a Járványügyi intézkedéseknél, vagy válassz másik felhasználás típust.
+                      </p>
+                    )}
                   </div>
                   {formData.usage_type && formData.usage_type !== "sajat" && (
                     <div className="space-y-2">
