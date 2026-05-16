@@ -706,6 +706,20 @@ const CashRegisterPage = () => {
             <div>
               <Label>Név *</Label>
               <Input value={regForm.name} onChange={(e) => setRegForm({ ...regForm, name: e.target.value })} placeholder="pl. Fő pénztár" />
+            <div>
+              <Label>Pénztárkód *</Label>
+              <Input
+                value={regForm.register_code}
+                onChange={(e) => setRegForm({ ...regForm, register_code: e.target.value.toUpperCase() })}
+                placeholder="pl. KP01"
+                disabled={regCodeLocked}
+                maxLength={16}
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                {regCodeLocked
+                  ? "A kód nem módosítható, mert már vannak bizonylatai (a sorszámok rá hivatkoznak)."
+                  : "Egyedi azonosító, megjelenik a bizonylatok sorszámában (pl. KP01-BPB-2026-000123)."}
+              </p>
             </div>
             <div>
               <Label>Leírás</Label>
