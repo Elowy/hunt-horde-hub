@@ -112,6 +112,17 @@ const CashRegisterPage = () => {
   const [entries, setEntries] = useState<CashEntry[]>([]);
   const [categories, setCategories] = useState<CashCategory[]>([]);
   const [closingCycle, setClosingCycle] = useState<"napi" | "heti" | "havi">("napi");
+  const [maxCashBalance, setMaxCashBalance] = useState<number | null>(null);
+
+  // Cash → Bank dialog
+  const [toBankOpen, setToBankOpen] = useState(false);
+  const [toBankSubmitting, setToBankSubmitting] = useState(false);
+  const [toBankForm, setToBankForm] = useState({
+    amount: "",
+    event_date: new Date().toISOString().slice(0, 10),
+    bank_ref: "",
+    note: "",
+  });
 
   // Filters
   const [fromDate, setFromDate] = useState("");
