@@ -210,7 +210,27 @@ export function CreateInvoiceDialog({
 
   const updateItem = (idx: number, patch: Partial<InvoiceItem>) => {
     if (patch.comment !== undefined) editedComments.current.add(idx);
+    if (patch.net_unit_price !== undefined || patch.vat_rate !== undefined) {
+      editedPrices.current.add(idx);
+    }
     setItems((xs) => xs.map((x, i) => (i === idx ? { ...x, ...patch } : x)));
+  };
+
+  const addEmptyItem = () => {
+    setItems((xs) => [...xs, { ...emptyItem }]);
+    setItemKeys((ks) => [...ks, null]);
+  };
+  const removeItem = (idx: number) => {
+    setItems((xs) => xs.filter((_, i) => i !== idx));
+    setItemKeys((ks) => ks.filter((_, i) => i !== idx));
+    // shift edited sets
+    const shift = (s: Set<number>) => {
+      const next = new Set<number>();
+      s.forEach((i) => { if (i < idx) next.add(i); else if (i > idx) next.add(i - 1); });
+      return next;
+    };
+    editedComments.current = shift(editedComments.current);
+    editedPrices.current = shift(editedPrices.current);
   };
 
   const submit = async () => {
