@@ -926,6 +926,18 @@ const CashRegisterPage = () => {
                 </Table>
               </CardContent>
             </Card>
+
+            {selectedReg && societyId && (
+              <CashClosingsPanel
+                societyId={societyId}
+                registerId={selectedReg.id}
+                registerCode={selectedReg.register_code}
+                openingBalance={Number(selectedReg.opening_balance || 0)}
+                closingCycle={closingCycle}
+                isSuperAdmin={isSuperAdmin}
+                onClosed={() => selectedRegId && loadEntries(selectedRegId)}
+              />
+            )}
           </>
         )}
       </div>
