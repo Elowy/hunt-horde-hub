@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { FileCheck, Download, Loader2, RotateCcw, AlertTriangle, Lock } from "lucide-react";
 import { toast } from "sonner";
+import { generateCashReportPdf } from "@/lib/generateCashReportPdf";
 
 interface Props {
   societyId: string;
