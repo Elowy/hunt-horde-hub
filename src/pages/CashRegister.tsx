@@ -360,16 +360,25 @@ const CashRegisterPage = () => {
     if (!user) return;
     const payload = buildPayload("veglegesitett", user.id);
     let error;
+    let resultRow: any = null;
     if (entryForm.id) {
-      ({ error } = await supabase.from("cash_entries").update(payload).eq("id", entryForm.id));
+      const r = await supabase.from("cash_entries").update(payload).eq("id", entryForm.id)
+        .select("document_number").maybeSingle();
+      error = r.error; resultRow = r.data;
     } else {
-      ({ error } = await supabase.from("cash_entries").insert(payload));
+      const r = await supabase.from("cash_entries").insert(payload)
+        .select("document_number").maybeSingle();
+      error = r.error; resultRow = r.data;
     }
     if (error) { toast.error("Véglegesítés sikertelen: " + error.message); return; }
-    toast.success("Bizonylat véglegesítve. Tartalma a továbbiakban nem módosítható.");
+    const docNo = resultRow?.document_number;
+    toast.success(docNo
+      ? `Bizonylat véglegesítve: ${docNo}`
+      : "Bizonylat véglegesítve. Tartalma a továbbiakban nem módosítható.");
     setConfirmFinalizeOpen(false);
     setEntryDialogOpen(false);
     await loadEntries(entryForm.cash_register_id);
+    if (selectedRegId) await loadGaps(selectedRegId);
   };
 
   const deleteDraft = async (e: CashEntry) => {
