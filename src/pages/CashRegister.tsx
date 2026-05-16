@@ -378,6 +378,12 @@ const CashRegisterPage = () => {
   const requestFinalize = () => {
     const err = validateForFinalize();
     if (err) { toast.error(err); return; }
+    const amt = Number(entryForm.amount);
+    const projected = simulateBalance(entryForm.cash_register_id, entryForm.entry_type, amt, entryForm.id || undefined);
+    if (projected < 0) {
+      toast.error(`Ez a művelet negatívba vinné a pénztárt (${fmtHUF(projected)}). Nem véglegesíthető.`);
+      return;
+    }
     setConfirmFinalizeOpen(true);
   };
   const finalizeEntry = async () => {
