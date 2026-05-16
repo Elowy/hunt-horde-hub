@@ -58,7 +58,7 @@ export async function generateCashReportPdf(closingId: string): Promise<void> {
   const [{ data: reg }, { data: soc }, { data: entries }, { data: denoms }, { data: closer }] =
     await Promise.all([
       supabase.from("cash_registers").select("register_code, name").eq("id", c.cash_register_id).maybeSingle(),
-      supabase.from("profiles").select("company_name, full_name").eq("id", c.hunter_society_id).maybeSingle(),
+      supabase.from("profiles").select("company_name, contact_name").eq("id", c.hunter_society_id).maybeSingle(),
       supabase.from("cash_entries")
         .select("document_number, entry_type, amount, event_date, category, partner_name, description, related_document_ref, status, seq_number")
         .eq("cash_register_id", c.cash_register_id)
@@ -67,7 +67,7 @@ export async function generateCashReportPdf(closingId: string): Promise<void> {
         .order("event_date", { ascending: true })
         .order("seq_number", { ascending: true }),
       (supabase as any).from("cash_denominations").select("denomination, count").eq("closing_id", c.id).order("denomination", { ascending: false }),
-      supabase.from("profiles").select("full_name").eq("id", c.closed_by).maybeSingle(),
+      supabase.from("profiles").select("company_name, contact_name").eq("id", c.closed_by).maybeSingle(),
     ]);
 
   // 2) Dokumentum + magyar font
