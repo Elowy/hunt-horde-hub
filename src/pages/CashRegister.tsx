@@ -161,8 +161,9 @@ const CashRegisterPage = () => {
   };
 
   useEffect(() => {
-    if (!selectedRegId) { setEntries([]); return; }
+    if (!selectedRegId) { setEntries([]); setGaps([]); return; }
     loadEntries(selectedRegId);
+    loadGaps(selectedRegId);
   }, [selectedRegId]);
 
   const loadEntries = async (regId: string) => {
@@ -173,6 +174,13 @@ const CashRegisterPage = () => {
       .order("created_at", { ascending: true });
     if (error) { toast.error("Tételek betöltése sikertelen"); return; }
     setEntries((data || []) as any as CashEntry[]);
+  };
+
+  const loadGaps = async (regId: string) => {
+    const { data, error } = await (supabase as any).from("cash_sequence_gaps").select("*")
+      .eq("cash_register_id", regId);
+    if (error) { setGaps([]); return; }
+    setGaps((data || []) as SequenceGap[]);
   };
 
   const selectedReg = registers.find((r) => r.id === selectedRegId) || null;
