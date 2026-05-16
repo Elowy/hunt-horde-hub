@@ -85,7 +85,7 @@ export async function generateCashReportPdf(closingId: string): Promise<void> {
     doc.setFontSize(10);
     doc.text(`Sorszám: ${c.closing_number}`, pageW - margin, margin + 6, { align: "right" });
     doc.setFont("DejaVu", "normal"); doc.setFontSize(9);
-    const gName = (soc as any)?.company_name || (soc as any)?.full_name || "-";
+    const gName = (soc as any)?.company_name || (soc as any)?.contact_name || "-";
     doc.text(`Gazdálkodó: ${gName}`, margin, margin + 22);
     doc.text(`Pénztár: ${(reg as any)?.name ?? ""} (${(reg as any)?.register_code ?? ""})`, margin, margin + 34);
     doc.text(`Időszak: ${fmtDate(c.period_start)} – ${fmtDate(c.period_end)}`, margin, margin + 46);
