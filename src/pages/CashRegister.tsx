@@ -542,6 +542,29 @@ const CashRegisterPage = () => {
                 <span>Figyelem: a pénztár egyenlege negatív. Ellenőrizd a tételeket.</span>
               </div>
             )}
+            {gaps.length > 0 ? (
+              <div className="flex items-start gap-2 p-3 rounded-md border border-destructive bg-destructive/10 text-destructive text-sm">
+                <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+                <div>
+                  <div className="font-semibold">Sorszám-hézag észlelve! Ez szabálytalan, ellenőrizd. (Sztv. 168. §)</div>
+                  <ul className="mt-1 space-y-0.5 text-xs font-mono">
+                    {gaps.slice(0, 10).map((g, i) => (
+                      <li key={i}>
+                        {g.document_type} / {g.seq_year} — hiányzó: {String(g.seq_number + 1).padStart(6, "0")}
+                        {g.next_number - g.seq_number > 2
+                          ? `…${String(g.next_number - 1).padStart(6, "0")}`
+                          : ""}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            ) : entries.some((e) => e.seq_number !== null) ? (
+              <div className="flex items-center gap-2 p-2 rounded-md border border-green-500/40 bg-green-500/10 text-green-700 dark:text-green-300 text-xs">
+                <FileCheck className="h-4 w-4 shrink-0" />
+                <span>Sorszámozás hézagmentes ({selectedReg?.register_code}).</span>
+              </div>
+            ) : null}
 
             <Card>
               <CardContent className="pt-6 flex gap-3 flex-wrap items-end">
