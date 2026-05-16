@@ -401,7 +401,8 @@ export function CreateInvoiceDialog({
                     />
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
           </section>
 
