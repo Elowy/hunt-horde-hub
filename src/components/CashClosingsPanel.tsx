@@ -194,30 +194,28 @@ export default function CashClosingsPanel({
       }
     }
 
-    toast.success(`Zárás kész: ${newClosing.closing_number}. PDF generálás folyamatban…`);
+    toast.success(`Zárás kész: ${newClosing.closing_number}. PDF generálás…`);
 
-    // PDF generálás
-    const { data: pdfRes, error: pdfErr } = await supabase.functions.invoke("penztarjelentes-pdf", {
-      body: { closing_id: newClosing.id },
-    });
-    setSubmitting(false);
-    if (pdfErr) {
-      toast.warning("Zárás létrejött, de a PDF generálás hibára futott: " + pdfErr.message);
-    } else if (pdfRes?.url) {
-      toast.success("Pénztárjelentés elérhető.");
-      window.open(pdfRes.url, "_blank");
+    // PDF generálás a frontenden (jsPDF + magyar font)
+    // TODO: 2. fázis - jogszabályi megfelelőség: hiteles archiválás (M6)
+    try {
+      await generateCashReportPdf(newClosing.id);
+      toast.success("Pénztárjelentés letöltve.");
+    } catch (e: any) {
+      toast.warning("Zárás létrejött, de a PDF generálás hibára futott: " + (e?.message ?? e));
     }
+    setSubmitting(false);
     setDialogOpen(false);
     await loadClosings();
     onClosed?.();
   };
 
   const downloadPdf = async (c: Closing) => {
-    const { data: res, error } = await supabase.functions.invoke("penztarjelentes-pdf", {
-      body: { closing_id: c.id },
-    });
-    if (error || !res?.url) { toast.error("PDF letöltés sikertelen"); return; }
-    window.open(res.url, "_blank");
+    try {
+      await generateCashReportPdf(c.id);
+    } catch (e: any) {
+      toast.error("PDF letöltés sikertelen: " + (e?.message ?? e));
+    }
   };
 
   const submitReopen = async () => {
