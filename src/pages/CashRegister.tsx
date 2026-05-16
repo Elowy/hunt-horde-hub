@@ -113,7 +113,9 @@ const CashRegisterPage = () => {
   // Register dialog
   const [regDialogOpen, setRegDialogOpen] = useState(false);
   const [editingReg, setEditingReg] = useState<CashRegister | null>(null);
-  const [regForm, setRegForm] = useState({ name: "", description: "", opening_balance: "0", is_active: true });
+  const [regForm, setRegForm] = useState({ name: "", description: "", opening_balance: "0", is_active: true, register_code: "" });
+  const [regCodeLocked, setRegCodeLocked] = useState(false);
+  const [gaps, setGaps] = useState<SequenceGap[]>([]);
 
   // Entry dialog
   const [entryDialogOpen, setEntryDialogOpen] = useState(false);
