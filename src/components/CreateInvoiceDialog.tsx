@@ -103,9 +103,14 @@ export function CreateInvoiceDialog({
 }: CreateInvoiceDialogProps) {
   const [buyer, setBuyer] = useState<InvoiceBuyer>({ ...emptyBuyer, ...prefilledBuyer });
   const [items, setItems] = useState<InvoiceItem[]>(() => {
-    if (animals && animals.length > 0) return generateItemsFromAnimals(animals);
+    if (animals && animals.length > 0) return generateItemsFromAnimals(animals).items;
     if (prefilledItems?.length) return prefilledItems;
     return [{ ...emptyItem }];
+  });
+  const [itemKeys, setItemKeys] = useState<(string | null)[]>(() => {
+    if (animals && animals.length > 0) return generateItemsFromAnimals(animals).keys;
+    if (prefilledItems?.length) return prefilledItems.map(() => null);
+    return [null];
   });
   const [comment, setComment] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("Átutalás");
@@ -158,17 +163,37 @@ export function CreateInvoiceDialog({
     if (open) {
       setBuyer({ ...emptyBuyer, ...prefilledBuyer });
       if (animals && animals.length > 0) {
-        setItems(generateItemsFromAnimals(animals));
+        const g = generateItemsFromAnimals(animals);
+        setItems(g.items);
+        setItemKeys(g.keys);
       } else if (prefilledItems?.length) {
         setItems(prefilledItems);
+        setItemKeys(prefilledItems.map(() => null));
       } else {
         setItems([{ ...emptyItem }]);
+        setItemKeys([null]);
       }
       setComment("");
       setPaymentMethod("Átutalás");
       editedComments.current = new Set();
+      editedPrices.current = new Set();
     }
   }, [open]);
+
+  // Auto-fill prices from price_settings when prices load (and on items rebuild)
+  useEffect(() => {
+    if (!open || !pricesLoaded) return;
+    setItems((xs) => xs.map((it, idx) => {
+      if (editedPrices.current.has(idx)) return it;
+      const key = itemKeys[idx];
+      if (!key) return it;
+      const [sp, cls] = key.split("||");
+      const hit = priceMap.get(priceKey(sp, cls));
+      if (!hit) return it;
+      return { ...it, net_unit_price: hit.price_per_kg, vat_rate: String(hit.vat_rate) };
+    }));
+  }, [open, pricesLoaded, priceMap, itemKeys]);
+
 
   const totals = useMemo(() => {
     let net = 0;
