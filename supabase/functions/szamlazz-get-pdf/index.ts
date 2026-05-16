@@ -77,9 +77,12 @@ Deno.serve(async (req) => {
       })
     }
 
+    const PUBLIC_URL = 'https://api.hunthorde.com'
+    const publicSignedUrl = signed.signedUrl.replace(/^https?:\/\/[^/]+/, PUBLIC_URL)
+
     return new Response(
       JSON.stringify({
-        url: signed.signedUrl,
+        url: publicSignedUrl,
         expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
