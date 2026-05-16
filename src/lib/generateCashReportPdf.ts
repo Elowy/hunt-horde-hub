@@ -3,53 +3,22 @@
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { supabase } from "@/integrations/supabase/client";
+import { notoSansRegularBase64 } from "@/lib/pdfFont";
 
-// Magyar ékezetes Unicode font (DejaVu Sans) — runtime fetch + cache
-// Több CDN fallbackkel, hogy ne legyen single point of failure.
-const FONT_URLS = [
-  "https://cdn.jsdelivr.net/gh/dejavu-fonts/dejavu-fonts@version_2_37/ttf/DejaVuSans.ttf",
-  "https://raw.githubusercontent.com/dejavu-fonts/dejavu-fonts/version_2_37/ttf/DejaVuSans.ttf",
-];
-const FONT_URLS_BOLD = [
-  "https://cdn.jsdelivr.net/gh/dejavu-fonts/dejavu-fonts@version_2_37/ttf/DejaVuSans-Bold.ttf",
-  "https://raw.githubusercontent.com/dejavu-fonts/dejavu-fonts/version_2_37/ttf/DejaVuSans-Bold.ttf",
-];
-
-let cachedFontB64: string | null = null;
-let cachedFontBoldB64: string | null = null;
-
-async function fetchFontBase64(urls: string[]): Promise<string> {
-  let lastErr: unknown;
-  for (const url of urls) {
-    try {
-      const r = await fetch(url);
-      if (!r.ok) throw new Error(`HTTP ${r.status}`);
-      const buf = new Uint8Array(await r.arrayBuffer());
-      // ArrayBuffer -> base64 (chunkolva, hogy ne fusson le a call stack)
-      let binary = "";
-      const chunk = 0x8000;
-      for (let i = 0; i < buf.length; i += chunk) {
-        binary += String.fromCharCode.apply(null, Array.from(buf.subarray(i, i + chunk)));
-      }
-      return btoa(binary);
-    } catch (e) {
-      lastErr = e;
-    }
+// Magyar ékezetes Unicode font (NotoSans Regular) — beágyazva a bundle-be.
+// Bold variánst NEM ágyazunk be a méret miatt; a "bold" stílusra ugyanezt a
+// fontot regisztráljuk a jsPDF API kompatibilitása érdekében (a megjelenés
+// regular marad, de a magyar karakterek mindenhol helyesek lesznek).
+let fontRegistered = false;
+function ensureHungarianFont(doc: jsPDF) {
+  if (!fontRegistered) {
+    // VFS-be egyszer elég berakni, de jsPDF instance-onként új addFont kell
   }
-  throw lastErr instanceof Error ? lastErr : new Error("Font fetch failed");
-}
-
-async function ensureHungarianFont(doc: jsPDF) {
-  if (!cachedFontB64) cachedFontB64 = await fetchFontBase64(FONT_URLS);
-  if (!cachedFontBoldB64) {
-    try { cachedFontBoldB64 = await fetchFontBase64(FONT_URLS_BOLD); }
-    catch { cachedFontBoldB64 = cachedFontB64; }
-  }
-  doc.addFileToVFS("DejaVuSans.ttf", cachedFontB64);
-  doc.addFont("DejaVuSans.ttf", "DejaVu", "normal");
-  doc.addFileToVFS("DejaVuSans-Bold.ttf", cachedFontBoldB64);
-  doc.addFont("DejaVuSans-Bold.ttf", "DejaVu", "bold");
+  doc.addFileToVFS("NotoSans.ttf", notoSansRegularBase64);
+  doc.addFont("NotoSans.ttf", "DejaVu", "normal");
+  doc.addFont("NotoSans.ttf", "DejaVu", "bold");
   doc.setFont("DejaVu", "normal");
+  fontRegistered = true;
 }
 
 const fmtHUF = (n: number) =>
