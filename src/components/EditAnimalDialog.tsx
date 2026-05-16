@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -316,16 +316,23 @@ export const EditAnimalDialog = ({ animal, locations, onAnimalUpdated }: EditAni
       .sort((a, b) => b.score - a.score)[0]?.p ?? null;
   };
 
+  const matchedEpidemicMeasure = useMemo(
+    () => epidemicMeasures.find((m) => m.is_active && m.affected_species.includes(formData.species)) || null,
+    [epidemicMeasures, formData.species]
+  );
+  const isKartalanitas = formData.usage_type === "kartalanitas";
+
   // Auto-fill pricing fields from current price list (skip fields user has touched / already set)
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const activeMeasure = epidemicMeasures.find(
-        (m) => m.is_active && m.affected_species.includes(formData.species)
-      );
+      const activeMeasure = matchedEpidemicMeasure;
       let netTotal = 0;
       let vat = vatRate;
-      if (activeMeasure) {
+      if (isKartalanitas && activeMeasure) {
+        netTotal = Number(activeMeasure.price_per_unit) || 0;
+        vat = (activeMeasure as any).vat_rate || vatRate;
+      } else if (activeMeasure) {
         netTotal = activeMeasure.shooting_fee + activeMeasure.sampling_fee + activeMeasure.price_per_unit;
         vat = (activeMeasure as any).vat_rate || vatRate;
       } else if (formData.species && formData.class) {
@@ -348,9 +355,15 @@ export const EditAnimalDialog = ({ animal, locations, onAnimalUpdated }: EditAni
       if (cancelled) return;
       setPricing((prev) => {
         const next = { ...prev };
-        if (!pricingTouched.netPrice) next.netPrice = netTotal ? String(Math.round(netTotal)) : "";
-        if (!pricingTouched.priceVat) next.priceVat = String(vat);
-        if (!pricingTouched.grossPrice) next.grossPrice = netTotal ? String(Math.round(netTotal * (1 + vat / 100))) : "";
+        if (isKartalanitas && activeMeasure) {
+          next.netPrice = String(Math.round(netTotal));
+          next.priceVat = String(vat);
+          next.grossPrice = String(Math.round(netTotal * (1 + vat / 100)));
+        } else {
+          if (!pricingTouched.netPrice) next.netPrice = netTotal ? String(Math.round(netTotal)) : "";
+          if (!pricingTouched.priceVat) next.priceVat = String(vat);
+          if (!pricingTouched.grossPrice) next.grossPrice = netTotal ? String(Math.round(netTotal * (1 + vat / 100))) : "";
+        }
         if (!pricingTouched.coolingPricePerKg) next.coolingPricePerKg = coolingPerKg ? String(coolingPerKg) : "";
         if (!pricingTouched.coolingVat) next.coolingVat = coolingVatVal ? String(coolingVatVal) : "";
         return next;
@@ -358,7 +371,7 @@ export const EditAnimalDialog = ({ animal, locations, onAnimalUpdated }: EditAni
     })();
     return () => { cancelled = true; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [formData.weight, formData.species, formData.class, formData.storage_location_id, priceSettings, vatRate, epidemicMeasures]);
+  }, [formData.weight, formData.species, formData.class, formData.storage_location_id, formData.usage_type, priceSettings, vatRate, epidemicMeasures, isKartalanitas, matchedEpidemicMeasure]);
 
   const handlePricingChange = (field: keyof typeof pricing, value: string) => {
     setPricing((prev) => {
@@ -570,6 +583,7 @@ export const EditAnimalDialog = ({ animal, locations, onAnimalUpdated }: EditAni
           transport_cooling_price: !isNaN(coolingPerKg) ? coolingPerKg : null,
           transport_cooling_vat_rate: !isNaN(coolingVatNum) ? coolingVatNum : null,
           usage_type: formData.usage_type || null,
+          epidemic_measure_id: isKartalanitas && matchedEpidemicMeasure ? matchedEpidemicMeasure.id : null,
           buyer_type: formData.buyer_type || null,
           buyer_name: formData.buyer_name || null,
           buyer_zip: formData.buyer_zip || null,
@@ -735,17 +749,23 @@ export const EditAnimalDialog = ({ animal, locations, onAnimalUpdated }: EditAni
                 <div className="space-y-2">
                   <Label htmlFor="netPrice">Nettó ár (Ft)</Label>
                   <Input id="netPrice" type="number" step="0.01" value={pricing.netPrice}
-                    onChange={(e) => handlePricingChange("netPrice", e.target.value)} placeholder="0" />
+                    onChange={(e) => handlePricingChange("netPrice", e.target.value)} placeholder="0"
+                    readOnly={isKartalanitas && !!matchedEpidemicMeasure}
+                    className={isKartalanitas && matchedEpidemicMeasure ? "bg-muted" : undefined} />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="priceVat">ÁFA (%)</Label>
                   <Input id="priceVat" type="number" step="0.01" value={pricing.priceVat}
-                    onChange={(e) => handlePricingChange("priceVat", e.target.value)} placeholder="27" />
+                    onChange={(e) => handlePricingChange("priceVat", e.target.value)} placeholder="27"
+                    readOnly={isKartalanitas && !!matchedEpidemicMeasure}
+                    className={isKartalanitas && matchedEpidemicMeasure ? "bg-muted" : undefined} />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="grossPrice">Bruttó ár (Ft)</Label>
                   <Input id="grossPrice" type="number" step="0.01" value={pricing.grossPrice}
-                    onChange={(e) => handlePricingChange("grossPrice", e.target.value)} placeholder="0" />
+                    onChange={(e) => handlePricingChange("grossPrice", e.target.value)} placeholder="0"
+                    readOnly={isKartalanitas && !!matchedEpidemicMeasure}
+                    className={isKartalanitas && matchedEpidemicMeasure ? "bg-muted" : undefined} />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="coolingPricePerKg">Hűtési díj (Ft/kg)</Label>
@@ -797,8 +817,19 @@ export const EditAnimalDialog = ({ animal, locations, onAnimalUpdated }: EditAni
                         <SelectItem value="ajandekozas">Ajándékozás</SelectItem>
                         <SelectItem value="barter">Barter</SelectItem>
                         <SelectItem value="eladas">Eladás</SelectItem>
+                        <SelectItem value="kartalanitas">Kártalanítás</SelectItem>
                       </SelectContent>
                     </Select>
+                    {isKartalanitas && matchedEpidemicMeasure && (
+                      <p className="text-xs text-muted-foreground">
+                        Az ár a járványügyi intézkedésből származik: <strong>{matchedEpidemicMeasure.name}</strong>
+                      </p>
+                    )}
+                    {isKartalanitas && !matchedEpidemicMeasure && (
+                      <p className="text-xs text-destructive">
+                        Nincs aktív járványügyi intézkedés erre a fajra ({formData.species || "—"}). Állíts be egyet a Járványügyi intézkedéseknél, vagy válassz másik felhasználás típust.
+                      </p>
+                    )}
                   </div>
                   {formData.usage_type && formData.usage_type !== "sajat" && (
                     <div className="space-y-2">

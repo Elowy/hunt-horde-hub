@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -386,27 +386,34 @@ export const AddAnimalDialog = ({ onAnimalAdded }: AddAnimalDialogProps) => {
       .sort((a, b) => b.score - a.score)[0]?.p ?? null;
   };
 
+  // Find active epidemic measure matching species
+  const matchedEpidemicMeasure = useMemo(
+    () => epidemicMeasures.find((m) => m.is_active && m.affected_species.includes(formData.type)) || null,
+    [epidemicMeasures, formData.type]
+  );
+
+  const isKartalanitas = formData.usageType === "kartalanitas";
+
   // Auto-fill pricing fields from current price list (skip fields user has touched)
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const activeMeasure = epidemicMeasures.find(
-        (m) => m.is_active && m.affected_species.includes(formData.type)
-      );
+      const activeMeasure = matchedEpidemicMeasure;
 
-      let netPerKg = 0;
       let vat = vatRate;
       let netTotal = 0;
 
-      if (activeMeasure) {
+      if (isKartalanitas && activeMeasure) {
+        // Kártalanítás: only price_per_unit, override touched fields
+        netTotal = Number(activeMeasure.price_per_unit) || 0;
+        vat = activeMeasure.vat_rate || 27;
+      } else if (activeMeasure) {
         const total = activeMeasure.shooting_fee + activeMeasure.sampling_fee + activeMeasure.price_per_unit;
         netTotal = total;
         vat = activeMeasure.vat_rate || 27;
-        if (formData.weight) netPerKg = total / parseFloat(formData.weight);
       } else if (formData.type && formData.class) {
         const ps = priceSettings.find((p) => p.species === formData.type && p.class === formData.class);
         if (ps) {
-          netPerKg = ps.price_per_kg;
           if (formData.weight) netTotal = parseFloat(formData.weight) * ps.price_per_kg;
         }
       }
@@ -432,11 +439,18 @@ export const AddAnimalDialog = ({ onAnimalAdded }: AddAnimalDialogProps) => {
 
       setPricing((prev) => {
         const next = { ...prev };
-        if (!pricingTouched.netPrice) next.netPrice = netTotal ? String(Math.round(netTotal)) : "";
-        if (!pricingTouched.priceVat) next.priceVat = String(vat);
-        if (!pricingTouched.grossPrice) {
-          const gross = netTotal * (1 + vat / 100);
-          next.grossPrice = netTotal ? String(Math.round(gross)) : "";
+        // When kartalanitas with active measure, force-override regardless of touched
+        if (isKartalanitas && activeMeasure) {
+          next.netPrice = String(Math.round(netTotal));
+          next.priceVat = String(vat);
+          next.grossPrice = String(Math.round(netTotal * (1 + vat / 100)));
+        } else {
+          if (!pricingTouched.netPrice) next.netPrice = netTotal ? String(Math.round(netTotal)) : "";
+          if (!pricingTouched.priceVat) next.priceVat = String(vat);
+          if (!pricingTouched.grossPrice) {
+            const gross = netTotal * (1 + vat / 100);
+            next.grossPrice = netTotal ? String(Math.round(gross)) : "";
+          }
         }
         if (!pricingTouched.coolingPricePerKg) next.coolingPricePerKg = coolingPerKg ? String(coolingPerKg) : "";
         if (!pricingTouched.coolingVat) next.coolingVat = coolingVatVal ? String(coolingVatVal) : "";
@@ -452,11 +466,15 @@ export const AddAnimalDialog = ({ onAnimalAdded }: AddAnimalDialogProps) => {
     formData.type,
     formData.class,
     formData.storageLocationId,
+    formData.usageType,
     priceSettings,
     vatRate,
     epidemicMeasures,
     skipCooling,
+    isKartalanitas,
+    matchedEpidemicMeasure,
   ]);
+
 
   const handlePricingChange = (field: keyof typeof pricing, value: string) => {
     setPricing((prev) => {
@@ -589,6 +607,7 @@ export const AddAnimalDialog = ({ onAnimalAdded }: AddAnimalDialogProps) => {
         transported_at: skipCooling ? new Date().toISOString() : null,
         invoice_number: pricing.invoiceNumber || null,
         usage_type: formData.usageType || null,
+        epidemic_measure_id: isKartalanitas && matchedEpidemicMeasure ? matchedEpidemicMeasure.id : null,
         buyer_type: formData.buyerType || null,
         buyer_name: formData.buyerName || null,
         buyer_zip: formData.buyerZip || null,
@@ -922,6 +941,8 @@ export const AddAnimalDialog = ({ onAnimalAdded }: AddAnimalDialogProps) => {
                       value={pricing.netPrice}
                       onChange={(e) => handlePricingChange("netPrice", e.target.value)}
                       placeholder="0"
+                      readOnly={isKartalanitas && !!matchedEpidemicMeasure}
+                      className={isKartalanitas && matchedEpidemicMeasure ? "bg-muted" : undefined}
                     />
                   </div>
                   <div className="space-y-2">
@@ -933,6 +954,8 @@ export const AddAnimalDialog = ({ onAnimalAdded }: AddAnimalDialogProps) => {
                       value={pricing.priceVat}
                       onChange={(e) => handlePricingChange("priceVat", e.target.value)}
                       placeholder="27"
+                      readOnly={isKartalanitas && !!matchedEpidemicMeasure}
+                      className={isKartalanitas && matchedEpidemicMeasure ? "bg-muted" : undefined}
                     />
                   </div>
                   <div className="space-y-2">
@@ -944,6 +967,8 @@ export const AddAnimalDialog = ({ onAnimalAdded }: AddAnimalDialogProps) => {
                       value={pricing.grossPrice}
                       onChange={(e) => handlePricingChange("grossPrice", e.target.value)}
                       placeholder="0"
+                      readOnly={isKartalanitas && !!matchedEpidemicMeasure}
+                      className={isKartalanitas && matchedEpidemicMeasure ? "bg-muted" : undefined}
                     />
                   </div>
                   <div className="space-y-2">
@@ -1016,8 +1041,19 @@ export const AddAnimalDialog = ({ onAnimalAdded }: AddAnimalDialogProps) => {
                           <SelectItem value="ajandekozas">Ajándékozás</SelectItem>
                           <SelectItem value="barter">Barter</SelectItem>
                           <SelectItem value="eladas">Eladás</SelectItem>
+                          <SelectItem value="kartalanitas">Kártalanítás</SelectItem>
                         </SelectContent>
                       </Select>
+                      {isKartalanitas && matchedEpidemicMeasure && (
+                        <p className="text-xs text-muted-foreground">
+                          Az ár a járványügyi intézkedésből származik: <strong>{matchedEpidemicMeasure.name}</strong>
+                        </p>
+                      )}
+                      {isKartalanitas && !matchedEpidemicMeasure && (
+                        <p className="text-xs text-destructive">
+                          Nincs aktív járványügyi intézkedés erre a fajra ({formData.type || "—"}). Állíts be egyet a Járványügyi intézkedéseknél, vagy válassz másik felhasználás típust.
+                        </p>
+                      )}
                     </div>
                     {formData.usageType && formData.usageType !== "sajat" && (
                       <div className="space-y-2">

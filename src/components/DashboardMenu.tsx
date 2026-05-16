@@ -456,6 +456,14 @@ export const DashboardMenu = ({ isAdmin, isEditor, isHunter, onLogout, onPriceUp
                 <Button
                   variant="ghost"
                   className="w-full justify-start"
+                  onClick={() => handleNavigation("/quotas")}
+                >
+                  <BarChart className="mr-2 h-4 w-4" />
+                  Kvóták
+                </Button>
+                <Button
+                  variant="ghost"
+                  className="w-full justify-start"
                   onClick={() => handleNavigation("/activity-log")}
                 >
                   <History className="mr-2 h-4 w-4" />

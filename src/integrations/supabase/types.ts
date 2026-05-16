@@ -62,6 +62,7 @@ export type Database = {
           class: string | null
           cooling_date: string | null
           created_at: string
+          epidemic_measure_id: string | null
           expiry_date: string | null
           game_type: string | null
           gender: string | null
@@ -115,6 +116,7 @@ export type Database = {
           class?: string | null
           cooling_date?: string | null
           created_at?: string
+          epidemic_measure_id?: string | null
           expiry_date?: string | null
           game_type?: string | null
           gender?: string | null
@@ -168,6 +170,7 @@ export type Database = {
           class?: string | null
           cooling_date?: string | null
           created_at?: string
+          epidemic_measure_id?: string | null
           expiry_date?: string | null
           game_type?: string | null
           gender?: string | null
@@ -208,6 +211,13 @@ export type Database = {
           weight?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "animals_epidemic_measure_id_fkey"
+            columns: ["epidemic_measure_id"]
+            isOneToOne: false
+            referencedRelation: "epidemic_measures"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "animals_hunting_registration_id_fkey"
             columns: ["hunting_registration_id"]
@@ -652,6 +662,51 @@ export type Database = {
           },
           {
             foreignKeyName: "hunter_feature_permissions_hunter_society_id_fkey"
+            columns: ["hunter_society_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hunter_meat_quotas: {
+        Row: {
+          created_at: string
+          hunter_id: string
+          hunter_society_id: string
+          id: string
+          max_kg: number
+          species: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          hunter_id: string
+          hunter_society_id: string
+          id?: string
+          max_kg: number
+          species: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          hunter_id?: string
+          hunter_society_id?: string
+          id?: string
+          max_kg?: number
+          species?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hunter_meat_quotas_hunter_society_id_fkey"
+            columns: ["hunter_society_id"]
+            isOneToOne: false
+            referencedRelation: "hunter_societies_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hunter_meat_quotas_hunter_society_id_fkey"
             columns: ["hunter_society_id"]
             isOneToOne: false
             referencedRelation: "profiles"
@@ -1857,6 +1912,48 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      society_species_quotas: {
+        Row: {
+          created_at: string
+          hunter_society_id: string
+          id: string
+          max_count: number
+          species: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          hunter_society_id: string
+          id?: string
+          max_count: number
+          species: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          hunter_society_id?: string
+          id?: string
+          max_count?: number
+          species?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "society_species_quotas_hunter_society_id_fkey"
+            columns: ["hunter_society_id"]
+            isOneToOne: false
+            referencedRelation: "hunter_societies_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "society_species_quotas_hunter_society_id_fkey"
+            columns: ["hunter_society_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       storage_locations: {
         Row: {
