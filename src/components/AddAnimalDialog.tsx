@@ -386,27 +386,34 @@ export const AddAnimalDialog = ({ onAnimalAdded }: AddAnimalDialogProps) => {
       .sort((a, b) => b.score - a.score)[0]?.p ?? null;
   };
 
+  // Find active epidemic measure matching species
+  const matchedEpidemicMeasure = useMemo(
+    () => epidemicMeasures.find((m) => m.is_active && m.affected_species.includes(formData.type)) || null,
+    [epidemicMeasures, formData.type]
+  );
+
+  const isKartalanitas = formData.usageType === "kartalanitas";
+
   // Auto-fill pricing fields from current price list (skip fields user has touched)
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const activeMeasure = epidemicMeasures.find(
-        (m) => m.is_active && m.affected_species.includes(formData.type)
-      );
+      const activeMeasure = matchedEpidemicMeasure;
 
-      let netPerKg = 0;
       let vat = vatRate;
       let netTotal = 0;
 
-      if (activeMeasure) {
+      if (isKartalanitas && activeMeasure) {
+        // Kártalanítás: only price_per_unit, override touched fields
+        netTotal = Number(activeMeasure.price_per_unit) || 0;
+        vat = activeMeasure.vat_rate || 27;
+      } else if (activeMeasure) {
         const total = activeMeasure.shooting_fee + activeMeasure.sampling_fee + activeMeasure.price_per_unit;
         netTotal = total;
         vat = activeMeasure.vat_rate || 27;
-        if (formData.weight) netPerKg = total / parseFloat(formData.weight);
       } else if (formData.type && formData.class) {
         const ps = priceSettings.find((p) => p.species === formData.type && p.class === formData.class);
         if (ps) {
-          netPerKg = ps.price_per_kg;
           if (formData.weight) netTotal = parseFloat(formData.weight) * ps.price_per_kg;
         }
       }
@@ -432,11 +439,18 @@ export const AddAnimalDialog = ({ onAnimalAdded }: AddAnimalDialogProps) => {
 
       setPricing((prev) => {
         const next = { ...prev };
-        if (!pricingTouched.netPrice) next.netPrice = netTotal ? String(Math.round(netTotal)) : "";
-        if (!pricingTouched.priceVat) next.priceVat = String(vat);
-        if (!pricingTouched.grossPrice) {
-          const gross = netTotal * (1 + vat / 100);
-          next.grossPrice = netTotal ? String(Math.round(gross)) : "";
+        // When kartalanitas with active measure, force-override regardless of touched
+        if (isKartalanitas && activeMeasure) {
+          next.netPrice = String(Math.round(netTotal));
+          next.priceVat = String(vat);
+          next.grossPrice = String(Math.round(netTotal * (1 + vat / 100)));
+        } else {
+          if (!pricingTouched.netPrice) next.netPrice = netTotal ? String(Math.round(netTotal)) : "";
+          if (!pricingTouched.priceVat) next.priceVat = String(vat);
+          if (!pricingTouched.grossPrice) {
+            const gross = netTotal * (1 + vat / 100);
+            next.grossPrice = netTotal ? String(Math.round(gross)) : "";
+          }
         }
         if (!pricingTouched.coolingPricePerKg) next.coolingPricePerKg = coolingPerKg ? String(coolingPerKg) : "";
         if (!pricingTouched.coolingVat) next.coolingVat = coolingVatVal ? String(coolingVatVal) : "";
@@ -452,11 +466,15 @@ export const AddAnimalDialog = ({ onAnimalAdded }: AddAnimalDialogProps) => {
     formData.type,
     formData.class,
     formData.storageLocationId,
+    formData.usageType,
     priceSettings,
     vatRate,
     epidemicMeasures,
     skipCooling,
+    isKartalanitas,
+    matchedEpidemicMeasure,
   ]);
+
 
   const handlePricingChange = (field: keyof typeof pricing, value: string) => {
     setPricing((prev) => {
