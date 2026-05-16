@@ -65,26 +65,30 @@ function shortId(a: InvoiceAnimal) {
   return a.animal_id && a.animal_id.length > 0 ? a.animal_id : a.id.slice(0, 8);
 }
 
-function generateItemsFromAnimals(animals: InvoiceAnimal[]): InvoiceItem[] {
-  const groups = new Map<string, { name: string; weight: number; ids: string[] }>();
+function generateItemsFromAnimals(animals: InvoiceAnimal[]): { items: InvoiceItem[]; keys: (string | null)[] } {
+  const groups = new Map<string, { name: string; species: string; cls: string; weight: number; ids: string[] }>();
   for (const a of animals) {
     const cls = a.class ?? "";
     const key = `${a.species}||${cls}`;
     const name = cls ? `${a.species} ${cls}` : a.species;
     const w = typeof a.weight === "number" ? a.weight : 0;
-    const g = groups.get(key) ?? { name, weight: 0, ids: [] };
+    const g = groups.get(key) ?? { name, species: a.species, cls, weight: 0, ids: [] };
     g.weight += w;
     g.ids.push(shortId(a));
     groups.set(key, g);
   }
-  return Array.from(groups.values()).map((g) => ({
-    name: g.name,
-    quantity: round1(g.weight),
-    unit: "kg",
-    net_unit_price: 0,
-    vat_rate: "27",
-    comment: `Azonosító: ${g.ids.join(", ")}`,
-  }));
+  const arr = Array.from(groups.values());
+  return {
+    items: arr.map((g) => ({
+      name: g.name,
+      quantity: round1(g.weight),
+      unit: "kg",
+      net_unit_price: 0,
+      vat_rate: "27",
+      comment: `Azonosító: ${g.ids.join(", ")}`,
+    })),
+    keys: arr.map((g) => `${g.species}||${g.cls}`),
+  };
 }
 
 export function CreateInvoiceDialog({
