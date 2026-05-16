@@ -607,6 +607,7 @@ export const AddAnimalDialog = ({ onAnimalAdded }: AddAnimalDialogProps) => {
         transported_at: skipCooling ? new Date().toISOString() : null,
         invoice_number: pricing.invoiceNumber || null,
         usage_type: formData.usageType || null,
+        epidemic_measure_id: isKartalanitas && matchedEpidemicMeasure ? matchedEpidemicMeasure.id : null,
         buyer_type: formData.buyerType || null,
         buyer_name: formData.buyerName || null,
         buyer_zip: formData.buyerZip || null,
