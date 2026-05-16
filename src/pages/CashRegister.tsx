@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
-import { AlertTriangle, ArrowLeft, Download, Loader2, Plus, Pencil, Trash2, Wallet, Settings, FileCheck, Eye, RotateCcw, ArrowRight } from "lucide-react";
+import { AlertTriangle, ArrowLeft, Download, Loader2, Plus, Pencil, Trash2, Wallet, Settings, FileCheck, Eye, RotateCcw, ArrowRight, Landmark } from "lucide-react";
 import { toast } from "sonner";
 import { numberToHungarianWords } from "@/lib/numberToHungarianWords";
 import CashClosingsPanel from "@/components/CashClosingsPanel";
