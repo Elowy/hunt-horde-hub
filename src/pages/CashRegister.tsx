@@ -13,6 +13,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { AlertTriangle, ArrowLeft, Download, Loader2, Plus, Pencil, Trash2, Wallet, Settings, FileCheck, Eye, RotateCcw, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 import { numberToHungarianWords } from "@/lib/numberToHungarianWords";
+import CashClosingsPanel from "@/components/CashClosingsPanel";
+import { useIsSuperAdmin } from "@/hooks/useIsSuperAdmin";
 
 interface CashRegister {
   id: string;
