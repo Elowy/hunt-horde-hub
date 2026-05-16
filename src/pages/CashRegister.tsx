@@ -169,8 +169,9 @@ const CashRegisterPage = () => {
       await loadRegisters(profile.id);
       await loadCategories(profile.id);
       const { data: pol } = await (supabase as any).from("cash_policy")
-        .select("closing_cycle").eq("hunter_society_id", profile.id).maybeSingle();
+        .select("closing_cycle, max_cash_balance").eq("hunter_society_id", profile.id).maybeSingle();
       if (pol?.closing_cycle) setClosingCycle(pol.closing_cycle);
+      setMaxCashBalance(pol?.max_cash_balance != null ? Number(pol.max_cash_balance) : null);
       setLoading(false);
     })();
   }, []);
