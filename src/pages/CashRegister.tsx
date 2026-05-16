@@ -22,6 +22,15 @@ interface CashRegister {
   opening_balance: number;
   currency: string;
   is_active: boolean;
+  register_code: string;
+}
+
+interface SequenceGap {
+  cash_register_id: string;
+  document_type: string;
+  seq_year: number;
+  seq_number: number;
+  next_number: number;
 }
 
 interface CashCategory {
@@ -54,6 +63,9 @@ interface CashEntry {
   booking_ref: string | null;
   issued_at: string | null;
   created_at: string;
+  document_number: string | null;
+  seq_year: number | null;
+  seq_number: number | null;
 }
 
 const fmtHUF = (n: number) =>
@@ -101,7 +113,9 @@ const CashRegisterPage = () => {
   // Register dialog
   const [regDialogOpen, setRegDialogOpen] = useState(false);
   const [editingReg, setEditingReg] = useState<CashRegister | null>(null);
-  const [regForm, setRegForm] = useState({ name: "", description: "", opening_balance: "0", is_active: true });
+  const [regForm, setRegForm] = useState({ name: "", description: "", opening_balance: "0", is_active: true, register_code: "" });
+  const [regCodeLocked, setRegCodeLocked] = useState(false);
+  const [gaps, setGaps] = useState<SequenceGap[]>([]);
 
   // Entry dialog
   const [entryDialogOpen, setEntryDialogOpen] = useState(false);
@@ -147,8 +161,9 @@ const CashRegisterPage = () => {
   };
 
   useEffect(() => {
-    if (!selectedRegId) { setEntries([]); return; }
+    if (!selectedRegId) { setEntries([]); setGaps([]); return; }
     loadEntries(selectedRegId);
+    loadGaps(selectedRegId);
   }, [selectedRegId]);
 
   const loadEntries = async (regId: string) => {
@@ -159,6 +174,13 @@ const CashRegisterPage = () => {
       .order("created_at", { ascending: true });
     if (error) { toast.error("Tételek betöltése sikertelen"); return; }
     setEntries((data || []) as any as CashEntry[]);
+  };
+
+  const loadGaps = async (regId: string) => {
+    const { data, error } = await (supabase as any).from("cash_sequence_gaps").select("*")
+      .eq("cash_register_id", regId);
+    if (error) { setGaps([]); return; }
+    setGaps((data || []) as SequenceGap[]);
   };
 
   const selectedReg = registers.find((r) => r.id === selectedRegId) || null;
@@ -195,18 +217,31 @@ const CashRegisterPage = () => {
 
   const openNewReg = () => {
     setEditingReg(null);
-    setRegForm({ name: "", description: "", opening_balance: "0", is_active: true });
+    // Suggest next register code (KP01, KP02, ...)
+    const usedCodes = new Set(registers.map((r) => r.register_code));
+    let suggested = "";
+    for (let i = 1; i <= 99; i++) {
+      const c = "KP" + String(i).padStart(2, "0");
+      if (!usedCodes.has(c)) { suggested = c; break; }
+    }
+    setRegForm({ name: "", description: "", opening_balance: "0", is_active: true, register_code: suggested });
+    setRegCodeLocked(false);
     setRegDialogOpen(true);
   };
-  const openEditReg = (r: CashRegister) => {
+  const openEditReg = async (r: CashRegister) => {
     setEditingReg(r);
     setRegForm({ name: r.name, description: r.description || "",
-      opening_balance: String(r.opening_balance), is_active: r.is_active });
+      opening_balance: String(r.opening_balance), is_active: r.is_active, register_code: r.register_code });
+    // Lock code if register already has any entries
+    const { count } = await supabase.from("cash_entries").select("*", { count: "exact", head: true })
+      .eq("cash_register_id", r.id);
+    setRegCodeLocked((count || 0) > 0);
     setRegDialogOpen(true);
   };
   const saveRegister = async () => {
     if (!societyId) return;
     if (!regForm.name.trim()) { toast.error("A név kötelező"); return; }
+    if (!regForm.register_code.trim()) { toast.error("A pénztárkód kötelező (pl. KP01)"); return; }
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
     const payload = {
@@ -214,9 +249,13 @@ const CashRegisterPage = () => {
       description: regForm.description.trim() || null,
       opening_balance: Number(regForm.opening_balance) || 0,
       is_active: regForm.is_active,
+      register_code: regForm.register_code.trim().toUpperCase(),
     };
     if (editingReg) {
-      const { error } = await supabase.from("cash_registers").update(payload).eq("id", editingReg.id);
+      const updatePayload = regCodeLocked
+        ? { ...payload, register_code: editingReg.register_code }
+        : payload;
+      const { error } = await supabase.from("cash_registers").update(updatePayload).eq("id", editingReg.id);
       if (error) { toast.error("Mentés sikertelen: " + error.message); return; }
       toast.success("Pénztár frissítve");
     } else {
@@ -329,16 +368,25 @@ const CashRegisterPage = () => {
     if (!user) return;
     const payload = buildPayload("veglegesitett", user.id);
     let error;
+    let resultRow: any = null;
     if (entryForm.id) {
-      ({ error } = await supabase.from("cash_entries").update(payload).eq("id", entryForm.id));
+      const r = await supabase.from("cash_entries").update(payload).eq("id", entryForm.id)
+        .select("document_number").maybeSingle();
+      error = r.error; resultRow = r.data;
     } else {
-      ({ error } = await supabase.from("cash_entries").insert(payload));
+      const r = await supabase.from("cash_entries").insert(payload)
+        .select("document_number").maybeSingle();
+      error = r.error; resultRow = r.data;
     }
     if (error) { toast.error("Véglegesítés sikertelen: " + error.message); return; }
-    toast.success("Bizonylat véglegesítve. Tartalma a továbbiakban nem módosítható.");
+    const docNo = resultRow?.document_number;
+    toast.success(docNo
+      ? `Bizonylat véglegesítve: ${docNo}`
+      : "Bizonylat véglegesítve. Tartalma a továbbiakban nem módosítható.");
     setConfirmFinalizeOpen(false);
     setEntryDialogOpen(false);
     await loadEntries(entryForm.cash_register_id);
+    if (selectedRegId) await loadGaps(selectedRegId);
   };
 
   const deleteDraft = async (e: CashEntry) => {
@@ -494,6 +542,29 @@ const CashRegisterPage = () => {
                 <span>Figyelem: a pénztár egyenlege negatív. Ellenőrizd a tételeket.</span>
               </div>
             )}
+            {gaps.length > 0 ? (
+              <div className="flex items-start gap-2 p-3 rounded-md border border-destructive bg-destructive/10 text-destructive text-sm">
+                <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+                <div>
+                  <div className="font-semibold">Sorszám-hézag észlelve! Ez szabálytalan, ellenőrizd. (Sztv. 168. §)</div>
+                  <ul className="mt-1 space-y-0.5 text-xs font-mono">
+                    {gaps.slice(0, 10).map((g, i) => (
+                      <li key={i}>
+                        {g.document_type} / {g.seq_year} — hiányzó: {String(g.seq_number + 1).padStart(6, "0")}
+                        {g.next_number - g.seq_number > 2
+                          ? `…${String(g.next_number - 1).padStart(6, "0")}`
+                          : ""}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            ) : entries.some((e) => e.seq_number !== null) ? (
+              <div className="flex items-center gap-2 p-2 rounded-md border border-green-500/40 bg-green-500/10 text-green-700 dark:text-green-300 text-xs">
+                <FileCheck className="h-4 w-4 shrink-0" />
+                <span>Sorszámozás hézagmentes ({selectedReg?.register_code}).</span>
+              </div>
+            ) : null}
 
             <Card>
               <CardContent className="pt-6 flex gap-3 flex-wrap items-end">
@@ -541,6 +612,7 @@ const CashRegisterPage = () => {
                     <TableRow>
                       <TableHead>Státusz</TableHead>
                       <TableHead>Típus</TableHead>
+                      <TableHead>Sorszám</TableHead>
                       <TableHead>Dátum</TableHead>
                       <TableHead>Jogcím</TableHead>
                       <TableHead>Partner</TableHead>
@@ -553,7 +625,7 @@ const CashRegisterPage = () => {
                   <TableBody>
                     {filteredEntries.length === 0 && (
                       <TableRow>
-                        <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
+                        <TableCell colSpan={10} className="text-center text-muted-foreground py-8">
                           Nincs megjeleníthető bizonylat
                         </TableCell>
                       </TableRow>
@@ -577,6 +649,11 @@ const CashRegisterPage = () => {
                             </Badge>
                           </TableCell>
                           <TableCell className="text-xs font-mono">{e.document_type}</TableCell>
+                          <TableCell className="text-xs font-mono whitespace-nowrap">
+                            {e.document_number
+                              ? <span className="font-semibold">{e.document_number}</span>
+                              : <span className="text-muted-foreground italic">— (véglegesítéskor kap sorszámot)</span>}
+                          </TableCell>
                           <TableCell className="whitespace-nowrap">{e.event_date || e.entry_date}</TableCell>
                           <TableCell>
                             {e.category || <span className="text-muted-foreground">—</span>}
@@ -629,6 +706,21 @@ const CashRegisterPage = () => {
             <div>
               <Label>Név *</Label>
               <Input value={regForm.name} onChange={(e) => setRegForm({ ...regForm, name: e.target.value })} placeholder="pl. Fő pénztár" />
+            </div>
+            <div>
+              <Label>Pénztárkód *</Label>
+              <Input
+                value={regForm.register_code}
+                onChange={(e) => setRegForm({ ...regForm, register_code: e.target.value.toUpperCase() })}
+                placeholder="pl. KP01"
+                disabled={regCodeLocked}
+                maxLength={16}
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                {regCodeLocked
+                  ? "A kód nem módosítható, mert már vannak bizonylatai (a sorszámok rá hivatkoznak)."
+                  : "Egyedi azonosító, megjelenik a bizonylatok sorszámában (pl. KP01-BPB-2026-000123)."}
+              </p>
             </div>
             <div>
               <Label>Leírás</Label>
@@ -793,6 +885,7 @@ const CashRegisterPage = () => {
           </DialogHeader>
           {viewEntry && (
             <div className="space-y-2 text-sm">
+              {viewEntry.document_number && <div className="flex justify-between"><span className="text-muted-foreground">Sorszám</span><span className="font-mono font-semibold">{viewEntry.document_number}</span></div>}
               <div className="flex justify-between"><span className="text-muted-foreground">Bizonylattípus</span><span className="font-mono">{viewEntry.document_type}</span></div>
               <div className="flex justify-between"><span className="text-muted-foreground">Státusz</span><span>{STATUS_LABEL[viewEntry.status]}</span></div>
               <div className="flex justify-between"><span className="text-muted-foreground">Esemény dátuma</span><span>{viewEntry.event_date}</span></div>
