@@ -612,6 +612,7 @@ const CashRegisterPage = () => {
                     <TableRow>
                       <TableHead>Státusz</TableHead>
                       <TableHead>Típus</TableHead>
+                      <TableHead>Sorszám</TableHead>
                       <TableHead>Dátum</TableHead>
                       <TableHead>Jogcím</TableHead>
                       <TableHead>Partner</TableHead>
