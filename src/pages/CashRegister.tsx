@@ -822,30 +822,54 @@ const CashRegisterPage = () => {
                       const isIncome = e.entry_type === "bevetel";
                       const isDraft = e.status === "piszkozat";
                       const isFinal = e.status === "veglegesitett";
+                      const isVoided = e.status === "stornozott" || e.status === "helyesbitett";
+                      const isCorrection = ["STO", "HEL", "ELL"].includes(e.document_type);
+                      const correction = correctionByOriginal.get(e.id);
+                      const original = e.corrects_entry_id ? originalById.get(e.corrects_entry_id) : null;
                       return (
-                        <TableRow key={e.id} className={isDraft ? "opacity-80" : ""}>
+                        <TableRow key={e.id} className={isDraft ? "opacity-80" : isVoided ? "opacity-60" : ""}>
                           <TableCell>
                             <Badge
                               variant={isFinal ? "default" : isDraft ? "secondary" : "outline"}
                               className={
                                 isDraft ? "bg-yellow-500/20 text-yellow-800 dark:text-yellow-200 border-yellow-500/40"
                                   : isFinal ? "bg-green-500/20 text-green-800 dark:text-green-200 border-green-500/40"
+                                  : isVoided ? "bg-red-500/15 text-red-800 dark:text-red-200 border-red-500/40"
                                   : ""
                               }
                             >
                               {STATUS_LABEL[e.status]}
                             </Badge>
                           </TableCell>
-                          <TableCell className="text-xs font-mono">{e.document_type}</TableCell>
-                          <TableCell className="text-xs font-mono whitespace-nowrap">
+                          <TableCell className="text-xs font-mono">
+                            {e.document_type}
+                            {isCorrection && (
+                              <Badge variant="outline" className="ml-1 text-[10px]">Korrekció</Badge>
+                            )}
+                          </TableCell>
+                          <TableCell className={`text-xs font-mono whitespace-nowrap ${isVoided ? "line-through" : ""}`}>
                             {e.document_number
                               ? <span className="font-semibold">{e.document_number}</span>
                               : <span className="text-muted-foreground italic">— (véglegesítéskor kap sorszámot)</span>}
+                            {correction && (
+                              <div className="text-[10px] text-muted-foreground no-underline mt-0.5">
+                                ↳ <button className="underline hover:text-foreground" onClick={() => setViewEntry(correction)}>
+                                  {correction.document_number || "korrekció"}
+                                </button>
+                              </div>
+                            )}
+                            {original && (
+                              <div className="text-[10px] text-muted-foreground mt-0.5">
+                                eredeti: <button className="underline hover:text-foreground" onClick={() => setViewEntry(original)}>
+                                  {original.document_number || original.id.slice(0, 8)}
+                                </button>
+                              </div>
+                            )}
                           </TableCell>
                           <TableCell className="whitespace-nowrap">{e.event_date || e.entry_date}</TableCell>
                           <TableCell>
                             {e.category || <span className="text-muted-foreground">—</span>}
-                            {e.source_type && e.source_type !== "manual" && (
+                            {e.source_type && e.source_type !== "manual" && e.source_type !== "correction" && (
                               <Badge variant="outline" className="ml-2 text-xs">Auto</Badge>
                             )}
                           </TableCell>
@@ -870,9 +894,16 @@ const CashRegisterPage = () => {
                                 </Button>
                               </>
                             ) : (
-                              <Button size="sm" variant="ghost" onClick={() => setViewEntry(e)} title="Megtekintés">
-                                <Eye className="h-4 w-4" />
-                              </Button>
+                              <>
+                                <Button size="sm" variant="ghost" onClick={() => setViewEntry(e)} title="Megtekintés">
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                                {isFinal && !isCorrection && (
+                                  <Button size="sm" variant="ghost" onClick={() => openCorrection(e)} title="Korrekció (stornó / helyesbítés / ellentételezés)">
+                                    <RotateCcw className="h-4 w-4" />
+                                  </Button>
+                                )}
+                              </>
                             )}
                           </TableCell>
                         </TableRow>
