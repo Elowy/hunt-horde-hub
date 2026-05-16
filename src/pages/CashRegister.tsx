@@ -779,6 +779,9 @@ const CashRegisterPage = () => {
                       <SelectItem value="__all__">Mind</SelectItem>
                       <SelectItem value="piszkozat">Piszkozat</SelectItem>
                       <SelectItem value="veglegesitett">Véglegesített</SelectItem>
+                      <SelectItem value="stornozott">Stornózott</SelectItem>
+                      <SelectItem value="helyesbitett">Helyesbített</SelectItem>
+                      <SelectItem value="__corrections__">Csak korrekciók</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
