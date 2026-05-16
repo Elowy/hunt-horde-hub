@@ -22,6 +22,15 @@ interface CashRegister {
   opening_balance: number;
   currency: string;
   is_active: boolean;
+  register_code: string;
+}
+
+interface SequenceGap {
+  cash_register_id: string;
+  document_type: string;
+  seq_year: number;
+  seq_number: number;
+  next_number: number;
 }
 
 interface CashCategory {
