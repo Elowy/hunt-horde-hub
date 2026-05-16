@@ -147,7 +147,8 @@ export async function generateCashReportPdf(closingId: string): Promise<void> {
       // Lábléc
       doc.setFont("DejaVu", "normal"); doc.setFontSize(7);
       doc.setTextColor(80);
-      const footer = `Készítette: ${(closer as any)?.full_name ?? ""} | Zárás: ${fmtDateTime(c.closed_at)} | Verzió: ${c.version}`;
+      const closerName = (closer as any)?.contact_name ?? (closer as any)?.company_name ?? "";
+      const footer = `Készítette: ${closerName} | Zárás: ${fmtDateTime(c.closed_at)} | Verzió: ${c.version}`;
       doc.text(footer, margin, pageH - 14);
       const pg = (doc as any).internal.getNumberOfPages();
       doc.text(`${doc.getCurrentPageInfo().pageNumber} / ${pg}`, pageW - margin, pageH - 14, { align: "right" });
