@@ -39,6 +39,7 @@ import DeliveredAnimals from "./pages/DeliveredAnimals";
 import Quotas from "./pages/Quotas";
 import CashRegister from "./pages/CashRegister";
 import CashPolicy from "./pages/CashPolicy";
+import CashAuditLog from "./pages/CashAuditLog";
 import NotFound from "./pages/NotFound";
 import { useAuthRecovery } from "./hooks/useAuthRecovery";
 
@@ -89,6 +90,7 @@ const App = () => {
             <Route path="/quotas" element={<Quotas />} />
             <Route path="/cash-register" element={<CashRegister />} />
             <Route path="/cash-policy" element={<CashPolicy />} />
+            <Route path="/cash-audit-log" element={<CashAuditLog />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
