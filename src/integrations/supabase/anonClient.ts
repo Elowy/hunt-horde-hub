@@ -15,6 +15,12 @@ export const supabaseAnon = createClient<Database>(
       persistSession: false,
       autoRefreshToken: false,
       detectSessionInUrl: false,
+      storageKey: 'sb-qr-anon-noauth',
+      storage: {
+        getItem: () => null,
+        setItem: () => {},
+        removeItem: () => {},
+      },
     },
   }
 );
