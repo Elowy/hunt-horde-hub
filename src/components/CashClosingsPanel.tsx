@@ -39,7 +39,12 @@ interface Closing {
   closed_at: string;
   version: number;
   reopen_reason: string | null;
+  archived_at: string | null;
+  archive_hash: string | null;
+  retain_until: string | null;
 }
+
+type VerifyState = "pending" | "valid" | "invalid" | "no_archive";
 
 const DENOMS = [20000, 10000, 5000, 2000, 1000, 500, 200, 100, 50, 20, 10, 5];
 const fmtHUF = (n: number) =>
@@ -71,6 +76,7 @@ export default function CashClosingsPanel({
 }: Props) {
   const [closings, setClosings] = useState<Closing[]>([]);
   const [loading, setLoading] = useState(false);
+  const [verifyStates, setVerifyStates] = useState<Record<string, VerifyState>>({});
   const [dialogOpen, setDialogOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
@@ -85,6 +91,23 @@ export default function CashClosingsPanel({
 
   useEffect(() => { loadClosings(); }, [registerId]);
 
+  const verifyClosings = async (data: Closing[]) => {
+    const lezart = data.filter(c => c.status === "lezart");
+    const initial: Record<string, VerifyState> = {};
+    lezart.forEach(c => { initial[c.id] = c.archive_hash === null ? "no_archive" : "pending"; });
+    setVerifyStates(initial);
+    await Promise.all(
+      lezart.filter(c => c.archive_hash !== null).map(async c => {
+        const { data: result, error } = await (supabase as any)
+          .rpc("verify_closing_integrity", { p_closing_id: c.id });
+        setVerifyStates(prev => ({
+          ...prev,
+          [c.id]: error ? "no_archive" : (result?.valid ? "valid" : "invalid"),
+        }));
+      })
+    );
+  };
+
   const loadClosings = async () => {
     setLoading(true);
     const { data, error } = await (supabase as any).from("cash_closings")
@@ -92,7 +115,9 @@ export default function CashClosingsPanel({
       .order("closing_seq_number", { ascending: false });
     setLoading(false);
     if (error) { toast.error("Zárások betöltése sikertelen"); return; }
-    setClosings((data || []) as Closing[]);
+    const closingsData = (data || []) as Closing[];
+    setClosings(closingsData);
+    verifyClosings(closingsData);
   };
 
   const lastClosedEnd = useMemo(() => {
@@ -263,6 +288,8 @@ export default function CashClosingsPanel({
                   <TableHead className="text-right">Záró</TableHead>
                   <TableHead className="text-right">Eltérés</TableHead>
                   <TableHead>Státusz</TableHead>
+                  <TableHead>Archiválás</TableHead>
+                  <TableHead>Őrzési határidő</TableHead>
                   <TableHead></TableHead>
                 </TableRow>
               </TableHeader>
@@ -279,6 +306,30 @@ export default function CashClosingsPanel({
                       <Badge variant={c.status === "lezart" ? "default" : "outline"}>
                         {c.status === "lezart" ? "Lezárt" : `Újranyitott (v${c.version})`}
                       </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {c.status === "lezart" ? (
+                        verifyStates[c.id] === "pending" ? (
+                          <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+                        ) : verifyStates[c.id] === "valid" ? (
+                          <Badge variant="outline" className="text-green-600 border-green-500 text-xs whitespace-nowrap">
+                            ✅ Archivált, hash sértetlen
+                          </Badge>
+                        ) : verifyStates[c.id] === "invalid" ? (
+                          <Badge variant="destructive" className="text-xs whitespace-nowrap">
+                            ❌ Hash-eltérés! Adatmanipuláció lehetséges
+                          </Badge>
+                        ) : verifyStates[c.id] === "no_archive" ? (
+                          <Badge variant="outline" className="text-muted-foreground text-xs whitespace-nowrap">
+                            ⬜ M6 előtt zárva
+                          </Badge>
+                        ) : null
+                      ) : (
+                        <span className="text-muted-foreground text-xs">—</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-xs">
+                      {c.retain_until ?? "—"}
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
