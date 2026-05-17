@@ -29,6 +29,9 @@ Backend: SELF-HOSTED Supabase egy Hetzner szerveren (NEM Supabase Cloud).
   service_role kulccsal, NEM közvetlen tábla-INSERT (RLS/session problémák miatt).
 - Minden DB-séma változás egy új fájl a supabase/migrations/ alá (timestamp prefix-szel),
   amit a szerveren a ~/db-update.sh futtat. Ne felejtsd el a migrációt!
+- A pgcrypto extension az 'extensions' sémában van, NEM a public-ban. Minden digest()/
+  crypt()/gen_random_bytes()/hmac() hívást séma-minősíteni kell (pl. extensions.digest()),
+  mert a SET search_path='public'-os függvényekben különben 'function does not exist' hibát ad.
 
 ## Domain
 - Frontend: https://hunthorde.com
