@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus, Calendar, Clock, MapPin, CheckCircle, XCircle, AlertCircle, Crown, Package, ChevronDown, Trash2, Ban, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -160,7 +160,12 @@ const HuntingRegistrations = () => {
   const { sendNotification } = useNotifications();
   const { isPro, loading: subscriptionLoading } = useSubscription();
   const [societyIsPro, setSocietyIsPro] = useState(false);
-  const [registrations, setRegistrations] = useState<HuntingRegistration[]>([]);
+  const [activeRegistrations, setActiveRegistrations] = useState<HuntingRegistration[]>([]);
+  const [archiveRegistrations, setArchiveRegistrations] = useState<HuntingRegistration[]>([]);
+  const [archivePage, setArchivePage] = useState(0);
+  const [archiveTotalCount, setArchiveTotalCount] = useState(0);
+  const [archiveLoading, setArchiveLoading] = useState(false);
+  const archivePageSize = 25;
   const [zones, setZones] = useState<SecurityZone[]>([]);
   const [locations, setLocations] = useState<HuntingLocation[]>([]);
   const [closures, setClosures] = useState<ZoneClosure[]>([]);
@@ -207,10 +212,121 @@ const HuntingRegistrations = () => {
   
   const [formData, setFormData] = useState(getDefaultFormData());
 
+  const fetchArchiveRegistrations = useCallback(async () => {
+    try {
+      setArchiveLoading(true);
+
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id);
+
+      const roleList = roles?.map(r => r.role) || [];
+      const userIsAdmin = roleList.includes("admin");
+      const userIsEditor = roleList.includes("editor");
+      const userIsSuperAdmin = roleList.includes("super_admin");
+      const userIsHunter = roleList.includes("hunter");
+
+      // Animal ID pre-query: matching registration IDs (keeps ILIKE support)
+      let regIdsFromAnimals: string[] | null = null;
+      if (archiveFilterAnimalId.trim()) {
+        const { data: animalMatches } = await supabase
+          .from("animals")
+          .select("hunting_registration_id")
+          .ilike("animal_id", `%${archiveFilterAnimalId.trim()}%`)
+          .not("hunting_registration_id", "is", null);
+
+        regIdsFromAnimals = animalMatches?.map(a => a.hunting_registration_id) ?? [];
+
+        // Szűrő aktív de nincs találat → felesleges fő-query mellőzése
+        if (regIdsFromAnimals.length === 0) {
+          setArchiveRegistrations([]);
+          setArchiveTotalCount(0);
+          return;
+        }
+      }
+
+      const from = archivePage * archivePageSize;
+      const to = from + archivePageSize - 1;
+
+      // count: "exact" jelenlegi adatmérethez megfelelő.
+      // Nagy táblánál (100k+ sor) cserélje count: "planned"-ra a seq scan elkerüléséhez.
+      let query = supabase
+        .from("hunting_registrations")
+        .select(
+          `*, security_zones(name, settlements(name)), hunting_locations(name, type), hired_hunters(name, license_number)`,
+          { count: "exact" }
+        )
+        .or(`end_time.lt.${new Date().toISOString()},status.in.(cancelled,rejected)`)
+        .order("start_time", { ascending: false })
+        .range(from, to);
+
+      if (userIsHunter && !userIsAdmin && !userIsEditor && !userIsSuperAdmin) {
+        query = query.eq("user_id", user.id);
+      }
+      if (archiveFilterZone && archiveFilterZone !== "all") {
+        query = query.eq("security_zone_id", archiveFilterZone);
+      }
+      if (archiveFilterHunter && archiveFilterHunter !== "all") {
+        if (archiveFilterHunter.startsWith("hired-")) {
+          query = query.eq("hired_hunter_id", archiveFilterHunter.replace("hired-", ""));
+        } else {
+          query = query.eq("user_id", archiveFilterHunter);
+        }
+      }
+      if (archiveFilterStartDate) {
+        query = query.gte("start_time", `${archiveFilterStartDate}T00:00:00`);
+      }
+      if (archiveFilterEndDate) {
+        query = query.lte("start_time", `${archiveFilterEndDate}T23:59:59`);
+      }
+      if (regIdsFromAnimals !== null) {
+        query = query.in("id", regIdsFromAnimals);
+      }
+
+      const { data: registrationsData, count, error } = await query;
+      if (error) throw error;
+
+      const userIds = [...new Set(registrationsData?.map(r => r.user_id) || [])];
+      const { data: profilesData, error: profilesError } = await supabase
+        .from("profiles")
+        .select("id, contact_name, contact_phone, hunter_license_number")
+        .in("id", userIds);
+      if (profilesError) throw profilesError;
+
+      const registrationIds = registrationsData?.map(r => r.id) || [];
+      const { data: animalsData, error: animalsError } = await supabase
+        .from("animals")
+        .select("id, animal_id, species, weight, hunting_registration_id")
+        .in("hunting_registration_id", registrationIds);
+      if (animalsError) throw animalsError;
+
+      const result = registrationsData?.map(reg => ({
+        ...reg,
+        profiles: profilesData?.find(p => p.id === reg.user_id) || {
+          contact_name: null,
+          contact_phone: null,
+          hunter_license_number: null,
+        },
+        animals: animalsData?.filter(a => a.hunting_registration_id === reg.id) || [],
+      })) || [];
+
+      setArchiveRegistrations(result);
+      setArchiveTotalCount(count ?? 0);
+    } catch (error: any) {
+      toast({ title: "Hiba", description: error.message, variant: "destructive" });
+    } finally {
+      setArchiveLoading(false);
+    }
+  }, [archivePage, archiveFilterZone, archiveFilterHunter, archiveFilterStartDate, archiveFilterEndDate, archiveFilterAnimalId]);
+
   useEffect(() => {
     const init = async () => {
       await checkUserRole();
-      fetchRegistrations();
+      fetchActiveRegistrations();
     };
     init();
     fetchZones();
@@ -218,6 +334,10 @@ const HuntingRegistrations = () => {
     fetchHunters();
     fetchHiredHunters();
   }, []);
+
+  useEffect(() => {
+    fetchArchiveRegistrations();
+  }, [fetchArchiveRegistrations]);
 
   useEffect(() => {
     if (formData.security_zone_id) {
@@ -496,14 +616,13 @@ const HuntingRegistrations = () => {
     }
   };
 
-  const fetchRegistrations = async () => {
+  const fetchActiveRegistrations = async () => {
     try {
       setLoading(true);
-      
+
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Check user roles to determine what registrations to show
       const { data: roles } = await supabase
         .from("user_roles")
         .select("role")
@@ -515,69 +634,52 @@ const HuntingRegistrations = () => {
       const userIsSuperAdmin = roleList.includes("super_admin");
       const userIsHunter = roleList.includes("hunter");
 
-      // Build query based on user role
       let query = supabase
         .from("hunting_registrations")
         .select(`
           *,
-          security_zones (
-            name,
-            settlements (name)
-          ),
+          security_zones (name, settlements (name)),
           hunting_locations (name, type),
           hired_hunters (name, license_number)
-        `);
+        `)
+        .gt("end_time", new Date().toISOString())
+        .not("status", "in", "(cancelled,rejected)")
+        .order("start_time", { ascending: true });
 
-      // If user is only hunter (not admin/editor/super_admin), only show their own registrations
       if (userIsHunter && !userIsAdmin && !userIsEditor && !userIsSuperAdmin) {
         query = query.eq("user_id", user.id);
       }
 
-      const { data: registrationsData, error: registrationsError } = await query
-        .order("created_at", { ascending: false });
+      const { data: registrationsData, error } = await query;
+      if (error) throw error;
 
-      if (registrationsError) throw registrationsError;
-
-      // Fetch user profiles for all registrations
       const userIds = [...new Set(registrationsData?.map(r => r.user_id) || [])];
       const { data: profilesData, error: profilesError } = await supabase
         .from("profiles")
         .select("id, contact_name, contact_phone, hunter_license_number")
         .in("id", userIds);
-
       if (profilesError) throw profilesError;
 
-      // Fetch animals for all registrations
       const registrationIds = registrationsData?.map(r => r.id) || [];
       const { data: animalsData, error: animalsError } = await supabase
         .from("animals")
         .select("id, animal_id, species, weight, hunting_registration_id")
         .in("hunting_registration_id", registrationIds);
-
       if (animalsError) throw animalsError;
 
-      // Map profiles and animals to registrations
-      const registrationsWithProfiles = registrationsData?.map(reg => {
-        const profile = profilesData?.find(p => p.id === reg.user_id);
-        const animals = animalsData?.filter(a => a.hunting_registration_id === reg.id) || [];
-        return {
-          ...reg,
-          profiles: profile || {
-            contact_name: null,
-            contact_phone: null,
-            hunter_license_number: null
-          },
-          animals
-        };
-      }) || [];
+      const result = registrationsData?.map(reg => ({
+        ...reg,
+        profiles: profilesData?.find(p => p.id === reg.user_id) || {
+          contact_name: null,
+          contact_phone: null,
+          hunter_license_number: null,
+        },
+        animals: animalsData?.filter(a => a.hunting_registration_id === reg.id) || [],
+      })) || [];
 
-      setRegistrations(registrationsWithProfiles);
+      setActiveRegistrations(result);
     } catch (error: any) {
-      toast({
-        title: "Hiba",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast({ title: "Hiba", description: error.message, variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -702,7 +804,7 @@ const HuntingRegistrations = () => {
 
       setFormData(getDefaultFormData());
       setDialogOpen(false);
-      fetchRegistrations();
+      fetchActiveRegistrations();
     } catch (error: any) {
       toast({
         title: "Hiba",
@@ -753,7 +855,7 @@ const HuntingRegistrations = () => {
       }
 
       toast({ title: "Siker!", description: "Beiratkozás jóváhagyva!" });
-      fetchRegistrations();
+      fetchActiveRegistrations();
     } catch (error: any) {
       toast({
         title: "Hiba",
@@ -800,7 +902,7 @@ const HuntingRegistrations = () => {
       }
 
       toast({ title: "Siker!", description: "Beiratkozás elutasítva!" });
-      fetchRegistrations();
+      fetchActiveRegistrations();
     } catch (error: any) {
       toast({
         title: "Hiba",
@@ -820,7 +922,7 @@ const HuntingRegistrations = () => {
 
       if (error) throw error;
       toast({ title: "Siker!", description: "Beiratkozás törölve!" });
-      fetchRegistrations();
+      fetchArchiveRegistrations();
     } catch (error: any) {
       toast({
         title: "Hiba",
@@ -840,7 +942,7 @@ const HuntingRegistrations = () => {
 
       if (error) throw error;
       toast({ title: "Siker!", description: "Kiiratkozás sikeres!" });
-      fetchRegistrations();
+      fetchActiveRegistrations();
     } catch (error: any) {
       toast({
         title: "Hiba",
@@ -859,7 +961,8 @@ const HuntingRegistrations = () => {
 
       if (error) throw error;
       toast({ title: "Siker!", description: "Állat leválasztva a beiratkozásról!" });
-      fetchRegistrations();
+      fetchActiveRegistrations();
+      fetchArchiveRegistrations();
     } catch (error: any) {
       toast({
         title: "Hiba",
@@ -1307,26 +1410,14 @@ const HuntingRegistrations = () => {
           <TabsContent value="active" className="space-y-4">
             {loading ? (
               <p>Betöltés...</p>
-            ) : registrations.filter(reg => {
-              const now = new Date();
-              const endTime = new Date(reg.end_time);
-              const isEnded = now > endTime;
-              const isArchived = reg.status === "cancelled" || reg.status === "rejected" || isEnded;
-              return !isArchived;
-            }).length === 0 ? (
+            ) : activeRegistrations.length === 0 ? (
               <Card>
                 <CardContent className="p-6 text-center text-muted-foreground">
                   Nincs aktív beiratkozás.
                 </CardContent>
               </Card>
             ) : (
-              registrations.filter(reg => {
-                const now = new Date();
-                const endTime = new Date(reg.end_time);
-                const isEnded = now > endTime;
-                const isArchived = reg.status === "cancelled" || reg.status === "rejected" || isEnded;
-                return !isArchived;
-              }).map((reg) => {
+              activeRegistrations.map((reg) => {
                 const isOwnRegistration = currentUserId === reg.user_id;
               
               return (
@@ -1407,7 +1498,7 @@ const HuntingRegistrations = () => {
                           isHiredHunter={!!reg.hired_hunter_id}
                           hunterName={reg.hired_hunter_id ? reg.hired_hunters?.name : reg.profiles.contact_name}
                           registrationSecurityZoneId={reg.security_zone_id}
-                          onAnimalAssigned={fetchRegistrations}
+                          onAnimalAssigned={fetchActiveRegistrations}
                         />
                       )}
                     </div>
@@ -1463,14 +1554,14 @@ const HuntingRegistrations = () => {
             <TabsContent value="pending" className="space-y-4">
               {loading ? (
                 <p>Betöltés...</p>
-              ) : registrations.filter(reg => reg.status === "pending" && reg.requires_admin_approval).length === 0 ? (
+              ) : activeRegistrations.filter(reg => reg.status === "pending" && reg.requires_admin_approval).length === 0 ? (
                 <Card>
                   <CardContent className="p-6 text-center text-muted-foreground">
                     Nincs elfogadásra váró beiratkozás.
                   </CardContent>
                 </Card>
               ) : (
-                registrations.filter(reg => reg.status === "pending" && reg.requires_admin_approval).map((reg) => (
+                activeRegistrations.filter(reg => reg.status === "pending" && reg.requires_admin_approval).map((reg) => (
                   <Card key={reg.id}>
                     <CardHeader>
                       <div className="flex items-start justify-between">
@@ -1557,7 +1648,7 @@ const HuntingRegistrations = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   <div className="space-y-2">
                     <Label>Biztonsági körzet</Label>
-                    <Select value={archiveFilterZone} onValueChange={setArchiveFilterZone}>
+                    <Select value={archiveFilterZone} onValueChange={(v) => { setArchivePage(0); setArchiveFilterZone(v); }}>
                       <SelectTrigger>
                         <SelectValue placeholder="Összes körzet" />
                       </SelectTrigger>
@@ -1574,7 +1665,7 @@ const HuntingRegistrations = () => {
                   
                   <div className="space-y-2">
                     <Label>Vadász</Label>
-                    <Select value={archiveFilterHunter} onValueChange={setArchiveFilterHunter}>
+                    <Select value={archiveFilterHunter} onValueChange={(v) => { setArchivePage(0); setArchiveFilterHunter(v); }}>
                       <SelectTrigger>
                         <SelectValue placeholder="Összes vadász" />
                       </SelectTrigger>
@@ -1599,7 +1690,7 @@ const HuntingRegistrations = () => {
                     <Input
                       placeholder="Vad azonosító keresése..."
                       value={archiveFilterAnimalId}
-                      onChange={(e) => setArchiveFilterAnimalId(e.target.value)}
+                      onChange={(e) => { setArchivePage(0); setArchiveFilterAnimalId(e.target.value); }}
                     />
                   </div>
                   
@@ -1608,7 +1699,7 @@ const HuntingRegistrations = () => {
                     <Input
                       type="date"
                       value={archiveFilterStartDate}
-                      onChange={(e) => setArchiveFilterStartDate(e.target.value)}
+                      onChange={(e) => { setArchivePage(0); setArchiveFilterStartDate(e.target.value); }}
                     />
                   </div>
                   
@@ -1617,7 +1708,7 @@ const HuntingRegistrations = () => {
                     <Input
                       type="date"
                       value={archiveFilterEndDate}
-                      onChange={(e) => setArchiveFilterEndDate(e.target.value)}
+                      onChange={(e) => { setArchivePage(0); setArchiveFilterEndDate(e.target.value); }}
                     />
                   </div>
                   
@@ -1625,6 +1716,7 @@ const HuntingRegistrations = () => {
                     <Button 
                       variant="outline" 
                       onClick={() => {
+                        setArchivePage(0);
                         setArchiveFilterZone("");
                         setArchiveFilterHunter("");
                         setArchiveFilterStartDate("");
@@ -1640,62 +1732,17 @@ const HuntingRegistrations = () => {
               </CardContent>
             </Card>
 
-            {loading ? (
+            {archiveLoading ? (
               <p>Betöltés...</p>
-            ) : (() => {
-              const now = new Date();
-              const archivedRegs = registrations.filter(reg => {
-                const endTime = new Date(reg.end_time);
-                const isEnded = now > endTime;
-                const isArchived = reg.status === "cancelled" || reg.status === "rejected" || isEnded;
-                
-                if (!isArchived) return false;
-                
-                // Apply filters
-                if (archiveFilterZone && archiveFilterZone !== "all" && reg.security_zone_id !== archiveFilterZone) {
-                  return false;
-                }
-                
-                if (archiveFilterHunter && archiveFilterHunter !== "all") {
-                  if (archiveFilterHunter.startsWith("hired-")) {
-                    const hiredHunterId = archiveFilterHunter.replace("hired-", "");
-                    if (reg.hired_hunter_id !== hiredHunterId) return false;
-                  } else {
-                    if (reg.user_id !== archiveFilterHunter) return false;
-                  }
-                }
-                
-                if (archiveFilterStartDate) {
-                  const filterStart = new Date(archiveFilterStartDate);
-                  const regStart = new Date(reg.start_time);
-                  if (regStart < filterStart) return false;
-                }
-                
-                if (archiveFilterEndDate) {
-                  const filterEnd = new Date(archiveFilterEndDate);
-                  filterEnd.setHours(23, 59, 59, 999);
-                  const regStart = new Date(reg.start_time);
-                  if (regStart > filterEnd) return false;
-                }
-                
-                if (archiveFilterAnimalId && archiveFilterAnimalId.trim() !== "") {
-                  const hasMatchingAnimal = reg.animals?.some(animal => 
-                    animal.animal_id.toLowerCase().includes(archiveFilterAnimalId.toLowerCase())
-                  );
-                  if (!hasMatchingAnimal) return false;
-                }
-                
-                return true;
-              });
-              
-              return archivedRegs.length === 0 ? (
-                <Card>
-                  <CardContent className="p-6 text-center text-muted-foreground">
-                    Nincs archivált beiratkozás a megadott szűrőkkel.
-                  </CardContent>
-                </Card>
-              ) : (
-                archivedRegs.map((reg) => (
+            ) : archiveRegistrations.length === 0 ? (
+              <Card>
+                <CardContent className="p-6 text-center text-muted-foreground">
+                  Nincs archivált beiratkozás a megadott szűrőkkel.
+                </CardContent>
+              </Card>
+            ) : (
+              <>
+                {archiveRegistrations.map((reg) => (
                 <Card key={reg.id} className="opacity-75">
                   <CardHeader>
                     <div className="flex items-start justify-between">
@@ -1744,7 +1791,7 @@ const HuntingRegistrations = () => {
                               isHiredHunter={!!reg.hired_hunter_id}
                               hunterName={reg.hired_hunter_id ? reg.hired_hunters?.name : reg.profiles.contact_name}
                               registrationSecurityZoneId={reg.security_zone_id}
-                              onAnimalAssigned={fetchRegistrations}
+                              onAnimalAssigned={fetchArchiveRegistrations}
                             />
                           )}
                           {isSuperAdmin && (
@@ -1801,9 +1848,32 @@ const HuntingRegistrations = () => {
                     )}
                   </CardContent>
                 </Card>
-                ))
-              );
-            })()}
+                ))}
+                {archiveTotalCount > archivePageSize && (
+                  <div className="flex items-center justify-between mt-4">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setArchivePage(p => p - 1)}
+                      disabled={archivePage === 0}
+                    >
+                      Előző
+                    </Button>
+                    <span className="text-sm text-muted-foreground">
+                      {archivePage * archivePageSize + 1}–{Math.min((archivePage + 1) * archivePageSize, archiveTotalCount)} / {archiveTotalCount} rekord
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setArchivePage(p => p + 1)}
+                      disabled={(archivePage + 1) * archivePageSize >= archiveTotalCount}
+                    >
+                      Következő
+                    </Button>
+                  </div>
+                )}
+              </>
+            )}
           </TabsContent>
         </Tabs>
       </div>
