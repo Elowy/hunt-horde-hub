@@ -208,12 +208,15 @@ const HuntingRegistrations = () => {
   const [formData, setFormData] = useState(getDefaultFormData());
 
   useEffect(() => {
-    checkUserRole();
+    const init = async () => {
+      await checkUserRole();
+      fetchRegistrations();
+    };
+    init();
     fetchZones();
     fetchClosures();
     fetchHunters();
     fetchHiredHunters();
-    fetchRegistrations();
   }, []);
 
   useEffect(() => {
@@ -391,6 +394,7 @@ const HuntingRegistrations = () => {
         .from("hunting_registrations")
         .select("id")
         .eq("security_zone_id", zoneId)
+        .in("status", ["pending", "approved"])
         .gte("start_time", ninetyDaysAgo.toISOString());
 
       if (regError) throw regError;
@@ -589,8 +593,8 @@ const HuntingRegistrations = () => {
       return;
     }
 
-    const startTime = new Date(`${formData.start_date}T${formData.start_time}`);
-    const endTime = new Date(`${formData.end_date}T${formData.end_time}`);
+    const startTime = new Date(`${formData.start_date}T${formData.start_time}:00`);
+    const endTime = new Date(`${formData.end_date}T${formData.end_time}:00`);
 
     const duration = (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60);
     if (duration < 3) {
@@ -611,6 +615,23 @@ const HuntingRegistrations = () => {
       return;
     }
 
+    if (startTime < new Date()) {
+      toast({
+        title: "Hiba",
+        description: "A kezdési időpont nem lehet múltbeli!",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if ((isAdmin || isEditor) && !formData.selected_user_id) {
+      toast({
+        title: "Hiba",
+        description: "Kérjük válasszon vadászt!",
+        variant: "destructive",
+      });
+      return;
+    }
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -793,6 +814,7 @@ const HuntingRegistrations = () => {
   };
 
   const handleDelete = async (regId: string) => {
+    if (!window.confirm("Biztosan törölni szeretnéd ezt a beiratkozást? Ez a művelet nem visszafordítható.")) return;
     try {
       const { error } = await supabase
         .from("hunting_registrations")
@@ -1202,6 +1224,7 @@ const HuntingRegistrations = () => {
                         <Input
                           type="date"
                           value={formData.start_date}
+                          min={format(new Date(), "yyyy-MM-dd")}
                           onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
                         />
                       </div>
