@@ -615,12 +615,9 @@ const HuntingRegistrations = () => {
       return;
     }
 
-    if (startTime < new Date()) {
-      toast({
-        title: "Hiba",
-        description: "A kezdési időpont nem lehet múltbeli!",
-        variant: "destructive",
-      });
+    const today = format(new Date(), "yyyy-MM-dd");
+    if (formData.start_date < today) {
+      toast({ title: "Hiba", description: "A kezdési dátum nem lehet múltbeli!", variant: "destructive" });
       return;
     }
 
