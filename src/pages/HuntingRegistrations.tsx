@@ -1390,7 +1390,7 @@ const HuntingRegistrations = () => {
                           </Button>
                         </div>
                       )}
-                      {isOwnRegistration && reg.status === "pending" && (
+                      {isOwnRegistration && reg.status !== "cancelled" && reg.status !== "rejected" && (
                         <Button
                           size="sm"
                           variant="outline"
