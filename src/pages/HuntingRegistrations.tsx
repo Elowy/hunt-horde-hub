@@ -427,7 +427,18 @@ const HuntingRegistrations = () => {
 
   const fetchHunters = async () => {
     try {
-      // Get all users with hunter or admin role
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: myProfile } = await supabase
+        .from("profiles")
+        .select("id, hunter_society_id")
+        .eq("id", user.id)
+        .single();
+
+      const societyId = myProfile?.hunter_society_id ?? myProfile?.id;
+      if (!societyId) return;
+
       const { data: userRoles, error: rolesError } = await supabase
         .from("user_roles")
         .select("user_id, role")
@@ -440,20 +451,19 @@ const HuntingRegistrations = () => {
       if (userIds.length > 0) {
         const { data: profiles, error: profilesError } = await supabase
           .from("profiles")
-          .select("id, contact_name, hunter_license_number")
-          .in("id", userIds);
+          .select("id, contact_name, hunter_license_number, hunter_society_id")
+          .in("id", userIds)
+          .or(`hunter_society_id.eq.${societyId},id.eq.${societyId}`);
 
         if (profilesError) throw profilesError;
 
-        const huntersList = profiles?.map(p => ({
+        setHunters(profiles?.map(p => ({
           id: p.id,
           profiles: {
             contact_name: p.contact_name,
             hunter_license_number: p.hunter_license_number,
           }
-        })) || [];
-
-        setHunters(huntersList);
+        })) || []);
       }
     } catch (error: any) {
       toast({
