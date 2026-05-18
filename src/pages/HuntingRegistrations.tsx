@@ -831,6 +831,7 @@ const HuntingRegistrations = () => {
   };
 
   const handleCancel = async (regId: string) => {
+    if (!window.confirm("Biztosan ki szeretne iratkozni erről a vadászatról? Ez a művelet nem visszafordítható.")) return;
     try {
       const { error } = await supabase
         .from("hunting_registrations")
